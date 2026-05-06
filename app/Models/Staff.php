@@ -9,25 +9,29 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Course extends Model implements HasMedia
+class Staff extends Model implements HasMedia
 {
     use SoftDeletes, HasFactory, InteractsWithMedia;
 
-    public $table = 'courses';
+    public $table = 'staff';
 
     protected $dates = [
+        'joining_date',
         'created_at',
         'updated_at',
         'deleted_at',
     ];
 
     protected $fillable = [
+        'user_id',
         'branch_id',
-        'name',
-        'course_code',
-        'duration',
-        'fee',
-        'description',
+        'phone',
+        'alternate_phone',
+        'designation',
+        'department',
+        'address',
+        'salary',
+        'joining_date',
         'status',
         'created_at',
         'updated_at',
@@ -35,23 +39,42 @@ class Course extends Model implements HasMedia
     ];
 
     protected $appends = [
-        'image',
+        'photo',
+        'documents',
     ];
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('course_image')->singleFile();
+        $this->addMediaCollection('staff_photo')->singleFile();
+
+        $this->addMediaCollection('staff_documents');
     }
 
-    public function getImageAttribute()
+    public function getPhotoAttribute()
     {
-        $file = $this->getFirstMedia('course_image');
+        $file = $this->getFirstMedia('staff_photo');
 
         if ($file) {
             return $file->getUrl();
         }
 
         return null;
+    }
+
+    public function getDocumentsAttribute()
+    {
+        return $this->getMedia('staff_documents')->map(function ($file) {
+            return [
+                'id'   => $file->id,
+                'name' => $file->file_name,
+                'url'  => $file->getUrl(),
+            ];
+        });
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function branch()
@@ -63,13 +86,4 @@ class Course extends Model implements HasMedia
     {
         return $date->format('Y-m-d H:i:s');
     }
-
-    public function subjects()
-{
-    return $this->hasMany(Subject::class, 'course_id');
-}
-public function batches()
-{
-    return $this->hasMany(Batch::class, 'course_id');
-}
 }

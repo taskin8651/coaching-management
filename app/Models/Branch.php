@@ -76,4 +76,18 @@ public function subjects()
 {
     return $this->hasMany(Subject::class, 'branch_id');
 }
+public function batches()
+{
+    return $this->hasMany(Batch::class, 'branch_id');
+}
+
+public function teachers()
+{
+    return $this->hasMany(Teacher::class, 'branch_id');
+}
+
+public function staff()
+{
+    return $this->hasMany(Staff::class, 'branch_id');
+}
 }

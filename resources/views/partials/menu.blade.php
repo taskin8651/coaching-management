@@ -114,6 +114,9 @@
         $coachingActive = request()->is('admin/branches*')
             || request()->is('admin/courses*')
             || request()->is('admin/subjects*')
+            || request()->is('admin/batches*')
+            || request()->is('admin/teachers*')
+            || request()->is('admin/staff*')
             ;
 
     @endphp
@@ -165,6 +168,30 @@
        class="sub-link {{ request()->is('admin/subjects*') ? 'active' : '' }}">
         <i class="fas fa-book-open"></i>
         Subjects
+    </a>
+@endcan
+
+@can('batch_access')
+    <a href="{{ route('admin.batches.index') }}"
+       class="sub-link {{ request()->is('admin/batches*') ? 'active' : '' }}">
+        <i class="fas fa-layer-group"></i>
+        Batches
+    </a>
+@endcan
+
+@can('teacher_access')
+    <a href="{{ route('admin.teachers.index') }}"
+       class="sub-link {{ request()->is('admin/teachers*') ? 'active' : '' }}">
+        <i class="fas fa-chalkboard-teacher"></i>
+        Teachers
+    </a>
+@endcan
+
+@can('staff_access')
+    <a href="{{ route('admin.staff.index') }}"
+       class="sub-link {{ request()->is('admin/staff*') ? 'active' : '' }}">
+        <i class="fas fa-user-friends"></i>
+        Staff
     </a>
 @endcan
         </div>

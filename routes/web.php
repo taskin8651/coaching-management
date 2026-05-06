@@ -40,6 +40,18 @@ Route::resource('courses', 'CoursesController');
 Route::delete('subjects/destroy', 'SubjectsController@massDestroy')->name('subjects.massDestroy');
 Route::resource('subjects', 'SubjectsController');
 
+// Batches
+Route::delete('batches/destroy', 'BatchesController@massDestroy')->name('batches.massDestroy');
+Route::resource('batches', 'BatchesController');
+
+// Teachers
+Route::delete('teachers/destroy', 'TeachersController@massDestroy')->name('teachers.massDestroy');
+Route::resource('teachers', 'TeachersController');
+
+// Staff
+Route::delete('staff/destroy', 'StaffController@massDestroy')->name('staff.massDestroy');
+Route::resource('staff', 'StaffController');
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
