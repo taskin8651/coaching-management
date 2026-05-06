@@ -122,6 +122,7 @@
         || request()->is('admin/fee-payments*')
         || request()->is('admin/expenses*')
 || request()->is('admin/salary-payments*')
+|| request()->is('admin/exams*')
             ;
 
     @endphp
@@ -235,6 +236,14 @@
         Salary Payments
     </a>    
     @endcan
+
+    @can('exam_access')
+    <a href="{{ route('admin.exams.index') }}"
+       class="sub-link {{ request()->is('admin/exams*') ? 'active' : '' }}">
+        <i class="fas fa-clipboard-list"></i>
+        Exams / Tests
+    </a>
+@endcan
         </div>
     </div>
 @endcan

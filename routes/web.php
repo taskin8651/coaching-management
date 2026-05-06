@@ -76,6 +76,11 @@ Route::delete('salary-payments/destroy', 'SalaryPaymentsController@massDestroy')
 Route::get('salary-payments/{salary_payment}/slip', 'SalaryPaymentsController@slip')->name('salary-payments.slip');
 Route::resource('salary-payments', 'SalaryPaymentsController');
 
+// Exams
+Route::delete('exams/destroy', 'ExamsController@massDestroy')->name('exams.massDestroy');
+Route::post('exams/{exam}/results', 'ExamsController@storeResults')->name('exams.results.store');
+Route::resource('exams', 'ExamsController');
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

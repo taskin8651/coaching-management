@@ -108,4 +108,9 @@ class Student extends Model implements HasMedia
 {
     return $this->hasMany(FeePayment::class, 'student_id');
 }
+
+public function examResults()
+{
+    return $this->hasMany(ExamResult::class, 'student_id');
+}
 }

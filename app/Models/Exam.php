@@ -7,25 +7,39 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Subject extends Model
+class Exam extends Model
 {
     use SoftDeletes, HasFactory;
 
-    public $table = 'subjects';
+    public $table = 'exams';
 
     protected $dates = [
+        'exam_date',
         'created_at',
         'updated_at',
         'deleted_at',
     ];
 
+    protected $casts = [
+        'exam_date'     => 'date',
+        'total_marks'   => 'decimal:2',
+        'passing_marks' => 'decimal:2',
+    ];
+
     protected $fillable = [
         'branch_id',
         'course_id',
-        'name',
-        'subject_code',
-        'description',
+        'batch_id',
+        'subject_id',
+        'title',
+        'exam_type',
+        'exam_date',
+        'start_time',
+        'end_time',
+        'total_marks',
+        'passing_marks',
         'status',
+        'remarks',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -41,13 +55,23 @@ class Subject extends Model
         return $this->belongsTo(Course::class, 'course_id');
     }
 
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class, 'batch_id');
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class, 'subject_id');
+    }
+
+    public function results()
+    {
+        return $this->hasMany(ExamResult::class, 'exam_id');
+    }
+
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');
     }
-
-    public function exams()
-{
-    return $this->hasMany(Exam::class, 'subject_id');
-}
 }

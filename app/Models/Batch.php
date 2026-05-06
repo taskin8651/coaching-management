@@ -61,4 +61,9 @@ public function feePayments()
 {
     return $this->hasMany(FeePayment::class, 'batch_id');
 }
+
+public function exams()
+{
+    return $this->hasMany(Exam::class, 'batch_id');
+}
 }

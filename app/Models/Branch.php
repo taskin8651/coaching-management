@@ -110,4 +110,9 @@ public function salaryPayments()
 {
     return $this->hasMany(SalaryPayment::class, 'branch_id');
 }
+
+public function exams()
+{
+    return $this->hasMany(Exam::class, 'branch_id');
+}
 }
