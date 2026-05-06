@@ -102,7 +102,7 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="status-dot status-success"></span>
                                     <span style="font-size:12.5px; color:#374151;">
-                                        {{ $user->email_verified_at->format('d M Y') }}
+                                        {{ $user->email_verified_at ? \Carbon\Carbon::parse($user->email_verified_at)->format('d M Y') : '-' }}
                                     </span>
                                 </div>
                             @else
