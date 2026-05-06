@@ -138,6 +138,26 @@ class PermissionsTableSeeder extends Seeder
                     'id'    => 32,
                     'title' => 'branch_access',
                 ],
+                [
+                    'id'    => 33,
+                    'title' => 'course_create',
+                ],
+                [
+                    'id'    => 34,
+                    'title' => 'course_edit',
+                ],
+                [
+                    'id'    => 35,
+                    'title' => 'course_show',
+                ],
+                [
+                    'id'    => 36,
+                    'title' => 'course_delete',
+                ],
+                [
+                    'id'    => 37,
+                    'title' => 'course_access',
+                ],
         ];
 
         Permission::insert($permissions);

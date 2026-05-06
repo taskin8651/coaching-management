@@ -111,8 +111,11 @@
         {{-- COACHING MANAGEMENT GROUP --}}
 @can('branch_access')
     @php
-        $coachingActive = request()->is('admin/branches*');
+        $coachingActive = request()->is('admin/branches*')
+            || request()->is('admin/courses*');
+
     @endphp
+
 
     <div x-data="{ open: {{ $coachingActive ? 'true' : 'false' }} }">
 
@@ -146,6 +149,14 @@
                     Branches
                 </a>
             @endcan
+
+            @can('course_access')
+    <a href="{{ route('admin.courses.index') }}"
+       class="sub-link {{ request()->is('admin/courses*') ? 'active' : '' }}">
+        <i class="fas fa-book"></i>
+        Courses
+    </a>
+@endcan
 
         </div>
     </div>

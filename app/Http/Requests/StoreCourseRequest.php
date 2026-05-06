@@ -2,27 +2,62 @@
 
 namespace App\Http\Requests;
 
+use Gate;
 use Illuminate\Foundation\Http\FormRequest;
+use Symfony\Component\HttpFoundation\Response;
 
 class StoreCourseRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
+    public function authorize()
     {
-        return false;
+        abort_if(Gate::denies('course_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
-    public function rules(): array
+    public function rules()
     {
         return [
-            //
+            'branch_id' => [
+                'nullable',
+                'integer',
+                'exists:branches,id',
+            ],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'course_code' => [
+                'nullable',
+                'string',
+                'max:255',
+                'unique:courses,course_code',
+            ],
+            'duration' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'fee' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'description' => [
+                'nullable',
+                'string',
+            ],
+            'status' => [
+                'required',
+                'in:active,inactive',
+            ],
+            'image' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+            ],
         ];
     }
 }
