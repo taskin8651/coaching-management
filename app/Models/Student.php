@@ -103,4 +103,9 @@ class Student extends Model implements HasMedia
     {
         return $date->format('Y-m-d H:i:s');
     }
+
+    public function feePayments()
+{
+    return $this->hasMany(FeePayment::class, 'student_id');
+}
 }

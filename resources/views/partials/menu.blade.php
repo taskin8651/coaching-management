@@ -118,7 +118,8 @@
             || request()->is('admin/teachers*')
             || request()->is('admin/staff*')
             || request()->is('admin/students*')
-        || request()->is('admin/enquiries*');
+        || request()->is('admin/enquiries*')
+        || request()->is('admin/fee-payments*')
             ;
 
     @endphp
@@ -211,7 +212,13 @@
         Enquiries
     </a>
 @endcan
-
+@can('fee_payment_access')
+    <a href="{{ route('admin.fee-payments.index') }}"
+       class="sub-link {{ request()->is('admin/fee-payments*') ? 'active' : '' }}">
+        <i class="fas fa-rupee-sign"></i>
+        Fee Payments
+    </a>
+@endcan
         </div>
     </div>
 @endcan

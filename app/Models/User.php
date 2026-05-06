@@ -115,4 +115,8 @@ public function enquiryFollowUps()
 {
     return $this->hasMany(EnquiryFollowUp::class, 'followed_by_id');
 }
+public function collectedFeePayments()
+{
+    return $this->hasMany(FeePayment::class, 'collected_by_id');
+}
 }

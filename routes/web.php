@@ -61,6 +61,13 @@ Route::delete('enquiries/destroy', 'EnquiriesController@massDestroy')->name('enq
 Route::post('enquiries/{enquiry}/follow-ups', 'EnquiriesController@storeFollowUp')->name('enquiries.followUps.store');
 Route::resource('enquiries', 'EnquiriesController');
 
+// Fee Payments
+Route::delete('fee-payments/destroy', 'FeePaymentsController@massDestroy')->name('fee-payments.massDestroy');
+Route::resource('fee-payments', 'FeePaymentsController');
+// Fee Payment Invoice
+Route::get('fee-payments/{fee_payment}/invoice', 'FeePaymentsController@invoice')->name('fee-payments.invoice');
+
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

@@ -100,4 +100,9 @@ public function enquiries()
 {
     return $this->hasMany(Enquiry::class, 'branch_id');
 }
+
+public function feePayments()
+{
+    return $this->hasMany(FeePayment::class, 'branch_id');
+}
 }

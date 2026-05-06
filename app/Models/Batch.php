@@ -57,4 +57,8 @@ class Batch extends Model
 {
     return $this->hasMany(Student::class, 'batch_id');
 }
+public function feePayments()
+{
+    return $this->hasMany(FeePayment::class, 'batch_id');
+}
 }
