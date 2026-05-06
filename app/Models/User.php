@@ -129,4 +129,14 @@ public function paidSalaryPayments()
 {
     return $this->hasMany(SalaryPayment::class, 'paid_by_id');
 }
+
+public function uploadedStudyMaterials()
+{
+    return $this->hasMany(StudyMaterial::class, 'uploaded_by_id');
+}
+
+public function createdNotices()
+{
+    return $this->hasMany(Notice::class, 'created_by_id');
+}
 }

@@ -81,6 +81,16 @@ Route::delete('exams/destroy', 'ExamsController@massDestroy')->name('exams.massD
 Route::post('exams/{exam}/results', 'ExamsController@storeResults')->name('exams.results.store');
 Route::resource('exams', 'ExamsController');
 
+// Study Materials
+Route::delete('study-materials/destroy', 'StudyMaterialsController@massDestroy')->name('study-materials.massDestroy');
+Route::delete('study-materials/media/{media}', 'StudyMaterialsController@deleteMedia')->name('study-materials.media.destroy');
+Route::resource('study-materials', 'StudyMaterialsController');
+
+// Notices
+Route::delete('notices/destroy', 'NoticesController@massDestroy')->name('notices.massDestroy');
+Route::delete('notices/media/{media}', 'NoticesController@deleteMedia')->name('notices.media.destroy');
+Route::resource('notices', 'NoticesController');
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

@@ -123,6 +123,8 @@
         || request()->is('admin/expenses*')
 || request()->is('admin/salary-payments*')
 || request()->is('admin/exams*')
+|| request()->is('admin/study-materials*')
+|| request()->is('admin/notices*')
             ;
 
     @endphp
@@ -242,6 +244,22 @@
        class="sub-link {{ request()->is('admin/exams*') ? 'active' : '' }}">
         <i class="fas fa-clipboard-list"></i>
         Exams / Tests
+    </a>
+@endcan
+
+@can('study_material_access')
+    <a href="{{ route('admin.study-materials.index') }}"
+       class="sub-link {{ request()->is('admin/study-materials*') ? 'active' : '' }}">
+        <i class="fas fa-book-reader"></i>
+        Study Materials
+    </a>
+@endcan
+
+@can('notice_access')
+    <a href="{{ route('admin.notices.index') }}"
+       class="sub-link {{ request()->is('admin/notices*') ? 'active' : '' }}">
+        <i class="fas fa-bullhorn"></i>
+        Notices
     </a>
 @endcan
         </div>

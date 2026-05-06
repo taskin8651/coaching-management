@@ -115,4 +115,14 @@ public function exams()
 {
     return $this->hasMany(Exam::class, 'branch_id');
 }
+
+public function studyMaterials()
+{
+    return $this->hasMany(StudyMaterial::class, 'branch_id');
+}
+
+public function notices()
+{
+    return $this->hasMany(Notice::class, 'branch_id');
+}
 }

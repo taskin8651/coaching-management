@@ -66,4 +66,14 @@ public function exams()
 {
     return $this->hasMany(Exam::class, 'batch_id');
 }
+
+public function studyMaterials()
+{
+    return $this->hasMany(StudyMaterial::class, 'batch_id');
+}
+
+public function notices()
+{
+    return $this->hasMany(Notice::class, 'batch_id');
+}
 }

@@ -9,28 +9,36 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-class StudyMaterial extends Model implements HasMedia
+class Notice extends Model implements HasMedia
 {
     use SoftDeletes, HasFactory, InteractsWithMedia;
 
-    public $table = 'study_materials';
+    public $table = 'notices';
 
     protected $dates = [
+        'publish_date',
+        'expiry_date',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'publish_date' => 'date',
+        'expiry_date'  => 'date',
     ];
 
     protected $fillable = [
         'branch_id',
         'course_id',
         'batch_id',
-        'subject_id',
-        'uploaded_by_id',
+        'created_by_id',
         'title',
-        'material_type',
+        'notice_type',
+        'target_audience',
         'description',
-        'external_link',
+        'publish_date',
+        'expiry_date',
         'status',
         'created_at',
         'updated_at',
@@ -38,17 +46,17 @@ class StudyMaterial extends Model implements HasMedia
     ];
 
     protected $appends = [
-        'files',
+        'attachments',
     ];
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('study_material_files');
+        $this->addMediaCollection('notice_attachments');
     }
 
-    public function getFilesAttribute()
+    public function getAttachmentsAttribute()
     {
-        return $this->getMedia('study_material_files')->map(function ($file) {
+        return $this->getMedia('notice_attachments')->map(function ($file) {
             return [
                 'id'   => $file->id,
                 'name' => $file->file_name,
@@ -74,14 +82,9 @@ class StudyMaterial extends Model implements HasMedia
         return $this->belongsTo(Batch::class, 'batch_id');
     }
 
-    public function subject()
+    public function createdBy()
     {
-        return $this->belongsTo(Subject::class, 'subject_id');
-    }
-
-    public function uploadedBy()
-    {
-        return $this->belongsTo(User::class, 'uploaded_by_id');
+        return $this->belongsTo(User::class, 'created_by_id');
     }
 
     protected function serializeDate(DateTimeInterface $date)

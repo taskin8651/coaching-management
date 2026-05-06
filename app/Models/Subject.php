@@ -50,4 +50,9 @@ class Subject extends Model
 {
     return $this->hasMany(Exam::class, 'subject_id');
 }
+
+public function studyMaterials()
+{
+    return $this->hasMany(StudyMaterial::class, 'subject_id');
+}
 }

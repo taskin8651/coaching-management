@@ -92,4 +92,8 @@ public function exams()
 {
     return $this->hasMany(Exam::class, 'course_id');
 }
+public function studyMaterials()
+{
+    return $this->hasMany(StudyMaterial::class, 'course_id');
+}
 }
