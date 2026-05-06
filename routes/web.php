@@ -67,6 +67,14 @@ Route::resource('fee-payments', 'FeePaymentsController');
 // Fee Payment Invoice
 Route::get('fee-payments/{fee_payment}/invoice', 'FeePaymentsController@invoice')->name('fee-payments.invoice');
 
+// Expenses
+Route::delete('expenses/destroy', 'ExpensesController@massDestroy')->name('expenses.massDestroy');
+Route::resource('expenses', 'ExpensesController');
+
+// Salary Payments
+Route::delete('salary-payments/destroy', 'SalaryPaymentsController@massDestroy')->name('salary-payments.massDestroy');
+Route::get('salary-payments/{salary_payment}/slip', 'SalaryPaymentsController@slip')->name('salary-payments.slip');
+Route::resource('salary-payments', 'SalaryPaymentsController');
 
     
 });

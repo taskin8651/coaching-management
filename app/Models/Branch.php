@@ -105,4 +105,9 @@ public function feePayments()
 {
     return $this->hasMany(FeePayment::class, 'branch_id');
 }
+
+public function salaryPayments()
+{
+    return $this->hasMany(SalaryPayment::class, 'branch_id');
+}
 }

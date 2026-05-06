@@ -120,6 +120,8 @@
             || request()->is('admin/students*')
         || request()->is('admin/enquiries*')
         || request()->is('admin/fee-payments*')
+        || request()->is('admin/expenses*')
+|| request()->is('admin/salary-payments*')
             ;
 
     @endphp
@@ -219,6 +221,20 @@
         Fee Payments
     </a>
 @endcan
+@can('expense_access')
+    <a href="{{ route('admin.expenses.index') }}"
+         class="sub-link {{ request()->is('admin/expenses*') ? 'active' : '' }}">
+        <i class="fas fa-money-bill-wave"></i>
+        Expenses
+    </a>
+@endcan
+@can('salary_payment_access')
+    <a href="{{ route('admin.salary-payments.index') }}"
+       class="sub-link {{ request()->is('admin/salary-payments*') ? '   active' : '' }}">
+        <i class="fas fa-hand-holding-usd"></i>
+        Salary Payments
+    </a>    
+    @endcan
         </div>
     </div>
 @endcan

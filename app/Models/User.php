@@ -119,4 +119,14 @@ public function collectedFeePayments()
 {
     return $this->hasMany(FeePayment::class, 'collected_by_id');
 }
+
+public function salaryPayments()
+{
+    return $this->hasMany(SalaryPayment::class, 'user_id');
+}
+
+public function paidSalaryPayments()
+{
+    return $this->hasMany(SalaryPayment::class, 'paid_by_id');
+}
 }
