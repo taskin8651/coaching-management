@@ -112,7 +112,9 @@
 @can('branch_access')
     @php
         $coachingActive = request()->is('admin/branches*')
-            || request()->is('admin/courses*');
+            || request()->is('admin/courses*')
+            || request()->is('admin/subjects*')
+            ;
 
     @endphp
 
@@ -158,6 +160,13 @@
     </a>
 @endcan
 
+@can('subject_access')
+    <a href="{{ route('admin.subjects.index') }}"
+       class="sub-link {{ request()->is('admin/subjects*') ? 'active' : '' }}">
+        <i class="fas fa-book-open"></i>
+        Subjects
+    </a>
+@endcan
         </div>
     </div>
 @endcan

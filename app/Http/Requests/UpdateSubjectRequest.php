@@ -4,13 +4,14 @@ namespace App\Http\Requests;
 
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
-class StoreSubjectRequest extends FormRequest
+class UpdateSubjectRequest extends FormRequest
 {
     public function authorize()
     {
-        abort_if(Gate::denies('subject_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(Gate::denies('subject_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         return true;
     }
@@ -37,7 +38,7 @@ class StoreSubjectRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                'unique:subjects,subject_code',
+                Rule::unique('subjects', 'subject_code')->ignore($this->subject->id),
             ],
             'description' => [
                 'nullable',

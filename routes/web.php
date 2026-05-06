@@ -36,6 +36,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 Route::delete('courses/destroy', 'CoursesController@massDestroy')->name('courses.massDestroy');
 Route::resource('courses', 'CoursesController');
 
+// Subjects
+Route::delete('subjects/destroy', 'SubjectsController@massDestroy')->name('subjects.massDestroy');
+Route::resource('subjects', 'SubjectsController');
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

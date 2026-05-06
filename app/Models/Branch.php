@@ -71,4 +71,9 @@ class Branch extends Model implements HasMedia
 {
     return $this->hasMany(Course::class, 'branch_id');
 }
+
+public function subjects()
+{
+    return $this->hasMany(Subject::class, 'branch_id');
+}
 }

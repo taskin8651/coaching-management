@@ -63,4 +63,9 @@ class Course extends Model implements HasMedia
     {
         return $date->format('Y-m-d H:i:s');
     }
+
+    public function subjects()
+{
+    return $this->hasMany(Subject::class, 'course_id');
+}
 }
