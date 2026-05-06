@@ -100,4 +100,19 @@ public function teacher()
 {
     return $this->hasOne(Teacher::class, 'user_id');
 }
+
+public function student()
+{
+    return $this->hasOne(Student::class, 'user_id');
+}
+
+public function assignedEnquiries()
+{
+    return $this->hasMany(Enquiry::class, 'assigned_to_id');
+}
+
+public function enquiryFollowUps()
+{
+    return $this->hasMany(EnquiryFollowUp::class, 'followed_by_id');
+}
 }

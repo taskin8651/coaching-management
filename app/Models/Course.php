@@ -72,4 +72,14 @@ public function batches()
 {
     return $this->hasMany(Batch::class, 'course_id');
 }
+
+public function students()
+{
+    return $this->hasMany(Student::class, 'course_id');
+}
+
+public function enquiries()
+{
+    return $this->hasMany(Enquiry::class, 'course_id');
+}
 }

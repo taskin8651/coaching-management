@@ -90,4 +90,14 @@ public function staff()
 {
     return $this->hasMany(Staff::class, 'branch_id');
 }
+
+public function students()
+{
+    return $this->hasMany(Student::class, 'branch_id');
+}
+
+public function enquiries()
+{
+    return $this->hasMany(Enquiry::class, 'branch_id');
+}
 }

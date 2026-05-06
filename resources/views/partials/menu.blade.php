@@ -117,6 +117,8 @@
             || request()->is('admin/batches*')
             || request()->is('admin/teachers*')
             || request()->is('admin/staff*')
+            || request()->is('admin/students*')
+        || request()->is('admin/enquiries*');
             ;
 
     @endphp
@@ -194,6 +196,22 @@
         Staff
     </a>
 @endcan
+
+@can('student_access')
+    <a href="{{ route('admin.students.index') }}"
+       class="sub-link {{ request()->is('admin/students*') ? 'active' : '' }}">
+        <i class="fas fa-user-graduate"></i>
+        Students
+    </a>
+@endcan
+@can('enquiry_access')
+    <a href="{{ route('admin.enquiries.index') }}"
+       class="sub-link {{ request()->is('admin/enquiries*') ? 'active' : '' }}">
+        <i class="fas fa-headset"></i>
+        Enquiries
+    </a>
+@endcan
+
         </div>
     </div>
 @endcan

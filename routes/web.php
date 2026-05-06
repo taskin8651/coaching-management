@@ -52,6 +52,15 @@ Route::resource('teachers', 'TeachersController');
 Route::delete('staff/destroy', 'StaffController@massDestroy')->name('staff.massDestroy');
 Route::resource('staff', 'StaffController');
 
+// Students
+Route::delete('students/destroy', 'StudentsController@massDestroy')->name('students.massDestroy');
+Route::resource('students', 'StudentsController');
+
+// Enquiries
+Route::delete('enquiries/destroy', 'EnquiriesController@massDestroy')->name('enquiries.massDestroy');
+Route::post('enquiries/{enquiry}/follow-ups', 'EnquiriesController@storeFollowUp')->name('enquiries.followUps.store');
+Route::resource('enquiries', 'EnquiriesController');
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
