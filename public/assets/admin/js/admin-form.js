@@ -51,20 +51,22 @@ function initPasswordStrength() {
         }
     });
 }
-
 function initAdminCheckboxes() {
     document.querySelectorAll('.role-checkbox-item, .admin-checkbox-item').forEach(item => {
         const checkbox = item.querySelector('input[type=checkbox]');
 
         if (!checkbox) return;
 
-        item.classList.toggle('checked', checkbox.checked);
-
-        item.addEventListener('click', function (event) {
-            event.preventDefault();
-
-            checkbox.checked = !checkbox.checked;
+        const syncState = () => {
             item.classList.toggle('checked', checkbox.checked);
+        };
+
+        syncState();
+
+        checkbox.addEventListener('change', syncState);
+
+        item.addEventListener('click', function () {
+            setTimeout(syncState, 0);
         });
     });
 
@@ -78,7 +80,7 @@ function initAdminCheckboxes() {
                 if (!checkbox) return;
 
                 checkbox.checked = true;
-                item.classList.add('checked');
+                checkbox.dispatchEvent(new Event('change'));
             });
         });
     });
@@ -93,13 +95,16 @@ function initAdminCheckboxes() {
                 if (!checkbox) return;
 
                 checkbox.checked = false;
-                item.classList.remove('checked');
+                checkbox.dispatchEvent(new Event('change'));
             });
         });
     });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    initPasswordStrength();
+    if (typeof initPasswordStrength === 'function') {
+        initPasswordStrength();
+    }
+
     initAdminCheckboxes();
 });

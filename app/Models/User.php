@@ -90,4 +90,9 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class);
     }
+
+    public function managedBranches()
+{
+    return $this->hasMany(Branch::class, 'manager_id');
+}
 }

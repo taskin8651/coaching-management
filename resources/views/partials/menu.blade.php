@@ -108,6 +108,49 @@
             </div>
         @endcan
 
+        {{-- COACHING MANAGEMENT GROUP --}}
+@can('branch_access')
+    @php
+        $coachingActive = request()->is('admin/branches*');
+    @endphp
+
+    <div x-data="{ open: {{ $coachingActive ? 'true' : 'false' }} }">
+
+        <button type="button"
+                @click="open = !open"
+                data-tooltip="Coaching"
+                class="nav-link nav-group-btn {{ $coachingActive ? 'active' : '' }}">
+
+            <div class="nav-group-left">
+                <i class="fas fa-school nav-icon"></i>
+                <span class="nav-label">Coaching Management</span>
+            </div>
+
+            <i class="fas fa-chevron-right chevron"
+               :style="open ? 'transform:rotate(90deg)' : ''"></i>
+        </button>
+
+        <div class="submenu"
+             x-show="open"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 -translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-100"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-1">
+
+            @can('branch_access')
+                <a href="{{ route('admin.branches.index') }}"
+                   class="sub-link {{ request()->is('admin/branches*') ? 'active' : '' }}">
+                    <i class="fas fa-code-branch"></i>
+                    Branches
+                </a>
+            @endcan
+
+        </div>
+    </div>
+@endcan
+
         <div class="nav-divider"></div>
 
         <p class="sidebar-section-title compact nav-label">Account</p>
