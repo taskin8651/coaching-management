@@ -13,7 +13,7 @@
         <h2 class="admin-page-title">Add Teacher</h2>
 
         <p class="admin-page-subtitle">
-            Create teacher profile and attach branch, photo and documents
+            Create teacher profile and assign course, subject and batch
         </p>
     </div>
 </div>
@@ -31,7 +31,7 @@
 
                 <div>
                     <p class="form-card-title">Teacher Information</p>
-                    <p class="form-card-subtitle">Basic teacher details</p>
+                    <p class="form-card-subtitle">Basic profile details</p>
                 </div>
             </div>
 
@@ -39,7 +39,7 @@
 
                 <div class="field-group">
                     <label class="field-label" for="user_id">
-                        User Account
+                        User Account <span class="req">*</span>
                     </label>
 
                     <div class="input-icon-wrap">
@@ -47,6 +47,7 @@
 
                         <select name="user_id"
                                 id="user_id"
+                                required
                                 class="field-input {{ $errors->has('user_id') ? 'error' : '' }}">
                             @foreach($users as $id => $user)
                                 <option value="{{ $id }}" {{ old('user_id') == $id ? 'selected' : '' }}>
@@ -57,18 +58,13 @@
                     </div>
 
                     @if($errors->has('user_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('user_id') }}
-                        </p>
-                    @else
-                        <p class="field-hint">Only users with Teacher role will appear here.</p>
+                        <p class="field-error">{{ $errors->first('user_id') }}</p>
                     @endif
                 </div>
 
                 <div class="field-group">
                     <label class="field-label" for="branch_id">
-                        Branch
+                        Branch <span class="req">*</span>
                     </label>
 
                     <div class="input-icon-wrap">
@@ -76,6 +72,7 @@
 
                         <select name="branch_id"
                                 id="branch_id"
+                                required
                                 class="field-input {{ $errors->has('branch_id') ? 'error' : '' }}">
                             @foreach($branches as $id => $branch)
                                 <option value="{{ $id }}" {{ old('branch_id') == $id ? 'selected' : '' }}>
@@ -86,17 +83,12 @@
                     </div>
 
                     @if($errors->has('branch_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('branch_id') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('branch_id') }}</p>
                     @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="phone">
-                        Phone
-                    </label>
+                    <label class="field-label" for="phone">Phone</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-phone icon"></i>
@@ -110,17 +102,12 @@
                     </div>
 
                     @if($errors->has('phone'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('phone') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('phone') }}</p>
                     @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="alternate_phone">
-                        Alternate Phone
-                    </label>
+                    <label class="field-label" for="alternate_phone">Alternate Phone</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-phone-alt icon"></i>
@@ -134,34 +121,12 @@
                     </div>
 
                     @if($errors->has('alternate_phone'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('alternate_phone') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('alternate_phone') }}</p>
                     @endif
                 </div>
 
-            </div>
-        </div>
-
-        <div class="form-card">
-            <div class="form-card-header">
-                <div class="form-card-icon">
-                    <i class="fas fa-briefcase"></i>
-                </div>
-
-                <div>
-                    <p class="form-card-title">Professional Details</p>
-                    <p class="form-card-subtitle">Qualification, experience and salary</p>
-                </div>
-            </div>
-
-            <div class="form-card-body">
-
                 <div class="field-group">
-                    <label class="field-label" for="qualification">
-                        Qualification
-                    </label>
+                    <label class="field-label" for="qualification">Qualification</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-graduation-cap icon"></i>
@@ -175,17 +140,29 @@
                     </div>
 
                     @if($errors->has('qualification'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('qualification') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('qualification') }}</p>
                     @endif
                 </div>
 
+            </div>
+        </div>
+
+        <div class="form-card">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fas fa-briefcase"></i>
+                </div>
+
+                <div>
+                    <p class="form-card-title">Job Details</p>
+                    <p class="form-card-subtitle">Experience, salary and joining details</p>
+                </div>
+            </div>
+
+            <div class="form-card-body">
+
                 <div class="field-group">
-                    <label class="field-label" for="experience">
-                        Experience
-                    </label>
+                    <label class="field-label" for="experience">Experience</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-clock icon"></i>
@@ -199,17 +176,12 @@
                     </div>
 
                     @if($errors->has('experience'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('experience') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('experience') }}</p>
                     @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="subject_specialization">
-                        Subject Specialization
-                    </label>
+                    <label class="field-label" for="subject_specialization">Subject Specialization</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-book-open icon"></i>
@@ -218,48 +190,37 @@
                                name="subject_specialization"
                                id="subject_specialization"
                                value="{{ old('subject_specialization') }}"
-                               placeholder="Example: Physics, Maths"
+                               placeholder="Example: Mathematics, Physics"
                                class="field-input {{ $errors->has('subject_specialization') ? 'error' : '' }}">
                     </div>
 
                     @if($errors->has('subject_specialization'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('subject_specialization') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('subject_specialization') }}</p>
                     @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="salary">
-                        Salary
-                    </label>
+                    <label class="field-label" for="salary">Salary</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-rupee-sign icon"></i>
 
                         <input type="number"
                                step="0.01"
-                               min="0"
                                name="salary"
                                id="salary"
-                               value="{{ old('salary', 0) }}"
+                               value="{{ old('salary') }}"
                                placeholder="Enter salary"
                                class="field-input {{ $errors->has('salary') ? 'error' : '' }}">
                     </div>
 
                     @if($errors->has('salary'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('salary') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('salary') }}</p>
                     @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="joining_date">
-                        Joining Date
-                    </label>
+                    <label class="field-label" for="joining_date">Joining Date</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-calendar icon"></i>
@@ -272,36 +233,87 @@
                     </div>
 
                     @if($errors->has('joining_date'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('joining_date') }}
-                        </p>
+                        <p class="field-error">{{ $errors->first('joining_date') }}</p>
                     @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="status">
-                        Status <span class="req">*</span>
-                    </label>
+                    <label class="field-label" for="status">Status</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-toggle-on icon"></i>
 
-                        <select name="status"
-                                id="status"
-                                required
-                                class="field-input {{ $errors->has('status') ? 'error' : '' }}">
+                        <select name="status" id="status" class="field-input">
                             <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>Active</option>
                             <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                         </select>
                     </div>
+                </div>
 
-                    @if($errors->has('status'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('status') }}
-                        </p>
-                    @endif
+            </div>
+        </div>
+
+        <div class="form-card" style="grid-column: 1 / -1;">
+            <div class="form-card-header between">
+                <div class="form-card-head-left">
+                    <div class="form-card-icon">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+
+                    <div>
+                        <p class="form-card-title">Teaching Assignments</p>
+                        <p class="form-card-subtitle">Assign course, subject and batch row-wise</p>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-mini-primary" onclick="addAssignmentRow()">
+                    <i class="fas fa-plus"></i>
+                    Add Row
+                </button>
+            </div>
+
+            <div class="form-card-body">
+
+                <div id="assignmentRows">
+                    <div class="assignment-row">
+                        <div class="field-group mb-0">
+                            <label class="field-label">Course</label>
+                            <select name="course_ids[]" class="field-input">
+                                @foreach($courses as $id => $course)
+                                    <option value="{{ $id }}">{{ $course }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="field-group mb-0">
+                            <label class="field-label">Subject</label>
+                            <select name="subject_ids[]" class="field-input">
+                                @foreach($subjects as $id => $subject)
+                                    <option value="{{ $id }}">{{ $subject }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="field-group mb-0">
+                            <label class="field-label">Batch</label>
+                            <select name="batch_ids[]" class="field-input">
+                                @foreach($batches as $id => $batch)
+                                    <option value="{{ $id }}">{{ $batch }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <button type="button" class="assignment-remove" onclick="removeAssignmentRow(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-info-box mt-3">
+                    <p>
+                        <i class="fas fa-info-circle"></i>
+                        Example: Course = Class 10, Subject = Math, Batch = Morning.
+                    </p>
                 </div>
 
             </div>
@@ -314,86 +326,39 @@
                 </div>
 
                 <div>
-                    <p class="form-card-title">Photo & Documents</p>
-                    <p class="form-card-subtitle">Upload teacher photo and certificates</p>
+                    <p class="form-card-title">Photo, Documents & Address</p>
+                    <p class="form-card-subtitle">Upload teacher photo and documents</p>
                 </div>
             </div>
 
             <div class="form-card-body">
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="field-group">
-                            <label class="field-label" for="photo">
-                                Teacher Photo
-                            </label>
-
-                            <div class="input-icon-wrap">
-                                <i class="fas fa-image icon"></i>
-
-                                <input type="file"
-                                       name="photo"
-                                       id="photo"
-                                       accept="image/*"
-                                       class="field-input {{ $errors->has('photo') ? 'error' : '' }}">
-                            </div>
-
-                            @if($errors->has('photo'))
-                                <p class="field-error">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    {{ $errors->first('photo') }}
-                                </p>
-                            @else
-                                <p class="field-hint">Allowed: JPG, JPEG, PNG, WEBP. Max: 2MB.</p>
-                            @endif
+                            <label class="field-label" for="photo">Photo</label>
+                            <input type="file" name="photo" id="photo" class="field-input">
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="field-group">
-                            <label class="field-label" for="documents">
-                                Documents
-                            </label>
-
-                            <div class="input-icon-wrap">
-                                <i class="fas fa-file icon"></i>
-
-                                <input type="file"
-                                       name="documents[]"
-                                       id="documents"
-                                       multiple
-                                       class="field-input {{ $errors->has('documents') ? 'error' : '' }}">
-                            </div>
-
-                            @if($errors->has('documents'))
-                                <p class="field-error">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    {{ $errors->first('documents') }}
-                                </p>
-                            @else
-                                <p class="field-hint">Allowed: image, PDF, DOC, DOCX. Max: 5MB each.</p>
-                            @endif
+                            <label class="field-label" for="documents">Documents</label>
+                            <input type="file" name="documents[]" id="documents" multiple class="field-input">
                         </div>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="address">
-                        Address
-                    </label>
+                    <label class="field-label" for="address">Address</label>
 
                     <textarea name="address"
                               id="address"
-                              rows="5"
-                              placeholder="Enter teacher address"
-                              class="field-input {{ $errors->has('address') ? 'error' : '' }}">{{ old('address') }}</textarea>
-
-                    @if($errors->has('address'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('address') }}
-                        </p>
-                    @endif
+                              rows="4"
+                              placeholder="Enter address"
+                              class="field-input">{{ old('address') }}</textarea>
                 </div>
+
             </div>
         </div>
 
@@ -412,4 +377,96 @@
 
 </form>
 
+<style>
+.assignment-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 44px;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 18px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    margin-bottom: 12px;
+    align-items: end;
+}
+
+.assignment-remove {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 14px;
+    background: #FEE2E2;
+    color: #991B1B;
+    cursor: pointer;
+}
+
+.assignment-remove:hover {
+    background: #EF4444;
+    color: #fff;
+}
+
+@media (max-width: 991px) {
+    .assignment-row {
+        grid-template-columns: 1fr;
+    }
+
+    .assignment-remove {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+const teacherCourseOptions = `{!! collect($courses)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
+const teacherSubjectOptions = `{!! collect($subjects)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
+const teacherBatchOptions = `{!! collect($batches)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
+
+function addAssignmentRow() {
+    const wrapper = document.getElementById('assignmentRows');
+
+    const row = document.createElement('div');
+    row.className = 'assignment-row';
+
+    row.innerHTML = `
+        <div class="field-group mb-0">
+            <label class="field-label">Course</label>
+            <select name="course_ids[]" class="field-input">
+                ${teacherCourseOptions}
+            </select>
+        </div>
+
+        <div class="field-group mb-0">
+            <label class="field-label">Subject</label>
+            <select name="subject_ids[]" class="field-input">
+                ${teacherSubjectOptions}
+            </select>
+        </div>
+
+        <div class="field-group mb-0">
+            <label class="field-label">Batch</label>
+            <select name="batch_ids[]" class="field-input">
+                ${teacherBatchOptions}
+            </select>
+        </div>
+
+        <button type="button" class="assignment-remove" onclick="removeAssignmentRow(this)">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    wrapper.appendChild(row);
+}
+
+function removeAssignmentRow(button) {
+    const wrapper = document.getElementById('assignmentRows');
+    const rows = wrapper.querySelectorAll('.assignment-row');
+
+    if (rows.length <= 1) {
+        rows[0].querySelectorAll('select').forEach(select => select.value = '');
+        return;
+    }
+
+    button.closest('.assignment-row').remove();
+}
+</script>
 @endsection

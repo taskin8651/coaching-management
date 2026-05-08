@@ -2,17 +2,13 @@
 
 namespace App\Models;
 
-use App\Notifications\VerifyUserNotification;
-use Carbon\Carbon;
 use DateTimeInterface;
 use Hash;
 use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -26,15 +22,15 @@ class User extends Authenticatable
     ];
 
     protected $dates = [
-    'email_verified_at',
-    'created_at',
-    'updated_at',
-    'deleted_at',
-];
+        'email_verified_at',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+    ];
 
-protected $casts = [
-    'email_verified_at' => 'datetime',
-];
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'name',
@@ -60,28 +56,36 @@ protected $casts = [
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
+
         self::created(function (self $user) {
             $registrationRole = config('panel.registration_default_role');
-            if (! $user->roles()->get()->contains($registrationRole)) {
+
+            if ($registrationRole && ! $user->roles()->get()->contains($registrationRole)) {
                 $user->roles()->attach($registrationRole);
             }
         });
     }
 
-    public function getEmailVerifiedAtAttribute($value)
-    {
-        return $value ? Carbon::createFromFormat('Y-m-d H:i:s', $value)->format(config('panel.date_format') . ' ' . config('panel.time_format')) : null;
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | Important Date Fix
+    |--------------------------------------------------------------------------
+    | getEmailVerifiedAtAttribute remove kiya gaya hai,
+    | kyunki wo Carbon date ko string bana raha tha.
+    | Us wajah se "Call to a member function format() on string" error aa raha tha.
+    */
 
     public function setEmailVerifiedAtAttribute($value)
     {
-        $this->attributes['email_verified_at'] = $value ? Carbon::createFromFormat(config('panel.date_format') . ' ' . config('panel.time_format'), $value)->format('Y-m-d H:i:s') : null;
+        $this->attributes['email_verified_at'] = $value ?: null;
     }
 
     public function setPasswordAttribute($input)
     {
         if ($input) {
-            $this->attributes['password'] = app('hash')->needsRehash($input) ? Hash::make($input) : $input;
+            $this->attributes['password'] = app('hash')->needsRehash($input)
+                ? Hash::make($input)
+                : $input;
         }
     }
 
@@ -90,57 +94,139 @@ protected $casts = [
         $this->notify(new ResetPassword($token));
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Roles
+    |--------------------------------------------------------------------------
+    */
+
     public function roles()
     {
         return $this->belongsToMany(Role::class);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Branch Manager Relations
+    |--------------------------------------------------------------------------
+    */
+
+    public function managedBranch()
+    {
+        return $this->hasOne(Branch::class, 'manager_id');
+    }
+
     public function managedBranches()
-{
-    return $this->hasMany(Branch::class, 'manager_id');
-}
+    {
+        return $this->hasMany(Branch::class, 'manager_id');
+    }
 
-public function teacher()
-{
-    return $this->hasOne(Teacher::class, 'user_id');
-}
+    /*
+    |--------------------------------------------------------------------------
+    | Profile Relations
+    |--------------------------------------------------------------------------
+    */
 
-public function student()
-{
-    return $this->hasOne(Student::class, 'user_id');
-}
+    public function teacherProfile()
+    {
+        return $this->hasOne(Teacher::class, 'user_id');
+    }
 
-public function assignedEnquiries()
-{
-    return $this->hasMany(Enquiry::class, 'assigned_to_id');
-}
+    public function staffProfile()
+    {
+        return $this->hasOne(Staff::class, 'user_id');
+    }
 
-public function enquiryFollowUps()
-{
-    return $this->hasMany(EnquiryFollowUp::class, 'followed_by_id');
-}
-public function collectedFeePayments()
-{
-    return $this->hasMany(FeePayment::class, 'collected_by_id');
-}
+    public function studentProfile()
+    {
+        return $this->hasOne(Student::class, 'user_id');
+    }
 
-public function salaryPayments()
-{
-    return $this->hasMany(SalaryPayment::class, 'user_id');
-}
+    /*
+    |--------------------------------------------------------------------------
+    | Old Alias Relations
+    |--------------------------------------------------------------------------
+    | Agar aapke purane code me teacher(), student() use hai,
+    | to wo bhi work karega.
+    */
 
-public function paidSalaryPayments()
-{
-    return $this->hasMany(SalaryPayment::class, 'paid_by_id');
-}
+    public function teacher()
+    {
+        return $this->teacherProfile();
+    }
 
-public function uploadedStudyMaterials()
-{
-    return $this->hasMany(StudyMaterial::class, 'uploaded_by_id');
-}
+    public function staff()
+    {
+        return $this->staffProfile();
+    }
 
-public function createdNotices()
-{
-    return $this->hasMany(Notice::class, 'created_by_id');
-}
+    public function student()
+    {
+        return $this->studentProfile();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Enquiry Relations
+    |--------------------------------------------------------------------------
+    */
+
+    public function assignedEnquiries()
+    {
+        return $this->hasMany(Enquiry::class, 'assigned_to_id');
+    }
+
+    public function enquiryFollowUps()
+    {
+        return $this->hasMany(EnquiryFollowUp::class, 'followed_by_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fee Relations
+    |--------------------------------------------------------------------------
+    */
+
+    public function collectedFeePayments()
+    {
+        return $this->hasMany(FeePayment::class, 'collected_by_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Salary Relations
+    |--------------------------------------------------------------------------
+    */
+
+    public function salaryPayments()
+    {
+        return $this->hasMany(SalaryPayment::class, 'user_id');
+    }
+
+    public function paidSalaryPayments()
+    {
+        return $this->hasMany(SalaryPayment::class, 'paid_by_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Study Material Relations
+    |--------------------------------------------------------------------------
+    */
+
+    public function uploadedStudyMaterials()
+    {
+        return $this->hasMany(StudyMaterial::class, 'uploaded_by_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notice Relations
+    |--------------------------------------------------------------------------
+    */
+
+    public function createdNotices()
+    {
+        return $this->hasMany(Notice::class, 'created_by_id');
+    }
 }

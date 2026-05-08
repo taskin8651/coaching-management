@@ -8,7 +8,7 @@
     <div>
         <h2 class="admin-page-title">Teachers</h2>
         <p class="admin-page-subtitle">
-            Manage branch-wise teacher profiles, salary and documents
+            Manage teacher profile, branch, course, subject and batch assignment
         </p>
     </div>
 
@@ -37,8 +37,8 @@
     </div>
 
     <div class="stat-card">
-        <p class="stat-label">Total Salary</p>
-        <p class="stat-value">₹{{ number_format($teachers->sum('salary'), 0) }}</p>
+        <p class="stat-label">Assignments</p>
+        <p class="stat-value">{{ $teachers->sum(fn($teacher) => $teacher->assignments->count()) }}</p>
     </div>
 </div>
 
@@ -48,7 +48,7 @@
 
         <span class="page-card-note">
             <i class="fas fa-info-circle"></i>
-            Select rows to use bulk actions
+            Teachers are filtered by assigned branch
         </span>
     </div>
 
@@ -62,7 +62,7 @@
                     <th>Branch</th>
                     <th>Phone</th>
                     <th>Specialization</th>
-                    <th>Salary</th>
+                    <th>Assignments</th>
                     <th>Status</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
@@ -79,41 +79,32 @@
 
                         <td>
                             <div class="inline-flex-center">
-                                @if($teacher->photo)
-                                    <img src="{{ $teacher->photo }}"
-                                         alt="{{ $teacher->user->name ?? 'Teacher' }}"
-                                         class="avatar-circle"
-                                         style="object-fit:cover;">
-                                @else
-                                    @php
-                                        $name = $teacher->user->name ?? 'T';
-                                        $colors = ['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
-                                        $color  = $colors[$teacher->id % count($colors)];
-                                    @endphp
+                                @php
+                                    $name = $teacher->user->name ?? 'Teacher';
+                                    $colors = ['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
+                                    $color = $colors[$teacher->id % count($colors)];
+                                @endphp
 
+                                @if($teacher->photo)
+                                    <img src="{{ $teacher->photo }}" class="avatar-circle" style="object-fit:cover;">
+                                @else
                                     <div class="avatar-circle" style="background: {{ $color }};">
                                         {{ strtoupper(substr($name, 0, 1)) }}
                                     </div>
                                 @endif
 
                                 <div>
-                                    <p class="table-main-text">{{ $teacher->user->name ?? '-' }}</p>
-                                    <p class="table-sub-text">
-                                        {{ $teacher->user->email ?? 'Teacher Profile' }}
-                                    </p>
+                                    <p class="table-main-text">{{ $name }}</p>
+                                    <p class="table-sub-text">{{ $teacher->qualification ?? '-' }}</p>
                                 </div>
                             </div>
                         </td>
 
                         <td>
-                            @if($teacher->branch)
-                                <span class="role-tag">{{ $teacher->branch->name }}</span>
-                            @else
-                                <span style="font-size:12px; color:#94A3B8;">No Branch</span>
-                            @endif
+                            {{ $teacher->branch->name ?? '-' }}
                         </td>
 
-                        <td style="color:#475569;">
+                        <td>
                             {{ $teacher->phone ?? '-' }}
                         </td>
 
@@ -122,20 +113,25 @@
                         </td>
 
                         <td>
-                            <strong>₹{{ number_format($teacher->salary, 2) }}</strong>
+                            @forelse($teacher->assignments as $assignment)
+                                <div class="assignment-mini">
+                                    <strong>{{ $assignment->course->name ?? '-' }}</strong>
+                                    <span>
+                                        {{ $assignment->subject->name ?? '-' }}
+                                        /
+                                        {{ $assignment->batch->name ?? '-' }}
+                                    </span>
+                                </div>
+                            @empty
+                                <span class="table-sub-text">No assignment</span>
+                            @endforelse
                         </td>
 
                         <td>
                             @if($teacher->status == 'active')
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="status-dot status-success"></span>
-                                    <span style="font-size:12.5px; color:#166534;">Active</span>
-                                </div>
+                                <span class="status-pill success">Active</span>
                             @else
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="status-dot status-warning"></span>
-                                    <span style="font-size:12.5px; color:#92400E;">Inactive</span>
-                                </div>
+                                <span class="status-pill warning">Inactive</span>
                             @endif
                         </td>
 
@@ -177,6 +173,28 @@
         </table>
     </div>
 </div>
+
+<style>
+.assignment-mini {
+    padding: 6px 9px;
+    border-radius: 10px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    margin-bottom: 5px;
+    max-width: 260px;
+}
+.assignment-mini strong {
+    display: block;
+    font-size: 12px;
+    color: #0F172A;
+}
+.assignment-mini span {
+    display: block;
+    font-size: 11px;
+    color: #64748B;
+    margin-top: 2px;
+}
+</style>
 
 @endsection
 

@@ -4,11 +4,6 @@
 
 @section('content')
 
-@php
-    $name = $teacher->user->name ?? 'Teacher';
-    $colors = ['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
-@endphp
-
 <div class="admin-page-head">
     <div>
         <a href="{{ route('admin.teachers.index') }}" class="admin-back-link">
@@ -18,24 +13,17 @@
         <h2 class="admin-page-title">Edit Teacher</h2>
 
         <p class="admin-page-subtitle">
-            Update teacher profile, salary, photo and documents
+            Update teacher profile and teaching assignment
         </p>
     </div>
 
     <div class="identity-card">
-        @if($teacher->photo)
-            <img src="{{ $teacher->photo }}"
-                 alt="{{ $name }}"
-                 class="identity-avatar"
-                 style="object-fit:cover;">
-        @else
-            <div class="identity-avatar" style="background: {{ $colors[$teacher->id % count($colors)] }};">
-                {{ strtoupper(substr($name, 0, 1)) }}
-            </div>
-        @endif
+        <div class="identity-avatar" style="background:#F59E0B;">
+            {{ strtoupper(substr($teacher->user->name ?? 'T', 0, 1)) }}
+        </div>
 
         <div>
-            <p class="identity-title">{{ $name }}</p>
+            <p class="identity-title">{{ $teacher->user->name ?? 'Teacher' }}</p>
             <p class="identity-subtitle">ID #{{ $teacher->id }}</p>
         </div>
     </div>
@@ -55,23 +43,19 @@
 
                 <div>
                     <p class="form-card-title">Teacher Information</p>
-                    <p class="form-card-subtitle">Update basic teacher details</p>
+                    <p class="form-card-subtitle">Update profile details</p>
                 </div>
             </div>
 
             <div class="form-card-body">
 
                 <div class="field-group">
-                    <label class="field-label" for="user_id">
-                        User Account
-                    </label>
+                    <label class="field-label" for="user_id">User Account <span class="req">*</span></label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-user icon"></i>
 
-                        <select name="user_id"
-                                id="user_id"
-                                class="field-input {{ $errors->has('user_id') ? 'error' : '' }}">
+                        <select name="user_id" id="user_id" required class="field-input">
                             @foreach($users as $id => $user)
                                 <option value="{{ $id }}" {{ old('user_id', $teacher->user_id) == $id ? 'selected' : '' }}>
                                     {{ $user }}
@@ -79,26 +63,15 @@
                             @endforeach
                         </select>
                     </div>
-
-                    @if($errors->has('user_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('user_id') }}
-                        </p>
-                    @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="branch_id">
-                        Branch
-                    </label>
+                    <label class="field-label" for="branch_id">Branch <span class="req">*</span></label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-school icon"></i>
 
-                        <select name="branch_id"
-                                id="branch_id"
-                                class="field-input {{ $errors->has('branch_id') ? 'error' : '' }}">
+                        <select name="branch_id" id="branch_id" required class="field-input">
                             @foreach($branches as $id => $branch)
                                 <option value="{{ $id }}" {{ old('branch_id', $teacher->branch_id) == $id ? 'selected' : '' }}>
                                     {{ $branch }}
@@ -106,19 +79,10 @@
                             @endforeach
                         </select>
                     </div>
-
-                    @if($errors->has('branch_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('branch_id') }}
-                        </p>
-                    @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="phone">
-                        Phone
-                    </label>
+                    <label class="field-label" for="phone">Phone</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-phone icon"></i>
@@ -127,21 +91,12 @@
                                name="phone"
                                id="phone"
                                value="{{ old('phone', $teacher->phone) }}"
-                               class="field-input {{ $errors->has('phone') ? 'error' : '' }}">
+                               class="field-input">
                     </div>
-
-                    @if($errors->has('phone'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('phone') }}
-                        </p>
-                    @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="alternate_phone">
-                        Alternate Phone
-                    </label>
+                    <label class="field-label" for="alternate_phone">Alternate Phone</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-phone-alt icon"></i>
@@ -150,15 +105,22 @@
                                name="alternate_phone"
                                id="alternate_phone"
                                value="{{ old('alternate_phone', $teacher->alternate_phone) }}"
-                               class="field-input {{ $errors->has('alternate_phone') ? 'error' : '' }}">
+                               class="field-input">
                     </div>
+                </div>
 
-                    @if($errors->has('alternate_phone'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('alternate_phone') }}
-                        </p>
-                    @endif
+                <div class="field-group">
+                    <label class="field-label" for="qualification">Qualification</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-graduation-cap icon"></i>
+
+                        <input type="text"
+                               name="qualification"
+                               id="qualification"
+                               value="{{ old('qualification', $teacher->qualification) }}"
+                               class="field-input">
+                    </div>
                 </div>
 
             </div>
@@ -171,40 +133,15 @@
                 </div>
 
                 <div>
-                    <p class="form-card-title">Professional Details</p>
-                    <p class="form-card-subtitle">Update qualification, experience and salary</p>
+                    <p class="form-card-title">Job Details</p>
+                    <p class="form-card-subtitle">Update experience, salary and status</p>
                 </div>
             </div>
 
             <div class="form-card-body">
 
                 <div class="field-group">
-                    <label class="field-label" for="qualification">
-                        Qualification
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-graduation-cap icon"></i>
-
-                        <input type="text"
-                               name="qualification"
-                               id="qualification"
-                               value="{{ old('qualification', $teacher->qualification) }}"
-                               class="field-input {{ $errors->has('qualification') ? 'error' : '' }}">
-                    </div>
-
-                    @if($errors->has('qualification'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('qualification') }}
-                        </p>
-                    @endif
-                </div>
-
-                <div class="field-group">
-                    <label class="field-label" for="experience">
-                        Experience
-                    </label>
+                    <label class="field-label" for="experience">Experience</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-clock icon"></i>
@@ -213,21 +150,12 @@
                                name="experience"
                                id="experience"
                                value="{{ old('experience', $teacher->experience) }}"
-                               class="field-input {{ $errors->has('experience') ? 'error' : '' }}">
+                               class="field-input">
                     </div>
-
-                    @if($errors->has('experience'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('experience') }}
-                        </p>
-                    @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="subject_specialization">
-                        Subject Specialization
-                    </label>
+                    <label class="field-label" for="subject_specialization">Subject Specialization</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-book-open icon"></i>
@@ -236,46 +164,27 @@
                                name="subject_specialization"
                                id="subject_specialization"
                                value="{{ old('subject_specialization', $teacher->subject_specialization) }}"
-                               class="field-input {{ $errors->has('subject_specialization') ? 'error' : '' }}">
+                               class="field-input">
                     </div>
-
-                    @if($errors->has('subject_specialization'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('subject_specialization') }}
-                        </p>
-                    @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="salary">
-                        Salary
-                    </label>
+                    <label class="field-label" for="salary">Salary</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-rupee-sign icon"></i>
 
                         <input type="number"
                                step="0.01"
-                               min="0"
                                name="salary"
                                id="salary"
                                value="{{ old('salary', $teacher->salary) }}"
-                               class="field-input {{ $errors->has('salary') ? 'error' : '' }}">
+                               class="field-input">
                     </div>
-
-                    @if($errors->has('salary'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('salary') }}
-                        </p>
-                    @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="joining_date">
-                        Joining Date
-                    </label>
+                    <label class="field-label" for="joining_date">Joining Date</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-calendar icon"></i>
@@ -283,41 +192,137 @@
                         <input type="date"
                                name="joining_date"
                                id="joining_date"
-                               value="{{ old('joining_date', optional($teacher->joining_date)->format('Y-m-d')) }}"
-                               class="field-input {{ $errors->has('joining_date') ? 'error' : '' }}">
+                               value="{{ old('joining_date', $teacher->joining_date ? \Carbon\Carbon::parse($teacher->joining_date)->format('Y-m-d') : '') }}"
+                               class="field-input">
                     </div>
-
-                    @if($errors->has('joining_date'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('joining_date') }}
-                        </p>
-                    @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="status">
-                        Status <span class="req">*</span>
-                    </label>
+                    <label class="field-label" for="status">Status</label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-toggle-on icon"></i>
 
-                        <select name="status"
-                                id="status"
-                                required
-                                class="field-input {{ $errors->has('status') ? 'error' : '' }}">
+                        <select name="status" id="status" class="field-input">
                             <option value="active" {{ old('status', $teacher->status) == 'active' ? 'selected' : '' }}>Active</option>
                             <option value="inactive" {{ old('status', $teacher->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
                         </select>
                     </div>
+                </div>
 
-                    @if($errors->has('status'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('status') }}
-                        </p>
-                    @endif
+            </div>
+        </div>
+
+        <div class="form-card" style="grid-column: 1 / -1;">
+            <div class="form-card-header between">
+                <div class="form-card-head-left">
+                    <div class="form-card-icon">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+
+                    <div>
+                        <p class="form-card-title">Teaching Assignments</p>
+                        <p class="form-card-subtitle">Update assigned course, subject and batch</p>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-mini-primary" onclick="addAssignmentRow()">
+                    <i class="fas fa-plus"></i>
+                    Add Row
+                </button>
+            </div>
+
+            <div class="form-card-body">
+
+                <div id="assignmentRows">
+                    @forelse(old('course_ids') ? collect(old('course_ids'))->map(function($courseId, $index) {
+                        return (object)[
+                            'course_id' => $courseId,
+                            'subject_id' => old('subject_ids')[$index] ?? null,
+                            'batch_id' => old('batch_ids')[$index] ?? null,
+                        ];
+                    }) : $assignments as $assignment)
+
+                        <div class="assignment-row">
+                            <div class="field-group mb-0">
+                                <label class="field-label">Course</label>
+                                <select name="course_ids[]" class="field-input">
+                                    @foreach($courses as $id => $course)
+                                        <option value="{{ $id }}" {{ $assignment->course_id == $id ? 'selected' : '' }}>
+                                            {{ $course }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="field-group mb-0">
+                                <label class="field-label">Subject</label>
+                                <select name="subject_ids[]" class="field-input">
+                                    @foreach($subjects as $id => $subject)
+                                        <option value="{{ $id }}" {{ $assignment->subject_id == $id ? 'selected' : '' }}>
+                                            {{ $subject }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="field-group mb-0">
+                                <label class="field-label">Batch</label>
+                                <select name="batch_ids[]" class="field-input">
+                                    @foreach($batches as $id => $batch)
+                                        <option value="{{ $id }}" {{ $assignment->batch_id == $id ? 'selected' : '' }}>
+                                            {{ $batch }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <button type="button" class="assignment-remove" onclick="removeAssignmentRow(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                    @empty
+                        <div class="assignment-row">
+                            <div class="field-group mb-0">
+                                <label class="field-label">Course</label>
+                                <select name="course_ids[]" class="field-input">
+                                    @foreach($courses as $id => $course)
+                                        <option value="{{ $id }}">{{ $course }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="field-group mb-0">
+                                <label class="field-label">Subject</label>
+                                <select name="subject_ids[]" class="field-input">
+                                    @foreach($subjects as $id => $subject)
+                                        <option value="{{ $id }}">{{ $subject }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="field-group mb-0">
+                                <label class="field-label">Batch</label>
+                                <select name="batch_ids[]" class="field-input">
+                                    @foreach($batches as $id => $batch)
+                                        <option value="{{ $id }}">{{ $batch }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <button type="button" class="assignment-remove" onclick="removeAssignmentRow(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="form-info-box mt-3">
+                    <p>
+                        <i class="fas fa-info-circle"></i>
+                        Add multiple rows if teacher handles multiple batches or subjects.
+                    </p>
                 </div>
 
             </div>
@@ -330,108 +335,65 @@
                 </div>
 
                 <div>
-                    <p class="form-card-title">Photo & Documents</p>
+                    <p class="form-card-title">Photo, Documents & Address</p>
                     <p class="form-card-subtitle">Update teacher photo and documents</p>
                 </div>
             </div>
 
             <div class="form-card-body">
+
+                @if($teacher->photo)
+                    <div class="form-info-box mb-3">
+                        <p>
+                            <i class="fas fa-image"></i>
+                            Current Photo:
+                            <a href="{{ $teacher->photo }}" target="_blank">View Photo</a>
+                        </p>
+                    </div>
+                @endif
+
+                @if($teacher->documents && count($teacher->documents))
+                    <div class="form-info-box mb-3">
+                        <p class="mb-2">
+                            <i class="fas fa-file"></i>
+                            Uploaded Documents
+                        </p>
+
+                        @foreach($teacher->documents as $document)
+                            <p>
+                                <a href="{{ $document['url'] }}" target="_blank">
+                                    {{ $document['name'] }}
+                                </a>
+                            </p>
+                        @endforeach
+                    </div>
+                @endif
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="field-group">
-                            <label class="field-label" for="photo">
-                                Teacher Photo
-                            </label>
-
-                            @if($teacher->photo)
-                                <div class="mb-2">
-                                    <img src="{{ $teacher->photo }}"
-                                         alt="{{ $name }}"
-                                         style="width:90px; height:90px; object-fit:cover; border-radius:18px; border:1px solid #E2E8F0;">
-                                </div>
-                            @endif
-
-                            <div class="input-icon-wrap">
-                                <i class="fas fa-image icon"></i>
-
-                                <input type="file"
-                                       name="photo"
-                                       id="photo"
-                                       accept="image/*"
-                                       class="field-input {{ $errors->has('photo') ? 'error' : '' }}">
-                            </div>
-
-                            @if($errors->has('photo'))
-                                <p class="field-error">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    {{ $errors->first('photo') }}
-                                </p>
-                            @else
-                                <p class="field-hint">Upload new photo only if you want to replace old photo.</p>
-                            @endif
+                            <label class="field-label" for="photo">Replace Photo</label>
+                            <input type="file" name="photo" id="photo" class="field-input">
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="field-group">
-                            <label class="field-label" for="documents">
-                                Add More Documents
-                            </label>
-
-                            <div class="input-icon-wrap">
-                                <i class="fas fa-file icon"></i>
-
-                                <input type="file"
-                                       name="documents[]"
-                                       id="documents"
-                                       multiple
-                                       class="field-input {{ $errors->has('documents') ? 'error' : '' }}">
-                            </div>
-
-                            @if($errors->has('documents'))
-                                <p class="field-error">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    {{ $errors->first('documents') }}
-                                </p>
-                            @else
-                                <p class="field-hint">New documents will be added with existing documents.</p>
-                            @endif
+                            <label class="field-label" for="documents">Add More Documents</label>
+                            <input type="file" name="documents[]" id="documents" multiple class="field-input">
                         </div>
-
-                        @if($teacher->documents && count($teacher->documents))
-                            <div class="form-info-box">
-                                <p class="meta-label">Uploaded Documents</p>
-
-                                @foreach($teacher->documents as $document)
-                                    <p style="margin:6px 0;">
-                                        <i class="fas fa-file"></i>
-                                        <a href="{{ $document['url'] }}" target="_blank">
-                                            {{ $document['name'] }}
-                                        </a>
-                                    </p>
-                                @endforeach
-                            </div>
-                        @endif
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="address">
-                        Address
-                    </label>
+                    <label class="field-label" for="address">Address</label>
 
                     <textarea name="address"
                               id="address"
-                              rows="5"
-                              class="field-input {{ $errors->has('address') ? 'error' : '' }}">{{ old('address', $teacher->address) }}</textarea>
-
-                    @if($errors->has('address'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('address') }}
-                        </p>
-                    @endif
+                              rows="4"
+                              class="field-input">{{ old('address', $teacher->address) }}</textarea>
                 </div>
+
             </div>
         </div>
 
@@ -450,4 +412,96 @@
 
 </form>
 
+<style>
+.assignment-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 44px;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 18px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    margin-bottom: 12px;
+    align-items: end;
+}
+
+.assignment-remove {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 14px;
+    background: #FEE2E2;
+    color: #991B1B;
+    cursor: pointer;
+}
+
+.assignment-remove:hover {
+    background: #EF4444;
+    color: #fff;
+}
+
+@media (max-width: 991px) {
+    .assignment-row {
+        grid-template-columns: 1fr;
+    }
+
+    .assignment-remove {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+const teacherCourseOptions = `{!! collect($courses)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
+const teacherSubjectOptions = `{!! collect($subjects)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
+const teacherBatchOptions = `{!! collect($batches)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
+
+function addAssignmentRow() {
+    const wrapper = document.getElementById('assignmentRows');
+
+    const row = document.createElement('div');
+    row.className = 'assignment-row';
+
+    row.innerHTML = `
+        <div class="field-group mb-0">
+            <label class="field-label">Course</label>
+            <select name="course_ids[]" class="field-input">
+                ${teacherCourseOptions}
+            </select>
+        </div>
+
+        <div class="field-group mb-0">
+            <label class="field-label">Subject</label>
+            <select name="subject_ids[]" class="field-input">
+                ${teacherSubjectOptions}
+            </select>
+        </div>
+
+        <div class="field-group mb-0">
+            <label class="field-label">Batch</label>
+            <select name="batch_ids[]" class="field-input">
+                ${teacherBatchOptions}
+            </select>
+        </div>
+
+        <button type="button" class="assignment-remove" onclick="removeAssignmentRow(this)">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    wrapper.appendChild(row);
+}
+
+function removeAssignmentRow(button) {
+    const wrapper = document.getElementById('assignmentRows');
+    const rows = wrapper.querySelectorAll('.assignment-row');
+
+    if (rows.length <= 1) {
+        rows[0].querySelectorAll('select').forEach(select => select.value = '');
+        return;
+    }
+
+    button.closest('.assignment-row').remove();
+}
+</script>
 @endsection

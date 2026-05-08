@@ -17,7 +17,12 @@ class BranchesController extends Controller
     {
         abort_if(Gate::denies('branch_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $branches = Branch::with(['manager'])->latest()->get();
+        $branches = Branch::with(['manager'])
+            ->when(! auth()->user()->is_admin, function ($query) {
+                $query->where('manager_id', auth()->id());
+            })
+            ->latest()
+            ->get();
 
         return view('admin.branches.index', compact('branches'));
     }
@@ -25,6 +30,12 @@ class BranchesController extends Controller
     public function create()
     {
         abort_if(Gate::denies('branch_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        /*
+         * Branch create sirf Admin ko allow karna best hai.
+         * Manager ko branch create nahi dena chahiye.
+         */
+        abort_if(! auth()->user()->is_admin, Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $managers = User::whereHas('roles', function ($query) {
             $query->where('title', 'Branch Manager');
@@ -35,6 +46,8 @@ class BranchesController extends Controller
 
     public function store(StoreBranchRequest $request)
     {
+        abort_if(! auth()->user()->is_admin, Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $branch = Branch::create($request->validated());
 
         if ($request->hasFile('logo')) {
@@ -48,6 +61,8 @@ class BranchesController extends Controller
     {
         abort_if(Gate::denies('branch_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $this->checkBranchAccess($branch);
+
         $branch->load('manager');
 
         return view('admin.branches.show', compact('branch'));
@@ -56,6 +71,14 @@ class BranchesController extends Controller
     public function edit(Branch $branch)
     {
         abort_if(Gate::denies('branch_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        /*
+         * Branch edit bhi sirf Admin ko dena recommended hai.
+         * Agar manager ko apni branch edit karwana hai, to neeche wali admin check hata sakte ho.
+         */
+        abort_if(! auth()->user()->is_admin, Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkBranchAccess($branch);
 
         $managers = User::whereHas('roles', function ($query) {
             $query->where('title', 'Branch Manager');
@@ -68,6 +91,10 @@ class BranchesController extends Controller
 
     public function update(UpdateBranchRequest $request, Branch $branch)
     {
+        abort_if(! auth()->user()->is_admin, Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkBranchAccess($branch);
+
         $branch->update($request->validated());
 
         if ($request->hasFile('logo')) {
@@ -82,6 +109,11 @@ class BranchesController extends Controller
     {
         abort_if(Gate::denies('branch_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        /*
+         * Branch delete sirf Admin.
+         */
+        abort_if(! auth()->user()->is_admin, Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $branch->delete();
 
         return back()->with('message', 'Branch deleted successfully.');
@@ -91,8 +123,19 @@ class BranchesController extends Controller
     {
         abort_if(Gate::denies('branch_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if(! auth()->user()->is_admin, Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         Branch::whereIn('id', request('ids'))->delete();
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    private function checkBranchAccess(Branch $branch): void
+    {
+        if (auth()->user()->is_admin) {
+            return;
+        }
+
+        abort_if($branch->manager_id != auth()->id(), Response::HTTP_FORBIDDEN, '403 Forbidden');
     }
 }

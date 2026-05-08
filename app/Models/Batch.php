@@ -76,4 +76,9 @@ public function notices()
 {
     return $this->hasMany(Notice::class, 'batch_id');
 }
+
+public function teacherAssignments()
+{
+    return $this->hasMany(TeacherAssignment::class, 'batch_id');
+}
 }

@@ -92,4 +92,27 @@ class Teacher extends Model implements HasMedia
 {
     return $this->hasMany(SalaryPayment::class, 'teacher_id');
 }
+
+public function assignments()
+{
+    return $this->hasMany(TeacherAssignment::class, 'teacher_id');
+}
+
+public function courses()
+{
+    return $this->belongsToMany(Course::class, 'teacher_assignments', 'teacher_id', 'course_id')
+        ->withTimestamps();
+}
+
+public function subjects()
+{
+    return $this->belongsToMany(Subject::class, 'teacher_assignments', 'teacher_id', 'subject_id')
+        ->withTimestamps();
+}
+
+public function batches()
+{
+    return $this->belongsToMany(Batch::class, 'teacher_assignments', 'teacher_id', 'batch_id')
+        ->withTimestamps();
+}
 }
