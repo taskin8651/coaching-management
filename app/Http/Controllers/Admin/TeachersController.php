@@ -8,6 +8,8 @@ use App\Http\Requests\UpdateTeacherRequest;
 use App\Models\Batch;
 use App\Models\Branch;
 use App\Models\Course;
+use App\Models\Staff;
+use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
@@ -35,12 +37,16 @@ class TeachersController extends Controller
                 return $query;
             })
             ->when(! auth()->user()->is_admin && $this->isTeacher(), function ($query) {
-                $teacher = auth()->user()->teacherProfile()->first();
+                $teacher = Teacher::where('user_id', auth()->id())->first();
 
                 $query->where('id', $teacher->id ?? 0);
             })
             ->when(! auth()->user()->is_admin && ! $this->isTeacher(), function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->latest()
             ->get();
@@ -65,28 +71,44 @@ class TeachersController extends Controller
 
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('id', $branchId);
+                if ($branchId) {
+                    $query->where('id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $courses = Course::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend('Select Course', '');
 
         $subjects = Subject::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend('Select Subject', '');
 
         $batches = Batch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend('Select Batch', '');
@@ -173,28 +195,44 @@ class TeachersController extends Controller
 
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('id', $branchId);
+                if ($branchId) {
+                    $query->where('id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $courses = Course::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend('Select Course', '');
 
         $subjects = Subject::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend('Select Subject', '');
 
         $batches = Batch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->pluck('name', 'id')
             ->prepend('Select Batch', '');
@@ -273,7 +311,11 @@ class TeachersController extends Controller
 
         Teacher::whereIn('id', request('ids'))
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
             })
             ->delete();
 
@@ -317,7 +359,7 @@ class TeachersController extends Controller
         }
 
         if ($this->isTeacher()) {
-            $authTeacher = auth()->user()->teacherProfile()->first();
+            $authTeacher = Teacher::where('user_id', auth()->id())->first();
 
             abort_if(! $authTeacher || $teacher->id != $authTeacher->id, Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -337,25 +379,25 @@ class TeachersController extends Controller
             return null;
         }
 
-        $managedBranch = $user->managedBranch()->first();
+        $managedBranch = Branch::where('manager_id', $user->id)->first();
 
         if ($managedBranch) {
             return $managedBranch->id;
         }
 
-        $staff = $user->staffProfile()->first();
+        $staff = Staff::where('user_id', $user->id)->first();
 
         if ($staff) {
             return $staff->branch_id;
         }
 
-        $teacher = $user->teacherProfile()->first();
+        $teacher = Teacher::where('user_id', $user->id)->first();
 
         if ($teacher) {
             return $teacher->branch_id;
         }
 
-        $student = $user->studentProfile()->first();
+        $student = Student::where('user_id', $user->id)->first();
 
         if ($student) {
             return $student->branch_id;

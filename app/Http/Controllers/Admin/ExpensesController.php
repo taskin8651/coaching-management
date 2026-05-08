@@ -7,6 +7,9 @@ use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Models\Branch;
 use App\Models\Expense;
+use App\Models\Staff;
+use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\User;
 use Gate;
 use Illuminate\Http\Request;
@@ -18,7 +21,19 @@ class ExpensesController extends Controller
     {
         abort_if(Gate::denies('expense_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $expenses = Expense::with(['branch', 'paidBy'])->latest()->get();
+        $expenses = Expense::with(['branch', 'paidBy']);
+
+        if (auth()->user()->is_admin) {
+            // all
+        } elseif ($this->isTeacher() || $this->isStudent()) {
+            $expenses->whereRaw('1 = 0');
+        } else {
+            $branchId = $this->getUserBranchId();
+
+            $branchId ? $expenses->where('branch_id', $branchId) : $expenses->whereRaw('1 = 0');
+        }
+
+        $expenses = $expenses->latest()->get();
 
         return view('admin.expenses.index', compact('expenses'));
     }
@@ -27,12 +42,16 @@ class ExpensesController extends Controller
     {
         abort_if(Gate::denies('expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $branchId = $this->getUserBranchId();
+
         $branches = Branch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('id', $branchId) : $q->whereRaw('1 = 0'))
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $users = User::pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $categories = $this->categories();
         $paymentModes = $this->paymentModes();
@@ -42,7 +61,17 @@ class ExpensesController extends Controller
 
     public function store(StoreExpenseRequest $request)
     {
+        abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $data = $request->validated();
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+
+            $data['branch_id'] = $branchId;
+        }
 
         if (empty($data['paid_by_id'])) {
             $data['paid_by_id'] = auth()->id();
@@ -61,6 +90,8 @@ class ExpensesController extends Controller
     {
         abort_if(Gate::denies('expense_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $this->checkExpenseAccess($expense);
+
         $expense->load(['branch', 'paidBy']);
 
         return view('admin.expenses.show', compact('expense'));
@@ -70,12 +101,18 @@ class ExpensesController extends Controller
     {
         abort_if(Gate::denies('expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkExpenseAccess($expense);
+
+        $branchId = $this->getUserBranchId();
+
         $branches = Branch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('id', $branchId) : $q->whereRaw('1 = 0'))
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $users = User::pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $categories = $this->categories();
         $paymentModes = $this->paymentModes();
@@ -87,7 +124,19 @@ class ExpensesController extends Controller
 
     public function update(UpdateExpenseRequest $request, Expense $expense)
     {
+        abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkExpenseAccess($expense);
+
         $data = $request->validated();
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+
+            $data['branch_id'] = $branchId;
+        }
 
         if (empty($data['paid_by_id'])) {
             $data['paid_by_id'] = auth()->id();
@@ -102,6 +151,10 @@ class ExpensesController extends Controller
     {
         abort_if(Gate::denies('expense_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkExpenseAccess($expense);
+
         $expense->delete();
 
         return back()->with('message', 'Expense deleted successfully.');
@@ -111,9 +164,65 @@ class ExpensesController extends Controller
     {
         abort_if(Gate::denies('expense_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        Expense::whereIn('id', request('ids'))->delete();
+        abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $query = Expense::whereIn('id', request('ids'));
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+        }
+
+        $query->delete();
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    private function checkExpenseAccess(Expense $expense): void
+    {
+        if (auth()->user()->is_admin) {
+            return;
+        }
+
+        $branchId = $this->getUserBranchId();
+
+        abort_if(! $branchId || $expense->branch_id != $branchId, Response::HTTP_FORBIDDEN, '403 Forbidden');
+    }
+
+    private function getUserBranchId()
+    {
+        $user = auth()->user();
+
+        if ($user->is_admin) {
+            return null;
+        }
+
+        $managedBranch = Branch::where('manager_id', $user->id)->first();
+
+        if ($managedBranch) {
+            return $managedBranch->id;
+        }
+
+        $staff = Staff::where('user_id', $user->id)->first();
+
+        if ($staff) {
+            return $staff->branch_id;
+        }
+
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        if ($teacher) {
+            return $teacher->branch_id;
+        }
+
+        $student = Student::where('user_id', $user->id)->first();
+
+        if ($student) {
+            return $student->branch_id;
+        }
+
+        return null;
     }
 
     private function categories(): array
@@ -144,5 +253,15 @@ class ExpensesController extends Controller
             'card' => 'Card',
             'other' => 'Other',
         ];
+    }
+
+    private function isTeacher(): bool
+    {
+        return auth()->user()->roles()->where('title', 'Teacher')->exists();
+    }
+
+    private function isStudent(): bool
+    {
+        return auth()->user()->roles()->where('title', 'Student')->exists();
     }
 }

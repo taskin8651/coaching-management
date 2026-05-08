@@ -8,7 +8,10 @@ use App\Http\Requests\UpdateStudentRequest;
 use App\Models\Batch;
 use App\Models\Branch;
 use App\Models\Course;
+use App\Models\Staff;
 use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use Gate;
 use Illuminate\Http\Request;
@@ -20,7 +23,37 @@ class StudentsController extends Controller
     {
         abort_if(Gate::denies('student_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $students = Student::with(['user', 'branch', 'course', 'batch'])->latest()->get();
+        $students = Student::with(['user', 'branch', 'course', 'batch']);
+
+        if (auth()->user()->is_admin) {
+            // Admin ko all students
+        } elseif ($this->isStudent()) {
+            $authStudent = Student::where('user_id', auth()->id())->first();
+
+            if ($authStudent) {
+                $students->where('id', $authStudent->id);
+            } else {
+                $students->whereRaw('1 = 0');
+            }
+        } elseif ($this->isTeacher()) {
+            $batchIds = $this->getTeacherBatchIds();
+
+            if ($batchIds->count()) {
+                $students->whereIn('batch_id', $batchIds);
+            } else {
+                $students->whereRaw('1 = 0');
+            }
+        } else {
+            $branchId = $this->getUserBranchId();
+
+            if ($branchId) {
+                $students->where('branch_id', $branchId);
+            } else {
+                $students->whereRaw('1 = 0');
+            }
+        }
+
+        $students = $students->latest()->get();
 
         return view('admin.students.index', compact('students'));
     }
@@ -29,22 +62,48 @@ class StudentsController extends Controller
     {
         abort_if(Gate::denies('student_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        // Student/Teacher ko student create allow nahi
+        abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $branchId = $this->getUserBranchId();
+
         $users = User::whereHas('roles', function ($query) {
                 $query->where('title', 'Student');
             })
-            ->whereDoesntHave('student')
+            ->whereDoesntHave('studentProfile')
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $branches = Branch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $courses = Course::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $batches = Batch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
@@ -53,7 +112,35 @@ class StudentsController extends Controller
 
     public function store(StoreStudentRequest $request)
     {
-        $student = Student::create($request->validated());
+        abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validated();
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+
+            $data['branch_id'] = $branchId;
+
+            if (! empty($data['course_id'])) {
+                $course = Course::where('id', $data['course_id'])
+                    ->where('branch_id', $branchId)
+                    ->first();
+
+                abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
+            }
+
+            if (! empty($data['batch_id'])) {
+                $batch = Batch::where('id', $data['batch_id'])
+                    ->where('branch_id', $branchId)
+                    ->first();
+
+                abort_if(! $batch, Response::HTTP_FORBIDDEN, 'Invalid batch for your branch.');
+            }
+        }
+
+        $student = Student::create($data);
 
         if ($request->hasFile('photo')) {
             $student->addMediaFromRequest('photo')->toMediaCollection('student_photo');
@@ -72,6 +159,8 @@ class StudentsController extends Controller
     {
         abort_if(Gate::denies('student_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $this->checkStudentAccess($student);
+
         $student->load(['user', 'branch', 'course', 'batch']);
 
         return view('admin.students.show', compact('student'));
@@ -81,25 +170,53 @@ class StudentsController extends Controller
     {
         abort_if(Gate::denies('student_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        // Student/Teacher ko edit allow nahi
+        abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkStudentAccess($student);
+
+        $branchId = $this->getUserBranchId();
+
         $users = User::whereHas('roles', function ($query) {
                 $query->where('title', 'Student');
             })
             ->where(function ($query) use ($student) {
-                $query->whereDoesntHave('student')
+                $query->whereDoesntHave('studentProfile')
                     ->orWhere('id', $student->user_id);
             })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $branches = Branch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $courses = Course::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $batches = Batch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
@@ -110,7 +227,37 @@ class StudentsController extends Controller
 
     public function update(UpdateStudentRequest $request, Student $student)
     {
-        $student->update($request->validated());
+        abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkStudentAccess($student);
+
+        $data = $request->validated();
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+
+            $data['branch_id'] = $branchId;
+
+            if (! empty($data['course_id'])) {
+                $course = Course::where('id', $data['course_id'])
+                    ->where('branch_id', $branchId)
+                    ->first();
+
+                abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
+            }
+
+            if (! empty($data['batch_id'])) {
+                $batch = Batch::where('id', $data['batch_id'])
+                    ->where('branch_id', $branchId)
+                    ->first();
+
+                abort_if(! $batch, Response::HTTP_FORBIDDEN, 'Invalid batch for your branch.');
+            }
+        }
+
+        $student->update($data);
 
         if ($request->hasFile('photo')) {
             $student->clearMediaCollection('student_photo');
@@ -130,6 +277,10 @@ class StudentsController extends Controller
     {
         abort_if(Gate::denies('student_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkStudentAccess($student);
+
         $student->delete();
 
         return back()->with('message', 'Student deleted successfully.');
@@ -139,8 +290,120 @@ class StudentsController extends Controller
     {
         abort_if(Gate::denies('student_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        Student::whereIn('id', request('ids'))->delete();
+        abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $query = Student::whereIn('id', request('ids'));
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $query->delete();
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    private function checkStudentAccess(Student $student): void
+    {
+        if (auth()->user()->is_admin) {
+            return;
+        }
+
+        if ($this->isStudent()) {
+            $authStudent = Student::where('user_id', auth()->id())->first();
+
+            abort_if(! $authStudent || $student->id != $authStudent->id, Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+            return;
+        }
+
+        if ($this->isTeacher()) {
+            $batchIds = $this->getTeacherBatchIds();
+
+            abort_if(! $batchIds->contains($student->batch_id), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+            return;
+        }
+
+        $branchId = $this->getUserBranchId();
+
+        abort_if(! $branchId || $student->branch_id != $branchId, Response::HTTP_FORBIDDEN, '403 Forbidden');
+    }
+
+    private function getUserBranchId()
+    {
+        $user = auth()->user();
+
+        if ($user->is_admin) {
+            return null;
+        }
+
+        // Branch Manager: branches.manager_id = users.id
+        $managedBranch = Branch::where('manager_id', $user->id)->first();
+
+        if ($managedBranch) {
+            return $managedBranch->id;
+        }
+
+        // Staff
+        $staff = Staff::where('user_id', $user->id)->first();
+
+        if ($staff) {
+            return $staff->branch_id;
+        }
+
+        // Teacher
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        if ($teacher) {
+            return $teacher->branch_id;
+        }
+
+        // Student
+        $student = Student::where('user_id', $user->id)->first();
+
+        if ($student) {
+            return $student->branch_id;
+        }
+
+        return null;
+    }
+
+    private function getTeacherBatchIds()
+    {
+        $teacher = Teacher::where('user_id', auth()->id())->first();
+
+        if (! $teacher) {
+            return collect([]);
+        }
+
+        return TeacherAssignment::where('teacher_id', $teacher->id)
+            ->where('status', 'active')
+            ->whereNotNull('batch_id')
+            ->pluck('batch_id')
+            ->unique()
+            ->values();
+    }
+
+    private function isStudent(): bool
+    {
+        return auth()->user()
+            ->roles()
+            ->where('title', 'Student')
+            ->exists();
+    }
+
+    private function isTeacher(): bool
+    {
+        return auth()->user()
+            ->roles()
+            ->where('title', 'Teacher')
+            ->exists();
     }
 }

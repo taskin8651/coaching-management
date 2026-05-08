@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateSalaryPaymentRequest;
 use App\Models\Branch;
 use App\Models\SalaryPayment;
 use App\Models\Staff;
+use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
 use Gate;
@@ -26,7 +27,21 @@ class SalaryPaymentsController extends Controller
             'teacher.user',
             'staff.user',
             'paidBy',
-        ])->latest()->get();
+        ]);
+
+        if (auth()->user()->is_admin) {
+            // all
+        } elseif ($this->isTeacher() || $this->isStaff()) {
+            $salaryPayments->where('user_id', auth()->id());
+        } elseif ($this->isStudent()) {
+            $salaryPayments->whereRaw('1 = 0');
+        } else {
+            $branchId = $this->getUserBranchId();
+
+            $branchId ? $salaryPayments->where('branch_id', $branchId) : $salaryPayments->whereRaw('1 = 0');
+        }
+
+        $salaryPayments = $salaryPayments->latest()->get();
 
         return view('admin.salaryPayments.index', compact('salaryPayments'));
     }
@@ -35,17 +50,30 @@ class SalaryPaymentsController extends Controller
     {
         abort_if(Gate::denies('salary_payment_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if($this->isTeacher() || $this->isStudent() || $this->isStaff(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $branchId = $this->getUserBranchId();
+
         $branches = Branch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('id', $branchId) : $q->whereRaw('1 = 0'))
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $teachers = Teacher::with('user')->get()->mapWithKeys(function ($teacher) {
-            return [$teacher->id => ($teacher->user->name ?? 'Teacher') . ' - ₹' . number_format($teacher->salary, 0)];
-        })->prepend(trans('global.pleaseSelect'), '');
+        $teachers = Teacher::with('user')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->get()
+            ->mapWithKeys(function ($teacher) {
+                return [$teacher->id => ($teacher->user->name ?? 'Teacher') . ' - ₹' . number_format($teacher->salary, 0)];
+            })
+            ->prepend(trans('global.pleaseSelect'), '');
 
-        $staff = Staff::with('user')->get()->mapWithKeys(function ($member) {
-            return [$member->id => ($member->user->name ?? 'Staff') . ' - ' . ($member->designation ?? 'Staff') . ' - ₹' . number_format($member->salary, 0)];
-        })->prepend(trans('global.pleaseSelect'), '');
+        $staff = Staff::with('user')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->get()
+            ->mapWithKeys(function ($member) {
+                return [$member->id => ($member->user->name ?? 'Staff') . ' - ' . ($member->designation ?? 'Staff') . ' - ₹' . number_format($member->salary, 0)];
+            })
+            ->prepend(trans('global.pleaseSelect'), '');
 
         $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
@@ -56,7 +84,19 @@ class SalaryPaymentsController extends Controller
 
     public function store(StoreSalaryPaymentRequest $request)
     {
+        abort_if($this->isTeacher() || $this->isStudent() || $this->isStaff(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $data = $this->prepareSalaryData($request->validated());
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+
+            abort_if(($data['branch_id'] ?? null) != $branchId, Response::HTTP_FORBIDDEN, 'Invalid branch.');
+
+            $data['branch_id'] = $branchId;
+        }
 
         SalaryPayment::create($data);
 
@@ -66,6 +106,8 @@ class SalaryPaymentsController extends Controller
     public function show(SalaryPayment $salaryPayment)
     {
         abort_if(Gate::denies('salary_payment_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkSalaryAccess($salaryPayment);
 
         $salaryPayment->load([
             'branch',
@@ -82,17 +124,32 @@ class SalaryPaymentsController extends Controller
     {
         abort_if(Gate::denies('salary_payment_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if($this->isTeacher() || $this->isStudent() || $this->isStaff(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkSalaryAccess($salaryPayment);
+
+        $branchId = $this->getUserBranchId();
+
         $branches = Branch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('id', $branchId) : $q->whereRaw('1 = 0'))
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $teachers = Teacher::with('user')->get()->mapWithKeys(function ($teacher) {
-            return [$teacher->id => ($teacher->user->name ?? 'Teacher') . ' - ₹' . number_format($teacher->salary, 0)];
-        })->prepend(trans('global.pleaseSelect'), '');
+        $teachers = Teacher::with('user')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->get()
+            ->mapWithKeys(function ($teacher) {
+                return [$teacher->id => ($teacher->user->name ?? 'Teacher') . ' - ₹' . number_format($teacher->salary, 0)];
+            })
+            ->prepend(trans('global.pleaseSelect'), '');
 
-        $staff = Staff::with('user')->get()->mapWithKeys(function ($member) {
-            return [$member->id => ($member->user->name ?? 'Staff') . ' - ' . ($member->designation ?? 'Staff') . ' - ₹' . number_format($member->salary, 0)];
-        })->prepend(trans('global.pleaseSelect'), '');
+        $staff = Staff::with('user')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->get()
+            ->mapWithKeys(function ($member) {
+                return [$member->id => ($member->user->name ?? 'Staff') . ' - ' . ($member->designation ?? 'Staff') . ' - ₹' . number_format($member->salary, 0)];
+            })
+            ->prepend(trans('global.pleaseSelect'), '');
 
         $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
@@ -111,7 +168,21 @@ class SalaryPaymentsController extends Controller
 
     public function update(UpdateSalaryPaymentRequest $request, SalaryPayment $salaryPayment)
     {
+        abort_if($this->isTeacher() || $this->isStudent() || $this->isStaff(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkSalaryAccess($salaryPayment);
+
         $data = $this->prepareSalaryData($request->validated(), $salaryPayment);
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+
+            abort_if(($data['branch_id'] ?? null) != $branchId, Response::HTTP_FORBIDDEN, 'Invalid branch.');
+
+            $data['branch_id'] = $branchId;
+        }
 
         $salaryPayment->update($data);
 
@@ -122,6 +193,10 @@ class SalaryPaymentsController extends Controller
     {
         abort_if(Gate::denies('salary_payment_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        abort_if($this->isTeacher() || $this->isStudent() || $this->isStaff(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkSalaryAccess($salaryPayment);
+
         $salaryPayment->delete();
 
         return back()->with('message', 'Salary payment deleted successfully.');
@@ -131,7 +206,17 @@ class SalaryPaymentsController extends Controller
     {
         abort_if(Gate::denies('salary_payment_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        SalaryPayment::whereIn('id', request('ids'))->delete();
+        abort_if($this->isTeacher() || $this->isStudent() || $this->isStaff(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $query = SalaryPayment::whereIn('id', request('ids'));
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+
+            $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+        }
+
+        $query->delete();
 
         return response(null, Response::HTTP_NO_CONTENT);
     }
@@ -139,6 +224,8 @@ class SalaryPaymentsController extends Controller
     public function slip(SalaryPayment $salaryPayment)
     {
         abort_if(Gate::denies('salary_payment_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkSalaryAccess($salaryPayment);
 
         $salaryPayment->load([
             'branch',
@@ -149,6 +236,23 @@ class SalaryPaymentsController extends Controller
         ]);
 
         return view('admin.salaryPayments.slip', compact('salaryPayment'));
+    }
+
+    private function checkSalaryAccess(SalaryPayment $salaryPayment): void
+    {
+        if (auth()->user()->is_admin) {
+            return;
+        }
+
+        if ($this->isTeacher() || $this->isStaff()) {
+            abort_if($salaryPayment->user_id != auth()->id(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+            return;
+        }
+
+        $branchId = $this->getUserBranchId();
+
+        abort_if(! $branchId || $salaryPayment->branch_id != $branchId, Response::HTTP_FORBIDDEN, '403 Forbidden');
     }
 
     private function prepareSalaryData(array $data, SalaryPayment $salaryPayment = null): array
@@ -188,7 +292,7 @@ class SalaryPaymentsController extends Controller
             $data['payment_date'] = now()->format('Y-m-d');
         }
 
-        if ($data['employee_type'] === 'teacher' && !empty($data['teacher_id'])) {
+        if (($data['employee_type'] ?? null) === 'teacher' && ! empty($data['teacher_id'])) {
             $teacher = Teacher::find($data['teacher_id']);
 
             $data['user_id'] = $teacher->user_id ?? null;
@@ -199,7 +303,7 @@ class SalaryPaymentsController extends Controller
             }
         }
 
-        if (in_array($data['employee_type'], ['staff', 'manager']) && !empty($data['staff_id'])) {
+        if (in_array($data['employee_type'] ?? null, ['staff', 'manager']) && ! empty($data['staff_id'])) {
             $staff = Staff::find($data['staff_id']);
 
             $data['user_id'] = $staff->user_id ?? null;
@@ -231,5 +335,49 @@ class SalaryPaymentsController extends Controller
             'card' => 'Card',
             'other' => 'Other',
         ];
+    }
+
+    private function getUserBranchId()
+    {
+        $user = auth()->user();
+
+        if ($user->is_admin) {
+            return null;
+        }
+
+        $managedBranch = Branch::where('manager_id', $user->id)->first();
+
+        if ($managedBranch) {
+            return $managedBranch->id;
+        }
+
+        $staff = Staff::where('user_id', $user->id)->first();
+
+        if ($staff) {
+            return $staff->branch_id;
+        }
+
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        if ($teacher) {
+            return $teacher->branch_id;
+        }
+
+        return null;
+    }
+
+    private function isTeacher(): bool
+    {
+        return auth()->user()->roles()->where('title', 'Teacher')->exists();
+    }
+
+    private function isStaff(): bool
+    {
+        return auth()->user()->roles()->where('title', 'Staff')->exists();
+    }
+
+    private function isStudent(): bool
+    {
+        return auth()->user()->roles()->where('title', 'Student')->exists();
     }
 }
