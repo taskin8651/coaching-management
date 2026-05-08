@@ -96,6 +96,10 @@ Route::delete('admissions/destroy', 'AdmissionsController@massDestroy')->name('a
 Route::delete('admissions/media/{media}', 'AdmissionsController@deleteMedia')->name('admissions.deleteMedia');
 Route::resource('admissions', 'AdmissionsController');
 
+// Fee Structures
+Route::delete('fee-structures/destroy', 'FeeStructuresController@massDestroy')->name('fee-structures.massDestroy');
+Route::resource('fee-structures', 'FeeStructuresController');
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

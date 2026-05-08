@@ -34,6 +34,7 @@ class FeePayment extends Model
         'student_id',
         'course_id',
         'batch_id',
+        'fee_structure_id',
         'collected_by_id',
         'receipt_no',
         'total_fee',
@@ -68,6 +69,11 @@ class FeePayment extends Model
     public function batch()
     {
         return $this->belongsTo(Batch::class, 'batch_id');
+    }
+
+    public function feeStructure()
+    {
+        return $this->belongsTo(FeeStructure::class, 'fee_structure_id');
     }
 
     public function collectedBy()

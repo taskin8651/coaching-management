@@ -295,6 +295,7 @@
             @php
                 $financeActive = request()->is('admin/fee-payments*')
                     || request()->is('admin/expenses*')
+                    || request()->is('admin/fee-structures*')
                     || request()->is('admin/salary-payments*');
             @endphp
 
@@ -321,6 +322,13 @@
                      x-transition:leave="transition ease-in duration-100"
                      x-transition:leave-start="opacity-100 translate-y-0"
                      x-transition:leave-end="opacity-0 -translate-y-1">
+                     @can('fee_structure_access')
+    <a href="{{ route('admin.fee-structures.index') }}"
+       class="sub-link {{ request()->is('admin/fee-structures*') ? 'active' : '' }}">
+        <i class="fas fa-list-alt"></i>
+        Fee Structures
+    </a>
+@endcan
 
                     @can('fee_payment_access')
                         <a href="{{ route('admin.fee-payments.index') }}"

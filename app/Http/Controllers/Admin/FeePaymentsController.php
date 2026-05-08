@@ -9,6 +9,7 @@ use App\Models\Batch;
 use App\Models\Branch;
 use App\Models\Course;
 use App\Models\FeePayment;
+use App\Models\FeeStructure;
 use App\Models\Staff;
 use App\Models\Student;
 use App\Models\Teacher;
@@ -24,20 +25,31 @@ class FeePaymentsController extends Controller
     {
         abort_if(Gate::denies('fee_payment_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $feePayments = FeePayment::with(['branch', 'student.user', 'course', 'batch', 'collectedBy']);
+        $feePayments = FeePayment::with([
+            'branch',
+            'student.user',
+            'course',
+            'batch',
+            'feeStructure',
+            'collectedBy',
+        ]);
 
         if (auth()->user()->is_admin) {
             // Admin all
         } elseif ($this->isStudent()) {
             $student = Student::where('user_id', auth()->id())->first();
 
-            $student ? $feePayments->where('student_id', $student->id) : $feePayments->whereRaw('1 = 0');
+            $student
+                ? $feePayments->where('student_id', $student->id)
+                : $feePayments->whereRaw('1 = 0');
+
         } elseif ($this->isTeacher()) {
             $batchIds = $this->getTeacherBatchIds();
 
             $batchIds->count()
                 ? $feePayments->whereIn('batch_id', $batchIds)
                 : $feePayments->whereRaw('1 = 0');
+
         } else {
             $branchId = $this->getUserBranchId();
 
@@ -60,38 +72,77 @@ class FeePaymentsController extends Controller
         $branchId = $this->getUserBranchId();
 
         $branches = Branch::where('status', 'active')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $students = Student::with('user')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->get()
             ->pluck('user.name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $courses = Course::where('status', 'active')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $batches = Batch::where('status', 'active')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->pluck('name', 'id')
+            ->prepend(trans('global.pleaseSelect'), '');
+
+        $feeStructures = FeeStructure::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
+            ->get()
+            ->mapWithKeys(function ($feeStructure) {
+                $title = $feeStructure->title ?? 'Fee Structure';
+                $total = number_format($feeStructure->total_fee, 0);
+
+                return [$feeStructure->id => $title . ' - ₹' . $total];
+            })
             ->prepend(trans('global.pleaseSelect'), '');
 
         $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $paymentModes = $this->paymentModes();
 
-        return view('admin.feePayments.create', compact('branches', 'students', 'courses', 'batches', 'users', 'paymentModes'));
+        $feeStructureData = FeeStructure::select('id', 'branch_id', 'course_id', 'batch_id', 'total_fee')
+    ->where('status', 'active')
+    ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+        $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+    })
+    ->get()
+    ->keyBy('id');
+
+        return view('admin.feePayments.create', compact(
+            'branches',
+            'students',
+            'courses',
+            'batches',
+            'feeStructures',
+            'users',
+            'paymentModes',
+            'feeStructureData'
+
+        ));
     }
 
     public function store(StoreFeePaymentRequest $request)
     {
         abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $data = $this->preparePaymentData($request->validated());
+        $data = $request->validated();
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -99,18 +150,13 @@ class FeePaymentsController extends Controller
             abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
 
             $data['branch_id'] = $branchId;
-
-            if (! empty($data['student_id'])) {
-                $student = Student::where('id', $data['student_id'])
-                    ->where('branch_id', $branchId)
-                    ->first();
-
-                abort_if(! $student, Response::HTTP_FORBIDDEN, 'Invalid student for your branch.');
-
-                $data['course_id'] = $student->course_id ?? $data['course_id'] ?? null;
-                $data['batch_id']  = $student->batch_id ?? $data['batch_id'] ?? null;
-            }
         }
+
+        $data = $this->prepareStudentAndStructureData($data);
+
+        $this->validatePaymentDataAccess($data);
+
+        $data = $this->preparePaymentData($data);
 
         FeePayment::create($data);
 
@@ -123,7 +169,14 @@ class FeePaymentsController extends Controller
 
         $this->checkFeePaymentAccess($feePayment);
 
-        $feePayment->load(['branch', 'student.user', 'course', 'batch', 'collectedBy']);
+        $feePayment->load([
+            'branch',
+            'student.user',
+            'course',
+            'batch',
+            'feeStructure',
+            'collectedBy',
+        ]);
 
         return view('admin.feePayments.show', compact('feePayment'));
     }
@@ -139,33 +192,70 @@ class FeePaymentsController extends Controller
         $branchId = $this->getUserBranchId();
 
         $branches = Branch::where('status', 'active')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $students = Student::with('user')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->get()
             ->pluck('user.name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $courses = Course::where('status', 'active')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
         $batches = Batch::where('status', 'active')
-            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
             ->pluck('name', 'id')
+            ->prepend(trans('global.pleaseSelect'), '');
+
+        $feeStructures = FeeStructure::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
+            ->get()
+            ->mapWithKeys(function ($feeStructure) {
+                $title = $feeStructure->title ?? 'Fee Structure';
+                $total = number_format($feeStructure->total_fee, 0);
+
+                return [$feeStructure->id => $title . ' - ₹' . $total];
+            })
             ->prepend(trans('global.pleaseSelect'), '');
 
         $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $paymentModes = $this->paymentModes();
 
-        $feePayment->load(['branch', 'student.user', 'course', 'batch', 'collectedBy']);
+        $feePayment->load([
+            'branch',
+            'student.user',
+            'course',
+            'batch',
+            'feeStructure',
+            'collectedBy',
+        ]);
 
-        return view('admin.feePayments.edit', compact('feePayment', 'branches', 'students', 'courses', 'batches', 'users', 'paymentModes'));
+        return view('admin.feePayments.edit', compact(
+            'feePayment',
+            'branches',
+            'students',
+            'courses',
+            'batches',
+            'feeStructures',
+            'users',
+            'paymentModes'
+        ));
     }
 
     public function update(UpdateFeePaymentRequest $request, FeePayment $feePayment)
@@ -174,7 +264,7 @@ class FeePaymentsController extends Controller
 
         $this->checkFeePaymentAccess($feePayment);
 
-        $data = $this->preparePaymentData($request->validated(), $feePayment);
+        $data = $request->validated();
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -182,18 +272,13 @@ class FeePaymentsController extends Controller
             abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
 
             $data['branch_id'] = $branchId;
-
-            if (! empty($data['student_id'])) {
-                $student = Student::where('id', $data['student_id'])
-                    ->where('branch_id', $branchId)
-                    ->first();
-
-                abort_if(! $student, Response::HTTP_FORBIDDEN, 'Invalid student for your branch.');
-
-                $data['course_id'] = $student->course_id ?? $data['course_id'] ?? null;
-                $data['batch_id']  = $student->batch_id ?? $data['batch_id'] ?? null;
-            }
         }
+
+        $data = $this->prepareStudentAndStructureData($data);
+
+        $this->validatePaymentDataAccess($data);
+
+        $data = $this->preparePaymentData($data, $feePayment);
 
         $feePayment->update($data);
 
@@ -238,9 +323,92 @@ class FeePaymentsController extends Controller
 
         $this->checkFeePaymentAccess($feePayment);
 
-        $feePayment->load(['branch', 'student.user', 'course', 'batch', 'collectedBy']);
+        $feePayment->load([
+            'branch',
+            'student.user',
+            'course',
+            'batch',
+            'feeStructure',
+            'collectedBy',
+        ]);
 
         return view('admin.feePayments.invoice', compact('feePayment'));
+    }
+
+    private function prepareStudentAndStructureData(array $data): array
+    {
+        if (! empty($data['student_id'])) {
+            $student = Student::find($data['student_id']);
+
+            if ($student) {
+                $data['branch_id'] = $data['branch_id'] ?? $student->branch_id;
+                $data['course_id'] = $student->course_id ?? $data['course_id'] ?? null;
+                $data['batch_id']  = $student->batch_id ?? $data['batch_id'] ?? null;
+            }
+        }
+
+        if (! empty($data['fee_structure_id'])) {
+            $feeStructure = FeeStructure::find($data['fee_structure_id']);
+
+            if ($feeStructure) {
+                $data['branch_id'] = $data['branch_id'] ?? $feeStructure->branch_id;
+                $data['course_id'] = $data['course_id'] ?? $feeStructure->course_id;
+                $data['batch_id']  = $data['batch_id'] ?? $feeStructure->batch_id;
+
+                if (empty($data['total_fee']) || (float) $data['total_fee'] <= 0) {
+                    $data['total_fee'] = $feeStructure->total_fee;
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    private function validatePaymentDataAccess(array $data): void
+    {
+        if (auth()->user()->is_admin) {
+            return;
+        }
+
+        $branchId = $this->getUserBranchId();
+
+        abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+
+        if (! empty($data['branch_id'])) {
+            abort_if($data['branch_id'] != $branchId, Response::HTTP_FORBIDDEN, 'Invalid branch.');
+        }
+
+        if (! empty($data['student_id'])) {
+            abort_if(
+                ! Student::where('id', $data['student_id'])->where('branch_id', $branchId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                'Invalid student for your branch.'
+            );
+        }
+
+        if (! empty($data['course_id'])) {
+            abort_if(
+                ! Course::where('id', $data['course_id'])->where('branch_id', $branchId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                'Invalid course for your branch.'
+            );
+        }
+
+        if (! empty($data['batch_id'])) {
+            abort_if(
+                ! Batch::where('id', $data['batch_id'])->where('branch_id', $branchId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                'Invalid batch for your branch.'
+            );
+        }
+
+        if (! empty($data['fee_structure_id'])) {
+            abort_if(
+                ! FeeStructure::where('id', $data['fee_structure_id'])->where('branch_id', $branchId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                'Invalid fee structure for your branch.'
+            );
+        }
     }
 
     private function checkFeePaymentAccess(FeePayment $feePayment): void
