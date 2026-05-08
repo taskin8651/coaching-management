@@ -91,6 +91,11 @@ Route::delete('notices/destroy', 'NoticesController@massDestroy')->name('notices
 Route::delete('notices/media/{media}', 'NoticesController@deleteMedia')->name('notices.media.destroy');
 Route::resource('notices', 'NoticesController');
 
+// Admissions
+Route::delete('admissions/destroy', 'AdmissionsController@massDestroy')->name('admissions.massDestroy');
+Route::delete('admissions/media/{media}', 'AdmissionsController@deleteMedia')->name('admissions.deleteMedia');
+Route::resource('admissions', 'AdmissionsController');
+
     
 });
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

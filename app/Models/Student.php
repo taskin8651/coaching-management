@@ -113,4 +113,14 @@ public function examResults()
 {
     return $this->hasMany(ExamResult::class, 'student_id');
 }
+
+public function admissions()
+{
+    return $this->hasMany(Admission::class, 'student_id');
+}
+
+public function latestAdmission()
+{
+    return $this->hasOne(Admission::class, 'student_id')->latestOfMany();
+}
 }

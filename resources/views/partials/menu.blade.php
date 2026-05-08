@@ -246,6 +246,15 @@
                 @endcan
             @endcanany
 
+            @can('admission_access')
+    <a href="{{ route('admin.admissions.index') }}"
+       data-tooltip="Admissions"
+       class="nav-link {{ request()->is('admin/admissions*') ? 'active' : '' }}">
+        <i class="fas fa-user-check nav-icon"></i>
+        <span class="nav-label">Admissions</span>
+    </a>
+@endcan
+
             {{-- FINANCE --}}
             @canany(['fee_payment_access', 'expense_access', 'salary_payment_access'])
                 <p class="submenu-title">Finance</p>
