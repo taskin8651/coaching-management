@@ -21,7 +21,10 @@
 
         <div class="user-meta">
             <p class="user-name">{{ auth()->user()->name }}</p>
-            <p class="user-role">Administrator</p>
+
+            <p class="user-role">
+                {{ auth()->user()->roles->pluck('title')->first() ?? 'User' }}
+            </p>
         </div>
     </div>
 
@@ -48,7 +51,6 @@
             @endphp
 
             <div x-data="{ open: {{ $umActive ? 'true' : 'false' }} }">
-
                 <button type="button"
                         @click="open = !open"
                         data-tooltip="Users"
@@ -56,7 +58,7 @@
 
                     <div class="nav-group-left">
                         <i class="fas fa-users nav-icon"></i>
-                        <span class="nav-label">{{ trans('cruds.userManagement.title') }}</span>
+                        <span class="nav-label">User Management</span>
                     </div>
 
                     <i class="fas fa-chevron-right chevron"
@@ -108,244 +110,339 @@
             </div>
         @endcan
 
-        {{-- COACHING MANAGEMENT GROUP --}}
-@canany([
-    'branch_access',
-    'course_access',
-    'subject_access',
-    'batch_access',
-    'teacher_access',
-    'staff_access',
-    'student_access',
-    'enquiry_access',
-    'fee_payment_access',
-    'expense_access',
-    'salary_payment_access',
-    'exam_access',
-    'study_material_access',
-    'notice_access'
-])
-    @php
-        $coachingActive = request()->is('admin/branches*')
-            || request()->is('admin/courses*')
-            || request()->is('admin/subjects*')
-            || request()->is('admin/batches*')
-            || request()->is('admin/teachers*')
-            || request()->is('admin/staff*')
-            || request()->is('admin/students*')
-            || request()->is('admin/enquiries*')
-            || request()->is('admin/fee-payments*')
-            || request()->is('admin/expenses*')
-            || request()->is('admin/salary-payments*')
-            || request()->is('admin/exams*')
-            || request()->is('admin/study-materials*')
-            || request()->is('admin/notices*');
-    @endphp
+        {{-- SETUP GROUP --}}
+        @canany(['branch_access', 'course_access', 'subject_access', 'batch_access'])
+            @php
+                $setupActive = request()->is('admin/branches*')
+                    || request()->is('admin/courses*')
+                    || request()->is('admin/subjects*')
+                    || request()->is('admin/batches*');
+            @endphp
 
-    <div x-data="{ open: {{ $coachingActive ? 'true' : 'false' }} }">
+            <div x-data="{ open: {{ $setupActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Setup"
+                        class="nav-link nav-group-btn {{ $setupActive ? 'active' : '' }}">
 
-        <button type="button"
-                @click="open = !open"
-                data-tooltip="Coaching"
-                class="nav-link nav-group-btn {{ $coachingActive ? 'active' : '' }}">
+                    <div class="nav-group-left">
+                        <i class="fas fa-sliders-h nav-icon"></i>
+                        <span class="nav-label">Setup</span>
+                    </div>
 
-            <div class="nav-group-left">
-                <i class="fas fa-school nav-icon"></i>
-                <span class="nav-label">Coaching Management</span>
+                    <i class="fas fa-chevron-right chevron"
+                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
+
+                <div class="submenu"
+                     x-show="open"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
+
+                    @can('branch_access')
+                        <a href="{{ route('admin.branches.index') }}"
+                           class="sub-link {{ request()->is('admin/branches*') ? 'active' : '' }}">
+                            <i class="fas fa-code-branch"></i>
+                            Branches
+                        </a>
+                    @endcan
+
+                    @can('course_access')
+                        <a href="{{ route('admin.courses.index') }}"
+                           class="sub-link {{ request()->is('admin/courses*') ? 'active' : '' }}">
+                            <i class="fas fa-book"></i>
+                            Courses
+                        </a>
+                    @endcan
+
+                    @can('subject_access')
+                        <a href="{{ route('admin.subjects.index') }}"
+                           class="sub-link {{ request()->is('admin/subjects*') ? 'active' : '' }}">
+                            <i class="fas fa-book-open"></i>
+                            Subjects
+                        </a>
+                    @endcan
+
+                    @can('batch_access')
+                        <a href="{{ route('admin.batches.index') }}"
+                           class="sub-link {{ request()->is('admin/batches*') ? 'active' : '' }}">
+                            <i class="fas fa-layer-group"></i>
+                            Batches
+                        </a>
+                    @endcan
+
+                </div>
             </div>
+        @endcanany
 
-            <i class="fas fa-chevron-right chevron"
-               :style="open ? 'transform:rotate(90deg)' : ''"></i>
-        </button>
+        {{-- PEOPLE GROUP --}}
+        @canany(['teacher_access', 'staff_access', 'student_access'])
+            @php
+                $peopleActive = request()->is('admin/teachers*')
+                    || request()->is('admin/staff*')
+                    || request()->is('admin/students*');
+            @endphp
 
-        <div class="submenu"
-             x-show="open"
-             x-transition:enter="transition ease-out duration-150"
-             x-transition:enter-start="opacity-0 -translate-y-1"
-             x-transition:enter-end="opacity-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-100"
-             x-transition:leave-start="opacity-100 translate-y-0"
-             x-transition:leave-end="opacity-0 -translate-y-1">
+            <div x-data="{ open: {{ $peopleActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="People"
+                        class="nav-link nav-group-btn {{ $peopleActive ? 'active' : '' }}">
 
-            {{-- SETUP --}}
-            @canany(['branch_access', 'course_access', 'subject_access', 'batch_access'])
-                <p class="submenu-title">Setup</p>
+                    <div class="nav-group-left">
+                        <i class="fas fa-user-friends nav-icon"></i>
+                        <span class="nav-label">People</span>
+                    </div>
 
-                @can('branch_access')
-                    <a href="{{ route('admin.branches.index') }}"
-                       class="sub-link {{ request()->is('admin/branches*') ? 'active' : '' }}">
-                        <i class="fas fa-code-branch"></i>
-                        Branches
-                    </a>
-                @endcan
+                    <i class="fas fa-chevron-right chevron"
+                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
 
-                @can('course_access')
-                    <a href="{{ route('admin.courses.index') }}"
-                       class="sub-link {{ request()->is('admin/courses*') ? 'active' : '' }}">
-                        <i class="fas fa-book"></i>
-                        Courses
-                    </a>
-                @endcan
+                <div class="submenu"
+                     x-show="open"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
 
-                @can('subject_access')
-                    <a href="{{ route('admin.subjects.index') }}"
-                       class="sub-link {{ request()->is('admin/subjects*') ? 'active' : '' }}">
-                        <i class="fas fa-book-open"></i>
-                        Subjects
-                    </a>
-                @endcan
+                    @can('teacher_access')
+                        <a href="{{ route('admin.teachers.index') }}"
+                           class="sub-link {{ request()->is('admin/teachers*') ? 'active' : '' }}">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            Teachers
+                        </a>
+                    @endcan
 
-                @can('batch_access')
-                    <a href="{{ route('admin.batches.index') }}"
-                       class="sub-link {{ request()->is('admin/batches*') ? 'active' : '' }}">
-                        <i class="fas fa-layer-group"></i>
-                        Batches
-                    </a>
-                @endcan
-            @endcanany
+                    @can('staff_access')
+                        <a href="{{ route('admin.staff.index') }}"
+                           class="sub-link {{ request()->is('admin/staff*') ? 'active' : '' }}">
+                            <i class="fas fa-user-tie"></i>
+                            Staff
+                        </a>
+                    @endcan
 
-            {{-- PEOPLE --}}
-            @canany(['teacher_access', 'staff_access', 'student_access'])
-                <p class="submenu-title">People</p>
+                    @can('student_access')
+                        <a href="{{ route('admin.students.index') }}"
+                           class="sub-link {{ request()->is('admin/students*') ? 'active' : '' }}">
+                            <i class="fas fa-user-graduate"></i>
+                            Students
+                        </a>
+                    @endcan
 
-                @can('teacher_access')
-                    <a href="{{ route('admin.teachers.index') }}"
-                       class="sub-link {{ request()->is('admin/teachers*') ? 'active' : '' }}">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        Teachers
-                    </a>
-                @endcan
+                </div>
+            </div>
+        @endcanany
 
-                @can('staff_access')
-                    <a href="{{ route('admin.staff.index') }}"
-                       class="sub-link {{ request()->is('admin/staff*') ? 'active' : '' }}">
-                        <i class="fas fa-user-friends"></i>
-                        Staff
-                    </a>
-                @endcan
+        {{-- ADMISSION GROUP --}}
+        @canany(['enquiry_access', 'admission_access'])
+            @php
+                $admissionActive = request()->is('admin/enquiries*')
+                    || request()->is('admin/admissions*');
+            @endphp
 
-                @can('student_access')
-                    <a href="{{ route('admin.students.index') }}"
-                       class="sub-link {{ request()->is('admin/students*') ? 'active' : '' }}">
-                        <i class="fas fa-user-graduate"></i>
-                        Students
-                    </a>
-                @endcan
-            @endcanany
+            <div x-data="{ open: {{ $admissionActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Admission"
+                        class="nav-link nav-group-btn {{ $admissionActive ? 'active' : '' }}">
 
-            {{-- ADMISSION --}}
-            @canany(['enquiry_access'])
-                <p class="submenu-title">Admission</p>
+                    <div class="nav-group-left">
+                        <i class="fas fa-user-check nav-icon"></i>
+                        <span class="nav-label">Admission</span>
+                    </div>
 
-                @can('enquiry_access')
-                    <a href="{{ route('admin.enquiries.index') }}"
-                       class="sub-link {{ request()->is('admin/enquiries*') ? 'active' : '' }}">
-                        <i class="fas fa-headset"></i>
-                        Enquiries
-                    </a>
-                @endcan
-            @endcanany
+                    <i class="fas fa-chevron-right chevron"
+                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
 
-            @can('admission_access')
-    <a href="{{ route('admin.admissions.index') }}"
-       data-tooltip="Admissions"
-       class="nav-link {{ request()->is('admin/admissions*') ? 'active' : '' }}">
-        <i class="fas fa-user-check nav-icon"></i>
-        <span class="nav-label">Admissions</span>
-    </a>
-@endcan
+                <div class="submenu"
+                     x-show="open"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
 
-            {{-- FINANCE --}}
-            @canany(['fee_payment_access', 'expense_access', 'salary_payment_access'])
-                <p class="submenu-title">Finance</p>
+                    @can('enquiry_access')
+                        <a href="{{ route('admin.enquiries.index') }}"
+                           class="sub-link {{ request()->is('admin/enquiries*') ? 'active' : '' }}">
+                            <i class="fas fa-headset"></i>
+                            Enquiries
+                        </a>
+                    @endcan
 
-                @can('fee_payment_access')
-                    <a href="{{ route('admin.fee-payments.index') }}"
-                       class="sub-link {{ request()->is('admin/fee-payments*') ? 'active' : '' }}">
-                        <i class="fas fa-rupee-sign"></i>
-                        Fee Payments
-                    </a>
-                @endcan
+                    @can('admission_access')
+                        <a href="{{ route('admin.admissions.index') }}"
+                           class="sub-link {{ request()->is('admin/admissions*') ? 'active' : '' }}">
+                            <i class="fas fa-user-check"></i>
+                            Admissions
+                        </a>
+                    @endcan
 
-                @can('expense_access')
-                    <a href="{{ route('admin.expenses.index') }}"
-                       class="sub-link {{ request()->is('admin/expenses*') ? 'active' : '' }}">
-                        <i class="fas fa-money-bill-wave"></i>
-                        Expenses
-                    </a>
-                @endcan
+                </div>
+            </div>
+        @endcanany
 
-                @can('salary_payment_access')
-                    <a href="{{ route('admin.salary-payments.index') }}"
-                       class="sub-link {{ request()->is('admin/salary-payments*') ? 'active' : '' }}">
-                        <i class="fas fa-hand-holding-usd"></i>
-                        Salary Payments
-                    </a>
-                @endcan
-            @endcanany
+        {{-- FINANCE GROUP --}}
+        @canany(['fee_payment_access', 'expense_access', 'salary_payment_access'])
+            @php
+                $financeActive = request()->is('admin/fee-payments*')
+                    || request()->is('admin/expenses*')
+                    || request()->is('admin/salary-payments*');
+            @endphp
 
-            {{-- ACADEMIC --}}
-            @canany(['exam_access', 'study_material_access'])
-                <p class="submenu-title">Academic</p>
+            <div x-data="{ open: {{ $financeActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Finance"
+                        class="nav-link nav-group-btn {{ $financeActive ? 'active' : '' }}">
 
-                @can('exam_access')
-                    <a href="{{ route('admin.exams.index') }}"
-                       class="sub-link {{ request()->is('admin/exams*') ? 'active' : '' }}">
-                        <i class="fas fa-clipboard-list"></i>
-                        Exams / Tests
-                    </a>
-                @endcan
+                    <div class="nav-group-left">
+                        <i class="fas fa-wallet nav-icon"></i>
+                        <span class="nav-label">Finance</span>
+                    </div>
 
-                @can('study_material_access')
-                    <a href="{{ route('admin.study-materials.index') }}"
-                       class="sub-link {{ request()->is('admin/study-materials*') ? 'active' : '' }}">
-                        <i class="fas fa-book-reader"></i>
-                        Study Materials
-                    </a>
-                @endcan
-            @endcanany
+                    <i class="fas fa-chevron-right chevron"
+                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
 
-            {{-- COMMUNICATION --}}
-            @canany(['notice_access'])
-                <p class="submenu-title">Communication</p>
+                <div class="submenu"
+                     x-show="open"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
 
-                @can('notice_access')
-                    <a href="{{ route('admin.notices.index') }}"
-                       class="sub-link {{ request()->is('admin/notices*') ? 'active' : '' }}">
-                        <i class="fas fa-bullhorn"></i>
-                        Notices
-                    </a>
-                @endcan
-            @endcanany
+                    @can('fee_payment_access')
+                        <a href="{{ route('admin.fee-payments.index') }}"
+                           class="sub-link {{ request()->is('admin/fee-payments*') ? 'active' : '' }}">
+                            <i class="fas fa-rupee-sign"></i>
+                            Fee Payments
+                        </a>
+                    @endcan
 
-        </div>
-    </div>
-@endcanany
+                    @can('expense_access')
+                        <a href="{{ route('admin.expenses.index') }}"
+                           class="sub-link {{ request()->is('admin/expenses*') ? 'active' : '' }}">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Expenses
+                        </a>
+                    @endcan
 
-<style>
-    
-.submenu-title {
-    margin: 14px 14px 7px;
-    font-size: 10px;
-    font-weight: 800;
-    color: #94A3B8;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-}
+                    @can('salary_payment_access')
+                        <a href="{{ route('admin.salary-payments.index') }}"
+                           class="sub-link {{ request()->is('admin/salary-payments*') ? 'active' : '' }}">
+                            <i class="fas fa-hand-holding-usd"></i>
+                            Salary Payments
+                        </a>
+                    @endcan
 
-.submenu-title:first-child {
-    margin-top: 8px;
-}
+                </div>
+            </div>
+        @endcanany
 
-.submenu .sub-link {
-    margin-bottom: 4px;
-}
+        {{-- ACADEMIC GROUP --}}
+        @canany(['exam_access', 'study_material_access'])
+            @php
+                $academicActive = request()->is('admin/exams*')
+                    || request()->is('admin/study-materials*');
+            @endphp
 
-.submenu .sub-link i {
-    width: 18px;
-    text-align: center;
-}
-</style>
+            <div x-data="{ open: {{ $academicActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Academic"
+                        class="nav-link nav-group-btn {{ $academicActive ? 'active' : '' }}">
+
+                    <div class="nav-group-left">
+                        <i class="fas fa-graduation-cap nav-icon"></i>
+                        <span class="nav-label">Academic</span>
+                    </div>
+
+                    <i class="fas fa-chevron-right chevron"
+                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
+
+                <div class="submenu"
+                     x-show="open"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
+
+                    @can('exam_access')
+                        <a href="{{ route('admin.exams.index') }}"
+                           class="sub-link {{ request()->is('admin/exams*') ? 'active' : '' }}">
+                            <i class="fas fa-clipboard-list"></i>
+                            Exams / Tests
+                        </a>
+                    @endcan
+
+                    @can('study_material_access')
+                        <a href="{{ route('admin.study-materials.index') }}"
+                           class="sub-link {{ request()->is('admin/study-materials*') ? 'active' : '' }}">
+                            <i class="fas fa-book-reader"></i>
+                            Study Materials
+                        </a>
+                    @endcan
+
+                </div>
+            </div>
+        @endcanany
+
+        {{-- COMMUNICATION GROUP --}}
+        @canany(['notice_access'])
+            @php
+                $communicationActive = request()->is('admin/notices*');
+            @endphp
+
+            <div x-data="{ open: {{ $communicationActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Communication"
+                        class="nav-link nav-group-btn {{ $communicationActive ? 'active' : '' }}">
+
+                    <div class="nav-group-left">
+                        <i class="fas fa-bullhorn nav-icon"></i>
+                        <span class="nav-label">Communication</span>
+                    </div>
+
+                    <i class="fas fa-chevron-right chevron"
+                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
+
+                <div class="submenu"
+                     x-show="open"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
+
+                    @can('notice_access')
+                        <a href="{{ route('admin.notices.index') }}"
+                           class="sub-link {{ request()->is('admin/notices*') ? 'active' : '' }}">
+                            <i class="fas fa-bullhorn"></i>
+                            Notices
+                        </a>
+                    @endcan
+
+                </div>
+            </div>
+        @endcanany
+
         <div class="nav-divider"></div>
 
         <p class="sidebar-section-title compact nav-label">Account</p>
@@ -384,3 +481,31 @@
     </div>
 
 </aside>
+
+<style>
+.submenu .sub-link {
+    margin-bottom: 4px;
+}
+
+.submenu .sub-link i {
+    width: 18px;
+    text-align: center;
+}
+
+.nav-group-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nav-group-btn {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.chevron {
+    transition: .2s ease;
+}
+</style>
