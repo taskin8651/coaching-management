@@ -109,7 +109,22 @@
         @endcan
 
         {{-- COACHING MANAGEMENT GROUP --}}
-@can('branch_access')
+@canany([
+    'branch_access',
+    'course_access',
+    'subject_access',
+    'batch_access',
+    'teacher_access',
+    'staff_access',
+    'student_access',
+    'enquiry_access',
+    'fee_payment_access',
+    'expense_access',
+    'salary_payment_access',
+    'exam_access',
+    'study_material_access',
+    'notice_access'
+])
     @php
         $coachingActive = request()->is('admin/branches*')
             || request()->is('admin/courses*')
@@ -118,17 +133,14 @@
             || request()->is('admin/teachers*')
             || request()->is('admin/staff*')
             || request()->is('admin/students*')
-        || request()->is('admin/enquiries*')
-        || request()->is('admin/fee-payments*')
-        || request()->is('admin/expenses*')
-|| request()->is('admin/salary-payments*')
-|| request()->is('admin/exams*')
-|| request()->is('admin/study-materials*')
-|| request()->is('admin/notices*')
-            ;
-
+            || request()->is('admin/enquiries*')
+            || request()->is('admin/fee-payments*')
+            || request()->is('admin/expenses*')
+            || request()->is('admin/salary-payments*')
+            || request()->is('admin/exams*')
+            || request()->is('admin/study-materials*')
+            || request()->is('admin/notices*');
     @endphp
-
 
     <div x-data="{ open: {{ $coachingActive ? 'true' : 'false' }} }">
 
@@ -155,117 +167,176 @@
              x-transition:leave-start="opacity-100 translate-y-0"
              x-transition:leave-end="opacity-0 -translate-y-1">
 
-            @can('branch_access')
-                <a href="{{ route('admin.branches.index') }}"
-                   class="sub-link {{ request()->is('admin/branches*') ? 'active' : '' }}">
-                    <i class="fas fa-code-branch"></i>
-                    Branches
-                </a>
-            @endcan
+            {{-- SETUP --}}
+            @canany(['branch_access', 'course_access', 'subject_access', 'batch_access'])
+                <p class="submenu-title">Setup</p>
 
-            @can('course_access')
-    <a href="{{ route('admin.courses.index') }}"
-       class="sub-link {{ request()->is('admin/courses*') ? 'active' : '' }}">
-        <i class="fas fa-book"></i>
-        Courses
-    </a>
-@endcan
+                @can('branch_access')
+                    <a href="{{ route('admin.branches.index') }}"
+                       class="sub-link {{ request()->is('admin/branches*') ? 'active' : '' }}">
+                        <i class="fas fa-code-branch"></i>
+                        Branches
+                    </a>
+                @endcan
 
-@can('subject_access')
-    <a href="{{ route('admin.subjects.index') }}"
-       class="sub-link {{ request()->is('admin/subjects*') ? 'active' : '' }}">
-        <i class="fas fa-book-open"></i>
-        Subjects
-    </a>
-@endcan
+                @can('course_access')
+                    <a href="{{ route('admin.courses.index') }}"
+                       class="sub-link {{ request()->is('admin/courses*') ? 'active' : '' }}">
+                        <i class="fas fa-book"></i>
+                        Courses
+                    </a>
+                @endcan
 
-@can('batch_access')
-    <a href="{{ route('admin.batches.index') }}"
-       class="sub-link {{ request()->is('admin/batches*') ? 'active' : '' }}">
-        <i class="fas fa-layer-group"></i>
-        Batches
-    </a>
-@endcan
+                @can('subject_access')
+                    <a href="{{ route('admin.subjects.index') }}"
+                       class="sub-link {{ request()->is('admin/subjects*') ? 'active' : '' }}">
+                        <i class="fas fa-book-open"></i>
+                        Subjects
+                    </a>
+                @endcan
 
-@can('teacher_access')
-    <a href="{{ route('admin.teachers.index') }}"
-       class="sub-link {{ request()->is('admin/teachers*') ? 'active' : '' }}">
-        <i class="fas fa-chalkboard-teacher"></i>
-        Teachers
-    </a>
-@endcan
+                @can('batch_access')
+                    <a href="{{ route('admin.batches.index') }}"
+                       class="sub-link {{ request()->is('admin/batches*') ? 'active' : '' }}">
+                        <i class="fas fa-layer-group"></i>
+                        Batches
+                    </a>
+                @endcan
+            @endcanany
 
-@can('staff_access')
-    <a href="{{ route('admin.staff.index') }}"
-       class="sub-link {{ request()->is('admin/staff*') ? 'active' : '' }}">
-        <i class="fas fa-user-friends"></i>
-        Staff
-    </a>
-@endcan
+            {{-- PEOPLE --}}
+            @canany(['teacher_access', 'staff_access', 'student_access'])
+                <p class="submenu-title">People</p>
 
-@can('student_access')
-    <a href="{{ route('admin.students.index') }}"
-       class="sub-link {{ request()->is('admin/students*') ? 'active' : '' }}">
-        <i class="fas fa-user-graduate"></i>
-        Students
-    </a>
-@endcan
-@can('enquiry_access')
-    <a href="{{ route('admin.enquiries.index') }}"
-       class="sub-link {{ request()->is('admin/enquiries*') ? 'active' : '' }}">
-        <i class="fas fa-headset"></i>
-        Enquiries
-    </a>
-@endcan
-@can('fee_payment_access')
-    <a href="{{ route('admin.fee-payments.index') }}"
-       class="sub-link {{ request()->is('admin/fee-payments*') ? 'active' : '' }}">
-        <i class="fas fa-rupee-sign"></i>
-        Fee Payments
-    </a>
-@endcan
-@can('expense_access')
-    <a href="{{ route('admin.expenses.index') }}"
-         class="sub-link {{ request()->is('admin/expenses*') ? 'active' : '' }}">
-        <i class="fas fa-money-bill-wave"></i>
-        Expenses
-    </a>
-@endcan
-@can('salary_payment_access')
-    <a href="{{ route('admin.salary-payments.index') }}"
-       class="sub-link {{ request()->is('admin/salary-payments*') ? '   active' : '' }}">
-        <i class="fas fa-hand-holding-usd"></i>
-        Salary Payments
-    </a>    
-    @endcan
+                @can('teacher_access')
+                    <a href="{{ route('admin.teachers.index') }}"
+                       class="sub-link {{ request()->is('admin/teachers*') ? 'active' : '' }}">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        Teachers
+                    </a>
+                @endcan
 
-    @can('exam_access')
-    <a href="{{ route('admin.exams.index') }}"
-       class="sub-link {{ request()->is('admin/exams*') ? 'active' : '' }}">
-        <i class="fas fa-clipboard-list"></i>
-        Exams / Tests
-    </a>
-@endcan
+                @can('staff_access')
+                    <a href="{{ route('admin.staff.index') }}"
+                       class="sub-link {{ request()->is('admin/staff*') ? 'active' : '' }}">
+                        <i class="fas fa-user-friends"></i>
+                        Staff
+                    </a>
+                @endcan
 
-@can('study_material_access')
-    <a href="{{ route('admin.study-materials.index') }}"
-       class="sub-link {{ request()->is('admin/study-materials*') ? 'active' : '' }}">
-        <i class="fas fa-book-reader"></i>
-        Study Materials
-    </a>
-@endcan
+                @can('student_access')
+                    <a href="{{ route('admin.students.index') }}"
+                       class="sub-link {{ request()->is('admin/students*') ? 'active' : '' }}">
+                        <i class="fas fa-user-graduate"></i>
+                        Students
+                    </a>
+                @endcan
+            @endcanany
 
-@can('notice_access')
-    <a href="{{ route('admin.notices.index') }}"
-       class="sub-link {{ request()->is('admin/notices*') ? 'active' : '' }}">
-        <i class="fas fa-bullhorn"></i>
-        Notices
-    </a>
-@endcan
+            {{-- ADMISSION --}}
+            @canany(['enquiry_access'])
+                <p class="submenu-title">Admission</p>
+
+                @can('enquiry_access')
+                    <a href="{{ route('admin.enquiries.index') }}"
+                       class="sub-link {{ request()->is('admin/enquiries*') ? 'active' : '' }}">
+                        <i class="fas fa-headset"></i>
+                        Enquiries
+                    </a>
+                @endcan
+            @endcanany
+
+            {{-- FINANCE --}}
+            @canany(['fee_payment_access', 'expense_access', 'salary_payment_access'])
+                <p class="submenu-title">Finance</p>
+
+                @can('fee_payment_access')
+                    <a href="{{ route('admin.fee-payments.index') }}"
+                       class="sub-link {{ request()->is('admin/fee-payments*') ? 'active' : '' }}">
+                        <i class="fas fa-rupee-sign"></i>
+                        Fee Payments
+                    </a>
+                @endcan
+
+                @can('expense_access')
+                    <a href="{{ route('admin.expenses.index') }}"
+                       class="sub-link {{ request()->is('admin/expenses*') ? 'active' : '' }}">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Expenses
+                    </a>
+                @endcan
+
+                @can('salary_payment_access')
+                    <a href="{{ route('admin.salary-payments.index') }}"
+                       class="sub-link {{ request()->is('admin/salary-payments*') ? 'active' : '' }}">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        Salary Payments
+                    </a>
+                @endcan
+            @endcanany
+
+            {{-- ACADEMIC --}}
+            @canany(['exam_access', 'study_material_access'])
+                <p class="submenu-title">Academic</p>
+
+                @can('exam_access')
+                    <a href="{{ route('admin.exams.index') }}"
+                       class="sub-link {{ request()->is('admin/exams*') ? 'active' : '' }}">
+                        <i class="fas fa-clipboard-list"></i>
+                        Exams / Tests
+                    </a>
+                @endcan
+
+                @can('study_material_access')
+                    <a href="{{ route('admin.study-materials.index') }}"
+                       class="sub-link {{ request()->is('admin/study-materials*') ? 'active' : '' }}">
+                        <i class="fas fa-book-reader"></i>
+                        Study Materials
+                    </a>
+                @endcan
+            @endcanany
+
+            {{-- COMMUNICATION --}}
+            @canany(['notice_access'])
+                <p class="submenu-title">Communication</p>
+
+                @can('notice_access')
+                    <a href="{{ route('admin.notices.index') }}"
+                       class="sub-link {{ request()->is('admin/notices*') ? 'active' : '' }}">
+                        <i class="fas fa-bullhorn"></i>
+                        Notices
+                    </a>
+                @endcan
+            @endcanany
+
         </div>
     </div>
-@endcan
+@endcanany
 
+<style>
+    
+.submenu-title {
+    margin: 14px 14px 7px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.submenu-title:first-child {
+    margin-top: 8px;
+}
+
+.submenu .sub-link {
+    margin-bottom: 4px;
+}
+
+.submenu .sub-link i {
+    width: 18px;
+    text-align: center;
+}
+</style>
         <div class="nav-divider"></div>
 
         <p class="sidebar-section-title compact nav-label">Account</p>
