@@ -1,0 +1,9 @@
+@extends('layouts.admin')
+@section('page-title', 'Faculty Log Book')
+@section('content')
+<div class="admin-page-head"><div><h2 class="admin-page-title">Faculty Log Book</h2><p class="admin-page-subtitle">Payable class minutes and approval status</p></div>@can('faculty_log_create')<a href="{{ route('admin.faculty-log-books.create') }}" class="btn-primary"><i class="fas fa-plus"></i> Add Log</a>@endcan</div>
+<div class="page-card"><div class="page-card-table"><table class="min-w-full datatable datatable-FacultyLogs"><thead><tr><th>Date</th><th>Teacher</th><th>Batch</th><th>Subject</th><th>Scheduled</th><th>Actual</th><th>Payable</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead><tbody>
+@foreach($logs as $log)<tr><td>{{ $log->lecture_date ? $log->lecture_date->format('d M Y') : '-' }}</td><td>{{ $log->teacher->user->name ?? '-' }}</td><td>{{ $log->batch->name ?? '-' }}</td><td>{{ $log->subject->name ?? '-' }}</td><td>{{ $log->scheduled_start_time }} - {{ $log->scheduled_end_time }}</td><td>{{ $log->actual_start_time ?? '-' }} - {{ $log->actual_end_time ?? '-' }}</td><td>{{ $log->salary_minutes }} min</td><td>{{ ucfirst($log->log_status) }} / {{ ucfirst($log->approval_status) }}</td><td style="text-align:right;"><div class="action-row">@can('faculty_log_edit')<a class="btn-outline btn-outline-edit" href="{{ route('admin.faculty-log-books.edit', $log->id) }}"><i class="fas fa-pencil-alt"></i> Edit</a>@endcan @can('faculty_log_approve')<form method="POST" action="{{ route('admin.faculty-log-books.approve', $log->id) }}" style="display:inline">@csrf<button class="btn-outline"><i class="fas fa-check"></i> Approve</button></form>@endcan</div></td></tr>@endforeach
+</tbody></table></div></div>
+@endsection
+@section('scripts')@parent<script>$(function(){initAdminDataTable('.datatable-FacultyLogs',{searchPlaceholder:'Search faculty logs...'});});</script>@endsection

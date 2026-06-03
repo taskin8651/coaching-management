@@ -12,7 +12,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('erp:mark-missed-faculty-logs')->hourly();
+        $schedule->command('erp:mark-student-absents')->everyThirtyMinutes();
+        $schedule->command('erp:send-fee-reminders')->dailyAt('09:00');
+        $schedule->command('erp:send-homework-incomplete-alerts')->dailyAt('18:00');
+        $schedule->command('erp:send-maintenance-alerts')->dailyAt('10:00');
+        $schedule->command('erp:send-low-inventory-alerts')->dailyAt('10:30');
     }
 
     /**

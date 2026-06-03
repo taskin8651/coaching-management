@@ -35,6 +35,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'biometric_id',
         'email_verified_at',
         'password',
         'remember_token',
@@ -228,5 +229,10 @@ class User extends Authenticatable
     public function createdNotices()
     {
         return $this->hasMany(Notice::class, 'created_by_id');
+    }
+
+    public function staffAttendances()
+    {
+        return $this->hasMany(StaffAttendance::class, 'user_id');
     }
 }

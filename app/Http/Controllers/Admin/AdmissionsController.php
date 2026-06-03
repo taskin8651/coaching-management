@@ -14,6 +14,7 @@ use App\Models\Staff;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
+use App\Services\WhatsappService;
 use Gate;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -126,7 +127,7 @@ class AdmissionsController extends Controller
         ));
     }
 
-    public function store(StoreAdmissionRequest $request)
+    public function store(StoreAdmissionRequest $request, WhatsappService $whatsapp)
     {
         abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -144,6 +145,17 @@ class AdmissionsController extends Controller
 
         $admission = Admission::create($data);
 
+        if ($admission->student) {
+            $admission->student->update(array_filter([
+                'father_name' => $data['father_name'] ?? null,
+                'mother_name' => $data['mother_name'] ?? null,
+                'guardian_name' => $data['guardian_name'] ?? null,
+                'guardian_phone' => $data['guardian_phone'] ?? null,
+                'guardian_whatsapp' => $data['guardian_whatsapp'] ?? null,
+                'emergency_contact' => $data['emergency_contact'] ?? null,
+            ], fn ($value) => $value !== null && $value !== ''));
+        }
+
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $document) {
                 $admission->addMedia($document)->toMediaCollection('admission_documents');
@@ -158,6 +170,14 @@ class AdmissionsController extends Controller
                     'status' => 'converted',
                 ]);
             }
+        }
+
+        if ($admission->student) {
+            $whatsapp->sendStudentGuardianMessage(
+                $admission->student,
+                'admission',
+                'Admission confirmed. Admission No: ' . $admission->admission_no
+            );
         }
 
         return redirect()->route('admin.admissions.index')->with('message', 'Admission created successfully.');

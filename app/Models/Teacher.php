@@ -25,6 +25,7 @@ class Teacher extends Model implements HasMedia
     protected $fillable = [
         'user_id',
         'branch_id',
+        'biometric_id',
         'phone',
         'alternate_phone',
         'qualification',
@@ -32,6 +33,8 @@ class Teacher extends Model implements HasMedia
         'subject_specialization',
         'address',
         'salary',
+        'salary_type',
+        'minute_rate',
         'joining_date',
         'status',
         'created_at',
@@ -114,5 +117,20 @@ public function batches()
 {
     return $this->belongsToMany(Batch::class, 'teacher_assignments', 'teacher_id', 'batch_id')
         ->withTimestamps();
+}
+
+public function facultyLogs()
+{
+    return $this->hasMany(FacultyLogBook::class, 'teacher_id');
+}
+
+public function extraClasses()
+{
+    return $this->hasMany(ExtraClass::class, 'teacher_id');
+}
+
+public function staffAttendances()
+{
+    return $this->hasMany(StaffAttendance::class, 'teacher_id');
 }
 }

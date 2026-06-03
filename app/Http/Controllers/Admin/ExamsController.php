@@ -16,6 +16,8 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
+use App\Services\WhatsappService;
+use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -115,7 +117,7 @@ class ExamsController extends Controller
         return view('admin.exams.create', compact('branches', 'courses', 'batches', 'subjects', 'examTypes'));
     }
 
-    public function store(StoreExamRequest $request)
+    public function store(StoreExamRequest $request, WhatsappService $whatsapp)
     {
         abort_if($this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -135,7 +137,24 @@ class ExamsController extends Controller
             }
         }
 
-        Exam::create($data);
+        $exam = Exam::create($data);
+
+        $students = Student::query()
+            ->when($exam->branch_id, fn ($q) => $q->where('branch_id', $exam->branch_id))
+            ->when($exam->course_id, fn ($q) => $q->where('course_id', $exam->course_id))
+            ->when($exam->batch_id, fn ($q) => $q->where(function ($qq) use ($exam) {
+                $qq->where('batch_id', $exam->batch_id)
+                    ->orWhereHas('studentBatches', fn ($bq) => $bq->where('batch_id', $exam->batch_id)->where('status', 'active'));
+            }))
+            ->get();
+
+        foreach ($students as $student) {
+            $whatsapp->sendStudentGuardianMessage(
+                $student,
+                'exam_schedule',
+                'Exam scheduled: ' . $exam->title . ' on ' . ($exam->exam_date ? Carbon::parse($exam->exam_date)->format('d M Y') : '-')
+            );
+        }
 
         return redirect()->route('admin.exams.index')->with('message', 'Exam created successfully.');
     }

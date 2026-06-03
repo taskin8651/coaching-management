@@ -20,6 +20,10 @@ class RolesTableSeeder extends Seeder
             ],
         ];
 
-        Role::insert($roles);
+        Role::insertOrIgnore($roles);
+
+        foreach (['Branch Manager', 'Teacher', 'Staff', 'Student', 'Parent'] as $title) {
+            Role::firstOrCreate(['title' => $title]);
+        }
     }
 }

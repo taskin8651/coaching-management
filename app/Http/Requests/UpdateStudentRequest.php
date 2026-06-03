@@ -25,6 +25,11 @@ class UpdateStudentRequest extends FormRequest
                 'exists:users,id',
                 Rule::unique('students', 'user_id')->ignore($this->student->id),
             ],
+            'guardian_user_id' => [
+                'nullable',
+                'integer',
+                'exists:users,id',
+            ],
             'branch_id' => [
                 'nullable',
                 'integer',
@@ -46,6 +51,12 @@ class UpdateStudentRequest extends FormRequest
                 'max:255',
                 Rule::unique('students', 'student_code')->ignore($this->student->id),
             ],
+            'biometric_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('students', 'biometric_id')->ignore($this->student->id),
+            ],
             'father_name' => [
                 'nullable',
                 'string',
@@ -56,12 +67,32 @@ class UpdateStudentRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'guardian_name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'guardian_phone' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'guardian_whatsapp' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
             'phone' => [
                 'nullable',
                 'string',
                 'max:20',
             ],
             'alternate_phone' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'emergency_contact' => [
                 'nullable',
                 'string',
                 'max:20',

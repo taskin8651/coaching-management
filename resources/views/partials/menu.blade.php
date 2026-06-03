@@ -41,6 +41,13 @@
             <span class="nav-label">{{ trans('global.dashboard') }}</span>
         </a>
 
+        <a href="{{ route('admin.my-portal.index') }}"
+           data-tooltip="My Portal"
+           class="nav-link {{ request()->routeIs('admin.my-portal.*') ? 'active' : '' }}">
+            <i class="fas fa-id-card nav-icon"></i>
+            <span class="nav-label">My Portal</span>
+        </a>
+
         {{-- USER MANAGEMENT GROUP --}}
         @can('user_management_access')
             @php
@@ -291,7 +298,7 @@
         @endcanany
 
         {{-- FINANCE GROUP --}}
-        @canany(['fee_payment_access', 'expense_access', 'salary_payment_access'])
+        @canany(['fee_payment_access', 'fee_installment_access', 'expense_access', 'salary_payment_access', 'salary_report_access'])
             @php
                 $financeActive = request()->is('admin/fee-payments*')
                     || request()->is('admin/expenses*')
@@ -338,6 +345,14 @@
                         </a>
                     @endcan
 
+                    @can('fee_installment_access')
+                        <a href="{{ route('admin.fee-installments.index') }}"
+                           class="sub-link {{ request()->is('admin/fee-installments*') ? 'active' : '' }}">
+                            <i class="fas fa-calendar-alt"></i>
+                            Fee Installments
+                        </a>
+                    @endcan
+
                     @can('expense_access')
                         <a href="{{ route('admin.expenses.index') }}"
                            class="sub-link {{ request()->is('admin/expenses*') ? 'active' : '' }}">
@@ -354,15 +369,27 @@
                         </a>
                     @endcan
 
+                    @can('salary_report_access')
+                        <a href="{{ route('admin.salary-reports.index') }}"
+                           class="sub-link {{ request()->is('admin/salary-reports*') ? 'active' : '' }}">
+                            <i class="fas fa-chart-line"></i>
+                            Salary Reports
+                        </a>
+                    @endcan
+
                 </div>
             </div>
         @endcanany
 
         {{-- ACADEMIC GROUP --}}
-        @canany(['exam_access', 'study_material_access'])
+        @canany(['exam_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'homework_access', 'student_remark_access'])
             @php
                 $academicActive = request()->is('admin/exams*')
-                    || request()->is('admin/study-materials*');
+                    || request()->is('admin/study-materials*')
+                    || request()->is('admin/student-batches*')
+                    || request()->is('admin/student-attendances*')
+                    || request()->is('admin/faculty-log-books*')
+                    || request()->is('admin/extra-classes*');
             @endphp
 
             <div x-data="{ open: {{ $academicActive ? 'true' : 'false' }} }">
@@ -397,11 +424,75 @@
                         </a>
                     @endcan
 
+                    @can('report_card_access')
+                        <a href="{{ route('admin.report-cards.index') }}"
+                           class="sub-link {{ request()->is('admin/report-cards*') ? 'active' : '' }}">
+                            <i class="fas fa-award"></i>
+                            Report Cards
+                        </a>
+                    @endcan
+
+                    @can('timetable_access')
+                        <a href="{{ route('admin.timetables.index') }}"
+                           class="sub-link {{ request()->is('admin/timetables*') ? 'active' : '' }}">
+                            <i class="fas fa-calendar"></i>
+                            Timetable
+                        </a>
+                    @endcan
+
+                    @can('homework_access')
+                        <a href="{{ route('admin.homeworks.index') }}"
+                           class="sub-link {{ request()->is('admin/homeworks*') ? 'active' : '' }}">
+                            <i class="fas fa-tasks"></i>
+                            Homework
+                        </a>
+                    @endcan
+
+                    @can('student_remark_access')
+                        <a href="{{ route('admin.student-remarks.index') }}"
+                           class="sub-link {{ request()->is('admin/student-remarks*') ? 'active' : '' }}">
+                            <i class="fas fa-comment-alt"></i>
+                            Remark Log
+                        </a>
+                    @endcan
+
                     @can('study_material_access')
                         <a href="{{ route('admin.study-materials.index') }}"
                            class="sub-link {{ request()->is('admin/study-materials*') ? 'active' : '' }}">
                             <i class="fas fa-book-reader"></i>
                             Study Materials
+                        </a>
+                    @endcan
+
+                    @can('student_batch_access')
+                        <a href="{{ route('admin.student-batches.index') }}"
+                           class="sub-link {{ request()->is('admin/student-batches*') ? 'active' : '' }}">
+                            <i class="fas fa-random"></i>
+                            Student Batches
+                        </a>
+                    @endcan
+
+                    @can('student_attendance_access')
+                        <a href="{{ route('admin.student-attendances.index') }}"
+                           class="sub-link {{ request()->is('admin/student-attendances*') ? 'active' : '' }}">
+                            <i class="fas fa-user-check"></i>
+                            Student Attendance
+                        </a>
+                    @endcan
+
+                    @can('faculty_log_access')
+                        <a href="{{ route('admin.faculty-log-books.index') }}"
+                           class="sub-link {{ request()->is('admin/faculty-log-books*') ? 'active' : '' }}">
+                            <i class="fas fa-clipboard-check"></i>
+                            Faculty Log Book
+                        </a>
+                    @endcan
+
+                    @can('extra_class_access')
+                        <a href="{{ route('admin.extra-classes.index') }}"
+                           class="sub-link {{ request()->is('admin/extra-classes*') ? 'active' : '' }}">
+                            <i class="fas fa-clock"></i>
+                            Extra Classes
                         </a>
                     @endcan
 
@@ -447,6 +538,93 @@
                         </a>
                     @endcan
 
+                </div>
+            </div>
+        @endcanany
+
+        {{-- OPERATIONS GROUP --}}
+        @canany(['maintenance_access', 'inventory_access'])
+            @php
+                $operationsActive = request()->is('admin/maintenance-requests*')
+                    || request()->is('admin/inventory-items*');
+            @endphp
+
+            <div x-data="{ open: {{ $operationsActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Operations"
+                        class="nav-link nav-group-btn {{ $operationsActive ? 'active' : '' }}">
+                    <div class="nav-group-left">
+                        <i class="fas fa-tools nav-icon"></i>
+                        <span class="nav-label">Operations</span>
+                    </div>
+                    <i class="fas fa-chevron-right chevron" :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
+
+                <div class="submenu" x-show="open">
+                    @can('maintenance_access')
+                        <a href="{{ route('admin.maintenance-requests.index') }}"
+                           class="sub-link {{ request()->is('admin/maintenance-requests*') ? 'active' : '' }}">
+                            <i class="fas fa-wrench"></i>
+                            Maintenance
+                        </a>
+                    @endcan
+
+                    @can('inventory_access')
+                        <a href="{{ route('admin.inventory-items.index') }}"
+                           class="sub-link {{ request()->is('admin/inventory-items*') ? 'active' : '' }}">
+                            <i class="fas fa-boxes"></i>
+                            Inventory
+                        </a>
+                    @endcan
+                </div>
+            </div>
+        @endcanany
+
+        {{-- INTEGRATIONS GROUP --}}
+        @canany(['whatsapp_settings_access', 'whatsapp_logs_access', 'biometric_logs_access'])
+            @php
+                $integrationActive = request()->is('admin/whatsapp-settings*')
+                    || request()->is('admin/whatsapp-logs*')
+                    || request()->is('admin/biometric-logs*');
+            @endphp
+
+            <div x-data="{ open: {{ $integrationActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Integrations"
+                        class="nav-link nav-group-btn {{ $integrationActive ? 'active' : '' }}">
+                    <div class="nav-group-left">
+                        <i class="fas fa-plug nav-icon"></i>
+                        <span class="nav-label">Integrations</span>
+                    </div>
+                    <i class="fas fa-chevron-right chevron" :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
+
+                <div class="submenu" x-show="open">
+                    @can('whatsapp_settings_access')
+                        <a href="{{ route('admin.whatsapp-settings.index') }}"
+                           class="sub-link {{ request()->is('admin/whatsapp-settings*') ? 'active' : '' }}">
+                            <i class="fab fa-whatsapp"></i>
+                            WhatsApp Settings
+                        </a>
+                    @endcan
+
+                    @can('whatsapp_logs_access')
+                        <a href="{{ route('admin.whatsapp-logs.index') }}"
+                           class="sub-link {{ request()->is('admin/whatsapp-logs*') ? 'active' : '' }}">
+                            <i class="fas fa-comment-dots"></i>
+                            WhatsApp Logs
+                        </a>
+                    @endcan
+
+                    @can('biometric_logs_access')
+                        <a href="{{ route('admin.biometric-logs.index') }}"
+                           class="sub-link {{ request()->is('admin/biometric-logs*') ? 'active' : '' }}">
+                            <i class="fas fa-fingerprint"></i>
+                            Biometric Logs
+                        </a>
+                    @endcan
                 </div>
             </div>
         @endcanany

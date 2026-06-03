@@ -29,6 +29,12 @@ class StoreStaffRequest extends FormRequest
                 'integer',
                 'exists:branches,id',
             ],
+            'biometric_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                'unique:staff,biometric_id',
+            ],
             'phone' => [
                 'nullable',
                 'string',
@@ -57,6 +63,10 @@ class StoreStaffRequest extends FormRequest
                 'nullable',
                 'numeric',
                 'min:0',
+            ],
+            'salary_type' => [
+                'nullable',
+                'in:monthly',
             ],
             'joining_date' => [
                 'nullable',

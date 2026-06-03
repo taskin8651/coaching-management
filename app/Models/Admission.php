@@ -31,6 +31,7 @@ class Admission extends Model implements HasMedia
         'guardian_name',
         'guardian_relation',
         'guardian_phone',
+        'guardian_whatsapp',
         'parent_email',
         'emergency_contact',
         'course_fee',

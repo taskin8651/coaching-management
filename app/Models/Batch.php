@@ -53,9 +53,26 @@ class Batch extends Model
         return $date->format('Y-m-d H:i:s');
     }
 
-    public function students()
+public function students()
 {
     return $this->hasMany(Student::class, 'batch_id');
+}
+
+public function assignedStudents()
+{
+    return $this->belongsToMany(Student::class, 'student_batches', 'batch_id', 'student_id')
+        ->withPivot(['subject_id', 'start_date', 'end_date', 'status'])
+        ->withTimestamps();
+}
+
+public function studentBatches()
+{
+    return $this->hasMany(StudentBatch::class, 'batch_id');
+}
+
+public function studentAttendances()
+{
+    return $this->hasMany(StudentAttendance::class, 'batch_id');
 }
 public function feePayments()
 {

@@ -74,6 +74,12 @@ class StudentsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
+        $guardians = User::whereHas('roles', function ($query) {
+                $query->where('title', 'Parent');
+            })
+            ->pluck('name', 'id')
+            ->prepend('Optional', '');
+
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
                 if ($branchId) {
@@ -107,7 +113,7 @@ class StudentsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.students.create', compact('users', 'branches', 'courses', 'batches'));
+        return view('admin.students.create', compact('users', 'guardians', 'branches', 'courses', 'batches'));
     }
 
     public function store(StoreStudentRequest $request)
@@ -187,6 +193,12 @@ class StudentsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
+        $guardians = User::whereHas('roles', function ($query) {
+                $query->where('title', 'Parent');
+            })
+            ->pluck('name', 'id')
+            ->prepend('Optional', '');
+
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
                 if ($branchId) {
@@ -222,7 +234,7 @@ class StudentsController extends Controller
 
         $student->load(['user', 'branch', 'course', 'batch']);
 
-        return view('admin.students.edit', compact('student', 'users', 'branches', 'courses', 'batches'));
+        return view('admin.students.edit', compact('student', 'users', 'guardians', 'branches', 'courses', 'batches'));
     }
 
     public function update(UpdateStudentRequest $request, Student $student)

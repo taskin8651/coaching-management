@@ -15,6 +15,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\WhatsappService;
 use Gate;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -124,7 +125,7 @@ class StudyMaterialsController extends Controller
         ));
     }
 
-    public function store(StoreStudyMaterialRequest $request)
+    public function store(StoreStudyMaterialRequest $request, WhatsappService $whatsapp)
     {
         abort_if($this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -154,6 +155,19 @@ class StudyMaterialsController extends Controller
             foreach ($request->file('files') as $file) {
                 $studyMaterial->addMedia($file)->toMediaCollection('study_material_files');
             }
+        }
+
+        $students = Student::query()
+            ->when($studyMaterial->branch_id, fn ($q) => $q->where('branch_id', $studyMaterial->branch_id))
+            ->when($studyMaterial->course_id, fn ($q) => $q->where('course_id', $studyMaterial->course_id))
+            ->when($studyMaterial->batch_id, fn ($q) => $q->where(function ($qq) use ($studyMaterial) {
+                $qq->where('batch_id', $studyMaterial->batch_id)
+                    ->orWhereHas('studentBatches', fn ($bq) => $bq->where('batch_id', $studyMaterial->batch_id)->where('status', 'active'));
+            }))
+            ->get();
+
+        foreach ($students as $student) {
+            $whatsapp->sendStudentGuardianMessage($student, 'lms_material', 'New study material shared: ' . $studyMaterial->title);
         }
 
         return redirect()->route('admin.study-materials.index')->with('message', 'Study material created successfully.');

@@ -35,6 +35,7 @@ class StoreAdmissionRequest extends FormRequest
             'guardian_name'       => ['nullable', 'string', 'max:255'],
             'guardian_relation'   => ['nullable', 'string', 'max:255'],
             'guardian_phone'      => ['nullable', 'string', 'max:30'],
+            'guardian_whatsapp'   => ['nullable', 'string', 'max:30'],
             'parent_email'        => ['nullable', 'email', 'max:255'],
             'emergency_contact'   => ['nullable', 'string', 'max:30'],
 

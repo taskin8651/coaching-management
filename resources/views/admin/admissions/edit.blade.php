@@ -168,6 +168,11 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label">Guardian WhatsApp</label>
+                    <input type="text" name="guardian_whatsapp" value="{{ old('guardian_whatsapp', $admission->guardian_whatsapp) }}" class="field-input">
+                </div>
+
+                <div class="field-group">
                     <label class="field-label">Parent Email</label>
                     <input type="email" name="parent_email" value="{{ old('parent_email', $admission->parent_email) }}" class="field-input">
                 </div>

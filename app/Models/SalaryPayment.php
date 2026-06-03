@@ -28,6 +28,9 @@ class SalaryPayment extends Model
         'net_salary' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'due_amount' => 'decimal:2',
+        'gross_salary' => 'decimal:2',
+        'extra_class_amount' => 'decimal:2',
+        'salary_calculation_payload' => 'array',
     ];
 
     protected $fillable = [
@@ -45,6 +48,17 @@ class SalaryPayment extends Model
         'net_salary',
         'paid_amount',
         'due_amount',
+        'total_scheduled_lectures',
+        'attended_lectures',
+        'missed_lectures',
+        'late_joined_lectures',
+        'total_scheduled_minutes',
+        'total_payable_regular_minutes',
+        'approved_extra_class_minutes',
+        'deducted_minutes',
+        'gross_salary',
+        'extra_class_amount',
+        'salary_calculation_payload',
         'payment_mode',
         'payment_date',
         'payment_status',

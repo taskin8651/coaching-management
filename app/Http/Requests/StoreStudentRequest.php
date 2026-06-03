@@ -24,6 +24,11 @@ class StoreStudentRequest extends FormRequest
                 'exists:users,id',
                 'unique:students,user_id',
             ],
+            'guardian_user_id' => [
+                'nullable',
+                'integer',
+                'exists:users,id',
+            ],
             'branch_id' => [
                 'nullable',
                 'integer',
@@ -45,6 +50,12 @@ class StoreStudentRequest extends FormRequest
                 'max:255',
                 'unique:students,student_code',
             ],
+            'biometric_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                'unique:students,biometric_id',
+            ],
             'father_name' => [
                 'nullable',
                 'string',
@@ -55,12 +66,32 @@ class StoreStudentRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'guardian_name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'guardian_phone' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'guardian_whatsapp' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
             'phone' => [
                 'nullable',
                 'string',
                 'max:20',
             ],
             'alternate_phone' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'emergency_contact' => [
                 'nullable',
                 'string',
                 'max:20',

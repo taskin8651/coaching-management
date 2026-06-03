@@ -89,6 +89,33 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label" for="guardian_user_id">
+                        Parent Account
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-user-friends icon"></i>
+
+                        <select name="guardian_user_id"
+                                id="guardian_user_id"
+                                class="field-input {{ $errors->has('guardian_user_id') ? 'error' : '' }}">
+                            @foreach($guardians as $id => $guardian)
+                                <option value="{{ $id }}" {{ old('guardian_user_id', $student->guardian_user_id) == $id ? 'selected' : '' }}>
+                                    {{ $guardian }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if($errors->has('guardian_user_id'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('guardian_user_id') }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="field-group">
                     <label class="field-label" for="student_code">
                         Student Code
                     </label>

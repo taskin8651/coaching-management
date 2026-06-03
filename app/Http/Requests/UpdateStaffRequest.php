@@ -30,6 +30,12 @@ class UpdateStaffRequest extends FormRequest
                 'integer',
                 'exists:branches,id',
             ],
+            'biometric_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('staff', 'biometric_id')->ignore($this->staff->id),
+            ],
             'phone' => [
                 'nullable',
                 'string',
@@ -58,6 +64,10 @@ class UpdateStaffRequest extends FormRequest
                 'nullable',
                 'numeric',
                 'min:0',
+            ],
+            'salary_type' => [
+                'nullable',
+                'in:monthly',
             ],
             'joining_date' => [
                 'nullable',

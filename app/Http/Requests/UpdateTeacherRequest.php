@@ -30,6 +30,12 @@ class UpdateTeacherRequest extends FormRequest
                 'integer',
                 'exists:branches,id',
             ],
+            'biometric_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('teachers', 'biometric_id')->ignore($this->teacher->id),
+            ],
             'phone' => [
                 'nullable',
                 'string',
@@ -60,6 +66,15 @@ class UpdateTeacherRequest extends FormRequest
                 'string',
             ],
             'salary' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'salary_type' => [
+                'nullable',
+                'in:monthly,lecture',
+            ],
+            'minute_rate' => [
                 'nullable',
                 'numeric',
                 'min:0',

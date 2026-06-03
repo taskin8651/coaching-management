@@ -25,12 +25,14 @@ class Staff extends Model implements HasMedia
     protected $fillable = [
         'user_id',
         'branch_id',
+        'biometric_id',
         'phone',
         'alternate_phone',
         'designation',
         'department',
         'address',
         'salary',
+        'salary_type',
         'joining_date',
         'status',
         'created_at',
@@ -87,8 +89,13 @@ class Staff extends Model implements HasMedia
         return $date->format('Y-m-d H:i:s');
     }
 
-    public function salaryPayments()
+public function salaryPayments()
 {
     return $this->hasMany(SalaryPayment::class, 'staff_id');
+}
+
+public function staffAttendances()
+{
+    return $this->hasMany(StaffAttendance::class, 'staff_id');
 }
 }

@@ -25,14 +25,20 @@ class Student extends Model implements HasMedia
 
     protected $fillable = [
         'user_id',
+        'guardian_user_id',
         'branch_id',
         'course_id',
         'batch_id',
         'student_code',
+        'biometric_id',
         'father_name',
         'mother_name',
+        'guardian_name',
+        'guardian_phone',
+        'guardian_whatsapp',
         'phone',
         'alternate_phone',
+        'emergency_contact',
         'date_of_birth',
         'gender',
         'address',
@@ -122,5 +128,32 @@ public function admissions()
 public function latestAdmission()
 {
     return $this->hasOne(Admission::class, 'student_id')->latestOfMany();
+}
+
+public function studentBatches()
+{
+    return $this->hasMany(StudentBatch::class, 'student_id');
+}
+
+public function batches()
+{
+    return $this->belongsToMany(Batch::class, 'student_batches', 'student_id', 'batch_id')
+        ->withPivot(['subject_id', 'start_date', 'end_date', 'status'])
+        ->withTimestamps();
+}
+
+public function attendances()
+{
+    return $this->hasMany(StudentAttendance::class, 'student_id');
+}
+
+public function whatsappLogs()
+{
+    return $this->hasMany(WhatsappNotificationLog::class, 'student_id');
+}
+
+public function guardianUser()
+{
+    return $this->belongsTo(User::class, 'guardian_user_id');
 }
 }

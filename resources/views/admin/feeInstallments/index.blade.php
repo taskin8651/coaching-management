@@ -1,0 +1,7 @@
+@extends('layouts.admin')
+@section('page-title','Fee Installments')
+@section('content')
+<div class="admin-page-head"><div><h2 class="admin-page-title">Fee Installments</h2><p class="admin-page-subtitle">Student-wise installment schedule and reminders</p></div>@can('fee_installment_create')<a href="{{ route('admin.fee-installments.create') }}" class="btn-primary"><i class="fas fa-plus"></i> Add Installment</a>@endcan</div>
+<div class="page-card"><div class="page-card-table"><table class="min-w-full datatable datatable-Installments"><thead><tr><th>Student</th><th>Title</th><th>Amount</th><th>Paid</th><th>Due</th><th>Due Date</th><th>Status</th><th>Reminder</th></tr></thead><tbody>@foreach($installments as $item)<tr><td>{{ $item->student->user->name ?? '-' }}</td><td>{{ $item->title }}</td><td>{{ number_format($item->amount,2) }}</td><td>{{ number_format($item->paid_amount,2) }}</td><td>{{ number_format($item->due_amount,2) }}</td><td>{{ optional($item->due_date)->format('d M Y') }}</td><td>{{ ucfirst($item->status) }}</td><td>@can('fee_installment_remind')<form method="POST" action="{{ route('admin.fee-installments.remind',$item->id) }}">@csrf<button class="btn-outline">Send</button></form>@endcan</td></tr>@endforeach</tbody></table></div></div>
+@endsection
+@section('scripts')@parent<script>$(function(){initAdminDataTable('.datatable-Installments',{searchPlaceholder:'Search installments...'});});</script>@endsection

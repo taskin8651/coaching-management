@@ -175,6 +175,11 @@
                 </div>
 
                 <div class="detail-row">
+                    <span class="detail-label">WhatsApp</span>
+                    <span class="detail-value">{{ $admission->guardian_whatsapp ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
                     <span class="detail-label">Parent Email</span>
                     <span class="detail-value">{{ $admission->parent_email ?? '-' }}</span>
                 </div>

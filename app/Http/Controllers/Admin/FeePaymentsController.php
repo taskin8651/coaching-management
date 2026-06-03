@@ -15,6 +15,7 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\WhatsappService;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -138,7 +139,7 @@ class FeePaymentsController extends Controller
         ));
     }
 
-    public function store(StoreFeePaymentRequest $request)
+    public function store(StoreFeePaymentRequest $request, WhatsappService $whatsapp)
     {
         abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -158,7 +159,15 @@ class FeePaymentsController extends Controller
 
         $data = $this->preparePaymentData($data);
 
-        FeePayment::create($data);
+        $feePayment = FeePayment::create($data);
+
+        if ($feePayment->student) {
+            $whatsapp->sendStudentGuardianMessage(
+                $feePayment->student,
+                'fee_payment',
+                'Fee received. Receipt No: ' . $feePayment->receipt_no . ', Paid: ' . $feePayment->paid_amount . ', Due: ' . $feePayment->due_amount
+            );
+        }
 
         return redirect()->route('admin.fee-payments.index')->with('message', 'Fee payment created successfully.');
     }
