@@ -119,7 +119,7 @@ Route::resource('timetables', 'TimetablesController')->except(['show', 'destroy'
 
 // Homework
 Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show']);
-
+Route::delete('homeworks/destroy', 'HomeworksController@massDestroy')->name('homeworks.massDestroy');
 // Student Remarks
 Route::resource('student-remarks', 'StudentRemarksController')->only(['index', 'create', 'store']);
 
