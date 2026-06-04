@@ -1,6 +1,6 @@
 <?php
 
 return [
-    'site_title' => 'Karmayoga Coaching Management',
+    'site_title' => 'Karmayoga Academy',
 
 ];
