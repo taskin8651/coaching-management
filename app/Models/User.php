@@ -35,6 +35,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'branch_id',
         'biometric_id',
         'email_verified_at',
         'password',
@@ -120,6 +122,11 @@ class User extends Authenticatable
     public function managedBranches()
     {
         return $this->hasMany(Branch::class, 'manager_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     /*
