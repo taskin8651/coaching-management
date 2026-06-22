@@ -38,32 +38,20 @@
             <div class="form-card-body">
 
                 <div class="field-group">
-                    <label class="field-label" for="user_id">
-                        User Account
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-user icon"></i>
-
-                        <select name="user_id"
-                                id="user_id"
-                                class="field-input {{ $errors->has('user_id') ? 'error' : '' }}">
-                            @foreach($users as $id => $user)
-                                <option value="{{ $id }}" {{ old('user_id') == $id ? 'selected' : '' }}>
-                                    {{ $user }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    @if($errors->has('user_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('user_id') }}
-                        </p>
-                    @else
-                        <p class="field-hint">Only users with Staff role will appear here.</p>
-                    @endif
+                    <label class="field-label" for="account_name">Account Name</label>
+                    <div class="input-icon-wrap"><i class="fas fa-user icon"></i><input type="text" name="account_name" id="account_name" value="{{ old('account_name') }}" placeholder="Staff name" class="field-input {{ $errors->has('account_name') ? 'error' : '' }}"></div>
+                    @if($errors->has('account_name')) <p class="field-error">{{ $errors->first('account_name') }}</p> @endif
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="account_email">Account Email</label>
+                    <div class="input-icon-wrap"><i class="fas fa-envelope icon"></i><input type="email" name="account_email" id="account_email" value="{{ old('account_email') }}" placeholder="staff@example.com" class="field-input {{ $errors->has('account_email') ? 'error' : '' }}"></div>
+                    @if($errors->has('account_email')) <p class="field-error">{{ $errors->first('account_email') }}</p> @endif
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="account_password">Account Password</label>
+                    <div class="input-icon-wrap"><i class="fas fa-lock icon"></i><input type="password" name="account_password" id="account_password" placeholder="Minimum 8 characters" class="field-input {{ $errors->has('account_password') ? 'error' : '' }}"></div>
+                    @if($errors->has('account_password')) <p class="field-error">{{ $errors->first('account_password') }}</p> @endif
+                    <p class="field-hint">A User account is created automatically using these details.</p>
                 </div>
 
                 <div class="field-group">
@@ -91,6 +79,12 @@
                             {{ $errors->first('branch_id') }}
                         </p>
                     @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="biometric_id">Biometric Code</label>
+                    <div class="input-icon-wrap"><i class="fas fa-fingerprint icon"></i><input type="text" name="biometric_id" id="biometric_id" value="{{ old('biometric_id') }}" placeholder="BIO-001" class="field-input {{ $errors->has('biometric_id') ? 'error' : '' }}"></div>
+                    @if($errors->has('biometric_id')) <p class="field-error">{{ $errors->first('biometric_id') }}</p> @endif
                 </div>
 
                 <div class="field-group">

@@ -116,26 +116,9 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="student_code">
-                        Student Code
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-barcode icon"></i>
-
-                        <input type="text"
-                               name="student_code"
-                               id="student_code"
-                               value="{{ old('student_code', $student->student_code) }}"
-                               class="field-input {{ $errors->has('student_code') ? 'error' : '' }}">
-                    </div>
-
-                    @if($errors->has('student_code'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('student_code') }}
-                        </p>
-                    @endif
+                    <label class="field-label" for="biometric_id">Biometric Code</label>
+                    <div class="input-icon-wrap"><i class="fas fa-fingerprint icon"></i><input type="text" name="biometric_id" id="biometric_id" value="{{ old('biometric_id', $student->biometric_id) }}" placeholder="BIO-001" class="field-input {{ $errors->has('biometric_id') ? 'error' : '' }}"></div>
+                    @if($errors->has('biometric_id')) <p class="field-error">{{ $errors->first('biometric_id') }}</p> @endif
                 </div>
 
                 <div class="field-group">

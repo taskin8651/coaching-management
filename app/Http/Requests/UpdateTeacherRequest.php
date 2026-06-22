@@ -35,6 +35,7 @@ class UpdateTeacherRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('teachers', 'biometric_id')->ignore($this->teacher->id),
+                Rule::unique('users', 'biometric_id')->ignore($this->teacher->user_id),
             ],
             'phone' => [
                 'nullable',

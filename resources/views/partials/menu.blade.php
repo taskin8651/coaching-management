@@ -3,8 +3,10 @@
     {{-- BRAND --}}
     <div class="sidebar-brand">
         <div class="brand-area">
-            <div class="brand-icon">
-                <i class="fas fa-bolt"></i>
+            <div class="brand-logo-shell">
+                <img src="{{ asset('assets/brand/karmayoga-logo.png') }}"
+                     alt="Karmayoga Academy"
+                     class="brand-logo">
             </div>
 
             <span class="brand-text">

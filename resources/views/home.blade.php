@@ -800,12 +800,6 @@
     @endif
 
 </div>
-<pre>
-Role: {{ $scope['role_label'] }}
-Branch ID: {{ $scope['branch_id'] ?? 'NULL' }}
-Teacher ID: {{ $scope['teacher_id'] ?? 'NULL' }}
-Staff ID: {{ $scope['staff_id'] ?? 'NULL' }}
-Student ID: {{ $scope['student_id'] ?? 'NULL' }}
-</pre>
+
 
 @endsection

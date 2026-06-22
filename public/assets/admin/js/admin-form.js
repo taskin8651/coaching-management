@@ -35,7 +35,7 @@ function initPasswordStrength() {
         if (/[0-9]/.test(val)) score++;
         if (/[^A-Za-z0-9]/.test(val)) score++;
 
-        const colors = ['#EF4444', '#F59E0B', '#10B981', '#4F46E5'];
+        const colors = ['#EF4444', '#F59E0B', '#10B981', '#0855A1'];
         const labels = ['Weak', 'Fair', 'Good', 'Strong'];
 
         bars.forEach((bar, index) => {

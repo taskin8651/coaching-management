@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Concerns\SyncsProfileUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
@@ -14,11 +15,14 @@ use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class StudentsController extends Controller
 {
+    use SyncsProfileUser;
+
     public function index()
     {
         abort_if(Gate::denies('student_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -121,6 +125,7 @@ class StudentsController extends Controller
         abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
+        unset($data['user_id']);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -146,7 +151,12 @@ class StudentsController extends Controller
             }
         }
 
-        $student = Student::create($data);
+        $student = DB::transaction(function () use ($data) {
+            $user = $this->syncProfileUser($data, 'Student');
+            $data['user_id'] = $user->id;
+
+            return Student::create($this->profileData($data));
+        });
 
         if ($request->hasFile('photo')) {
             $student->addMediaFromRequest('photo')->toMediaCollection('student_photo');
@@ -269,7 +279,14 @@ class StudentsController extends Controller
             }
         }
 
-        $student->update($data);
+        DB::transaction(function () use ($student, $data) {
+            if (! empty($data['user_id'])) {
+                $user = $this->syncProfileUser($data, 'Student');
+                $data['user_id'] = $user->id;
+            }
+
+            $student->update($this->profileData($data));
+        });
 
         if ($request->hasFile('photo')) {
             $student->clearMediaCollection('student_photo');

@@ -31,4 +31,17 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    '11za' => [
+        'api_url' => env(
+            'WHATSAPP_11ZA_API_URL',
+            'https://api.11za.in/apis/template/sendTemplate'
+        ),
+        'auth_token' => env('WHATSAPP_11ZA_AUTH_TOKEN'),
+        'origin_website' => env(
+            'WHATSAPP_11ZA_ORIGIN_WEBSITE',
+            'https://karmayogaacademy.com/'
+        ),
+        'language' => env('WHATSAPP_11ZA_LANGUAGE', 'en'),
+    ],
+
 ];

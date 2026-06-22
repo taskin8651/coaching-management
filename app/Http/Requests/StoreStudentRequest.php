@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class StoreStudentRequest extends FormRequest
@@ -24,6 +25,14 @@ class StoreStudentRequest extends FormRequest
                 'exists:users,id',
                 'unique:students,user_id',
             ],
+            'account_name' => ['required', 'string', 'max:255'],
+            'account_email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email'),
+            ],
+            'account_password' => ['required', 'string', 'min:8'],
             'guardian_user_id' => [
                 'nullable',
                 'integer',
@@ -55,6 +64,7 @@ class StoreStudentRequest extends FormRequest
                 'string',
                 'max:255',
                 'unique:students,biometric_id',
+                Rule::unique('users', 'biometric_id'),
             ],
             'father_name' => [
                 'nullable',

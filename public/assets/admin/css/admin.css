@@ -1,8 +1,8 @@
 :root {
-    --accent: #4F46E5;
-    --accent-light: #EEF2FF;
-    --accent-dark: #3730A3;
-    --sidebar-bg: #0F172A;
+    --accent: #0855A1;
+    --accent-light: #E8F3FA;
+    --accent-dark: #06447F;
+    --sidebar-bg: #06365F;
     --body-bg: #F1F5F9;
     --border: #E2E8F0;
     --muted: #94A3B8;
@@ -99,6 +99,24 @@ body {
     border-bottom: 1px solid rgba(255,255,255,.06);
 }
 
+.brand-logo-shell {
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    border-radius: 7px;
+    background: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(0,0,0,.16);
+}
+
+.brand-logo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    object-fit: contain;
+}
+
 .brand-area {
     display: flex;
     align-items: center;
@@ -125,7 +143,7 @@ body {
     font-size: 15px;
     font-weight: 700;
     color: #F1F5F9;
-    letter-spacing: -.2px;
+    letter-spacing: 0;
 }
 
 /* User Mini Card */
@@ -285,7 +303,7 @@ body {
 }
 
 .sub-link.active {
-    color: #A5B4FC;
+    color: #8FD3F4;
     font-weight: 600;
 }
 
@@ -679,5 +697,3 @@ body {
         padding: 16px;
     }
 }
-
-

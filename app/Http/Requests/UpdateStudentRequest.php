@@ -56,6 +56,7 @@ class UpdateStudentRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('students', 'biometric_id')->ignore($this->student->id),
+                Rule::unique('users', 'biometric_id')->ignore($this->student->user_id),
             ],
             'father_name' => [
                 'nullable',

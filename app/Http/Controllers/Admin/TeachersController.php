@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Concerns\SyncsProfileUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTeacherRequest;
 use App\Http\Requests\UpdateTeacherRequest;
@@ -15,11 +16,14 @@ use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class TeachersController extends Controller
 {
+    use SyncsProfileUser;
+
     public function index()
     {
         abort_if(Gate::denies('teacher_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -127,6 +131,7 @@ class TeachersController extends Controller
         abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
+        unset($data['user_id']);
 
         unset($data['course_ids'], $data['subject_ids'], $data['batch_ids']);
 
@@ -138,7 +143,12 @@ class TeachersController extends Controller
             $data['branch_id'] = $branchId;
         }
 
-        $teacher = Teacher::create($data);
+        $teacher = DB::transaction(function () use ($data) {
+            $user = $this->syncProfileUser($data, 'Teacher');
+            $data['user_id'] = $user->id;
+
+            return Teacher::create($this->profileData($data));
+        });
 
         $this->syncAssignments($teacher, $request);
 
@@ -270,7 +280,14 @@ class TeachersController extends Controller
             $data['branch_id'] = $branchId;
         }
 
-        $teacher->update($data);
+        DB::transaction(function () use ($teacher, $data) {
+            if (! empty($data['user_id'])) {
+                $user = $this->syncProfileUser($data, 'Teacher');
+                $data['user_id'] = $user->id;
+            }
+
+            $teacher->update($this->profileData($data));
+        });
 
         $this->syncAssignments($teacher, $request);
 

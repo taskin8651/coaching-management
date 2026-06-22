@@ -116,6 +116,12 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label" for="biometric_id">Biometric Code</label>
+                    <div class="input-icon-wrap"><i class="fas fa-fingerprint icon"></i><input type="text" name="biometric_id" id="biometric_id" value="{{ old('biometric_id', $staff->biometric_id) }}" placeholder="BIO-001" class="field-input {{ $errors->has('biometric_id') ? 'error' : '' }}"></div>
+                    @if($errors->has('biometric_id')) <p class="field-error">{{ $errors->first('biometric_id') }}</p> @endif
+                </div>
+
+                <div class="field-group">
                     <label class="field-label" for="phone">
                         Phone
                     </label>

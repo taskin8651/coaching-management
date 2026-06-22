@@ -88,28 +88,54 @@
             @endif
         </div>
 
-        <div class="auth-field">
-            <label for="branch_id">Select Branch <span class="req">*</span></label>
+        <div class="auth-grid-2">
+            <div class="auth-field">
+                <label for="branch_id">Select Branch <span class="req">*</span></label>
 
-            <div class="auth-input-wrap">
-                <i class="fas fa-code-branch"></i>
+                <div class="auth-input-wrap">
+                    <i class="fas fa-code-branch"></i>
 
-                <select name="branch_id"
-                        id="branch_id"
-                        required
-                        class="{{ $errors->has('branch_id') ? 'error' : '' }}">
-                    <option value="">Choose branch</option>
-                    @foreach($branches as $id => $branch)
-                        <option value="{{ $id }}" {{ old('branch_id') == $id ? 'selected' : '' }}>
-                            {{ $branch }}
-                        </option>
-                    @endforeach
-                </select>
+                    <select name="branch_id"
+                            id="branch_id"
+                            required
+                            class="{{ $errors->has('branch_id') ? 'error' : '' }}">
+                        <option value="">Choose branch</option>
+                        @foreach($branches as $id => $branch)
+                            <option value="{{ $id }}" {{ old('branch_id') == $id ? 'selected' : '' }}>
+                                {{ $branch }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                @if($errors->has('branch_id'))
+                    <p class="auth-error">{{ $errors->first('branch_id') }}</p>
+                @endif
             </div>
 
-            @if($errors->has('branch_id'))
-                <p class="auth-error">{{ $errors->first('branch_id') }}</p>
-            @endif
+            <div class="auth-field">
+                <label for="role_id">Select Role <span class="req">*</span></label>
+
+                <div class="auth-input-wrap">
+                    <i class="fas fa-user-tag"></i>
+
+                    <select name="role_id"
+                            id="role_id"
+                            required
+                            class="{{ $errors->has('role_id') ? 'error' : '' }}">
+                        <option value="">Choose role</option>
+                        @foreach($roles as $id => $role)
+                            <option value="{{ $id }}" {{ old('role_id') == $id ? 'selected' : '' }}>
+                                {{ $role }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                @if($errors->has('role_id'))
+                    <p class="auth-error">{{ $errors->first('role_id') }}</p>
+                @endif
+            </div>
         </div>
 
         <div class="auth-grid-2">

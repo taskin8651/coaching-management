@@ -3,35 +3,126 @@
 namespace App\Services;
 
 use App\Models\Student;
+use App\Models\User;
 use App\Models\WhatsappNotificationLog;
 use App\Models\WhatsappSetting;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class WhatsappService
 {
-    public function sendStudentGuardianMessage(Student $student, string $module, string $message): WhatsappNotificationLog
-    {
-        $number = $student->guardian_whatsapp
-            ?: $student->guardian_phone
-            ?: $student->phone
-            ?: $student->alternate_phone;
+    private const BIOMETRIC_CHECK_IN_TEMPLATE = 'student_biometric_check_in_new_crm';
+    private const WELCOME_TEMPLATE = 'welcome_message';
 
-        $log = WhatsappNotificationLog::create([
-            'student_id' => $student->id,
-            'guardian_number' => $number,
-            'module_name' => $module,
-            'message' => $message,
-            'status' => 'pending',
-        ]);
+    public function sendWelcomeMessage(User $user): WhatsappNotificationLog
+    {
+        $number = $user->phone;
+        $message = sprintf('Welcome message sent to %s.', $user->name);
+        $log = $this->createLog(null, 'registration_welcome', $message, $number);
 
         if (! $number) {
-            $log->update([
-                'status' => 'failed',
-                'response' => 'Guardian WhatsApp/phone number is missing.',
-            ]);
+            return $this->failLog($log, 'Registered mobile number is missing.');
+        }
 
-            return $log;
+        $apiUrl = config('services.11za.api_url');
+        $authToken = config('services.11za.auth_token');
+        $originWebsite = config('services.11za.origin_website');
+
+        if (! $apiUrl || ! $authToken || ! $originWebsite) {
+            return $this->failLog($log, '11za WhatsApp configuration is incomplete.');
+        }
+
+        try {
+            $response = Http::asJson()
+                ->timeout(15)
+                ->post($apiUrl, [
+                    'authToken' => $authToken,
+                    'name' => $user->name,
+                    'sendto' => $this->normalizeIndianNumber($number),
+                    'originWebsite' => $originWebsite,
+                    'templateName' => self::WELCOME_TEMPLATE,
+                    'language' => config('services.11za.language', 'en'),
+                ]);
+
+            $log->update([
+                'status' => $response->successful() ? 'sent' : 'failed',
+                'response' => $response->body(),
+                'sent_at' => $response->successful() ? now() : null,
+            ]);
+        } catch (Throwable $exception) {
+            $this->failLog($log, $exception->getMessage());
+        }
+
+        return $log->fresh();
+    }
+
+    public function sendStudentBiometricCheckIn(Student $student, CarbonInterface $checkInTime): WhatsappNotificationLog
+    {
+        $student->loadMissing(['user', 'branch']);
+
+        $studentName = $student->user->name
+            ?? $student->student_code
+            ?? 'Student';
+        $branchName = $student->branch->name ?? 'Karmayoga Academy';
+        $number = $this->studentGuardianNumber($student);
+        $message = sprintf(
+            '%s checked in at %s on %s.',
+            $studentName,
+            $branchName,
+            $checkInTime->format('d F Y, h:i A')
+        );
+
+        $log = $this->createLog($student, 'biometric_check_in', $message, $number);
+
+        if (! $number) {
+            return $this->failLog($log, 'Guardian WhatsApp/phone number is missing.');
+        }
+
+        $apiUrl = config('services.11za.api_url');
+        $authToken = config('services.11za.auth_token');
+        $originWebsite = config('services.11za.origin_website');
+
+        if (! $apiUrl || ! $authToken || ! $originWebsite) {
+            return $this->failLog($log, '11za WhatsApp configuration is incomplete.');
+        }
+
+        try {
+            $response = Http::asJson()
+                ->timeout(15)
+                ->post($apiUrl, [
+                    'authToken' => $authToken,
+                    'name' => $student->guardian_name ?: $studentName,
+                    'sendto' => $this->normalizeIndianNumber($number),
+                    'originWebsite' => $originWebsite,
+                    'templateName' => self::BIOMETRIC_CHECK_IN_TEMPLATE,
+                    'language' => config('services.11za.language', 'en'),
+                    'data' => [
+                        $studentName,
+                        $branchName,
+                        $checkInTime->format('d F Y, h:i A'),
+                    ],
+                ]);
+
+            $log->update([
+                'status' => $response->successful() ? 'sent' : 'failed',
+                'response' => $response->body(),
+                'sent_at' => $response->successful() ? now() : null,
+            ]);
+        } catch (Throwable $exception) {
+            $this->failLog($log, $exception->getMessage());
+        }
+
+        return $log->fresh();
+    }
+
+    public function sendStudentGuardianMessage(Student $student, string $module, string $message): WhatsappNotificationLog
+    {
+        $number = $this->studentGuardianNumber($student);
+        $log = $this->createLog($student, $module, $message, $number);
+
+        if (! $number) {
+            return $this->failLog($log, 'Guardian WhatsApp/phone number is missing.');
         }
 
         $setting = WhatsappSetting::where('status', 'active')->latest()->first();
@@ -69,5 +160,49 @@ class WhatsappService
         }
 
         return $log;
+    }
+
+    private function studentGuardianNumber(Student $student): ?string
+    {
+        return $student->guardian_whatsapp
+            ?: $student->guardian_phone
+            ?: $student->phone
+            ?: $student->alternate_phone;
+    }
+
+    private function createLog(?Student $student, string $module, string $message, ?string $number): WhatsappNotificationLog
+    {
+        return WhatsappNotificationLog::create([
+            'student_id' => $student?->id,
+            'guardian_number' => $number,
+            'module_name' => $module,
+            'message' => $message,
+            'status' => 'pending',
+        ]);
+    }
+
+    private function failLog(WhatsappNotificationLog $log, string $response): WhatsappNotificationLog
+    {
+        $log->update([
+            'status' => 'failed',
+            'response' => $response,
+        ]);
+
+        return $log;
+    }
+
+    private function normalizeIndianNumber(string $number): string
+    {
+        $digits = preg_replace('/\D+/', '', $number) ?: '';
+
+        if (strlen($digits) === 10) {
+            return '91'.$digits;
+        }
+
+        if (strlen($digits) === 12 && str_starts_with($digits, '91')) {
+            return $digits;
+        }
+
+        return ltrim($digits, '0');
     }
 }

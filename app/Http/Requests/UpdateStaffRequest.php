@@ -35,6 +35,7 @@ class UpdateStaffRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('staff', 'biometric_id')->ignore($this->staff->id),
+                Rule::unique('users', 'biometric_id')->ignore($this->staff->user_id),
             ],
             'phone' => [
                 'nullable',

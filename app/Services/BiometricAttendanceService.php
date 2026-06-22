@@ -62,6 +62,8 @@ class BiometricAttendanceService
             'biometric_device_log_id' => $log->id,
         ]);
 
+        $shouldSendCheckIn = $log->punch_type === 'in' && ! $attendance->actual_in_time;
+
         if ($log->punch_type === 'in') {
             $attendance->actual_in_time = $attendance->actual_in_time
                 ? min($attendance->actual_in_time, $time)
@@ -75,18 +77,9 @@ class BiometricAttendanceService
         $attendance->status = $this->studentStatus($batch, $attendance->actual_in_time);
         $attendance->save();
 
-        app(WhatsappService::class)->sendStudentGuardianMessage(
-            $student,
-            'attendance',
-            sprintf(
-                'Your child %s is %s for %s Batch %s - %s.',
-                $student->user->name ?? $student->student_code ?? 'Student',
-                $attendance->status,
-                $batchAssignment->subject->name ?? $batch->name,
-                $this->formatTime($batch->start_time),
-                $this->formatTime($batch->end_time)
-            )
-        );
+        if ($shouldSendCheckIn) {
+            app(WhatsappService::class)->sendStudentBiometricCheckIn($student, $log->punch_time);
+        }
 
         $this->processed($log, 'Student attendance processed.');
     }
@@ -296,8 +289,4 @@ class BiometricAttendanceService
         ]);
     }
 
-    private function formatTime($time): string
-    {
-        return $time ? Carbon::parse($time)->format('h:i A') : '-';
-    }
 }

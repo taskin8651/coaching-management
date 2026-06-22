@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Concerns\SyncsProfileUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStaffRequest;
 use App\Http\Requests\UpdateStaffRequest;
@@ -11,11 +12,14 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
 use Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class StaffController extends Controller
 {
+    use SyncsProfileUser;
+
     public function index()
     {
         abort_if(Gate::denies('staff_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -84,6 +88,7 @@ class StaffController extends Controller
         abort_if($this->isStaff() || $this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
+        unset($data['user_id']);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -93,7 +98,12 @@ class StaffController extends Controller
             $data['branch_id'] = $branchId;
         }
 
-        $staff = Staff::create($data);
+        $staff = DB::transaction(function () use ($data) {
+            $user = $this->syncProfileUser($data, 'Staff');
+            $data['user_id'] = $user->id;
+
+            return Staff::create($this->profileData($data));
+        });
 
         if ($request->hasFile('photo')) {
             $staff->addMediaFromRequest('photo')->toMediaCollection('staff_photo');
@@ -172,7 +182,14 @@ class StaffController extends Controller
             $data['branch_id'] = $branchId;
         }
 
-        $staff->update($data);
+        DB::transaction(function () use ($staff, $data) {
+            if (! empty($data['user_id'])) {
+                $user = $this->syncProfileUser($data, 'Staff');
+                $data['user_id'] = $user->id;
+            }
+
+            $staff->update($this->profileData($data));
+        });
 
         if ($request->hasFile('photo')) {
             $staff->clearMediaCollection('staff_photo');

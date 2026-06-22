@@ -8,7 +8,6 @@ use App\Models\Batch;
 use App\Models\Student;
 use App\Models\StudentAttendance;
 use App\Models\Subject;
-use App\Services\WhatsappService;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,7 +43,7 @@ class StudentAttendancesController extends Controller
         return view('admin.studentAttendances.create', $this->formData());
     }
 
-    public function store(Request $request, WhatsappService $whatsapp)
+    public function store(Request $request)
     {
         abort_if(Gate::denies('student_attendance_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -56,20 +55,6 @@ class StudentAttendancesController extends Controller
                 'unique_key' => StudentAttendance::makeUniqueKey($data['student_id'], $data['batch_id'], $data['subject_id'] ?? null, $data['attendance_date']),
             ],
             $data
-        );
-        $attendance->load(['student.user', 'batch', 'subject']);
-
-        $whatsapp->sendStudentGuardianMessage(
-            $attendance->student,
-            'attendance',
-            sprintf(
-                'Your child %s is %s for %s Batch %s - %s.',
-                $attendance->student->user->name ?? 'Student',
-                $attendance->status,
-                $attendance->subject->name ?? $attendance->batch->name ?? '-',
-                $attendance->scheduled_start_time ?? '-',
-                $attendance->scheduled_end_time ?? '-'
-            )
         );
 
         return redirect()->route('admin.student-attendances.index')->with('message', 'Student attendance saved successfully.');

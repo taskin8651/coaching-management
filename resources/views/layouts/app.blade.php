@@ -18,9 +18,9 @@
 
     <style>
         :root {
-    --accent: #4F46E5;
-    --accent-light: #EEF2FF;
-    --accent-dark: #3730A3;
+    --accent: #0855A1;
+    --accent-light: #E8F3FA;
+    --accent-dark: #06447F;
     --body-bg: #F1F5F9;
     --border: #E2E8F0;
     --muted: #94A3B8;
@@ -64,8 +64,8 @@ body {
     align-items: stretch;
     justify-content: stretch;
     background:
-        radial-gradient(circle at top left, rgba(79,70,229,.14), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(14,165,233,.12), transparent 30%),
+        radial-gradient(circle at top left, rgba(8,85,161,.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(8,85,161,.08), transparent 30%),
         linear-gradient(135deg, #F8FBFF 0%, #F1F5F9 100%);
 }
 
@@ -79,7 +79,7 @@ body {
     overflow: hidden;
     display: flex;
     align-items: center;
-    background: linear-gradient(160deg, rgba(79,70,229,.96), rgba(55,48,163,.96));
+    background: linear-gradient(160deg, #0855A1, #06447F);
     color: #fff;
 }
 
@@ -134,6 +134,23 @@ body {
     margin-bottom: 26px;
 }
 
+.auth-brand-logo-wrap {
+    width: 104px;
+    height: 146px;
+    padding: 7px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 14px 32px rgba(0,0,0,.18);
+    flex-shrink: 0;
+}
+
+.auth-brand-logo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 .auth-brand-icon {
     width: 58px;
     height: 58px;
@@ -156,7 +173,7 @@ body {
     margin: 0;
     font-size: 26px;
     font-weight: 800;
-    letter-spacing: -.04em;
+    letter-spacing: 0;
 }
 
 .auth-brand-text p {
@@ -170,7 +187,7 @@ body {
     line-height: 1;
     font-weight: 800;
     margin: 0 0 18px;
-    letter-spacing: -.04em;
+    letter-spacing: 0;
 }
 
 .auth-hero-text {
@@ -230,6 +247,10 @@ body {
     align-items: center;
     justify-content: center;
     padding: 36px;
+}
+
+.auth-mobile-brand {
+    display: none;
 }
 
 /* FORM CARD */
@@ -362,7 +383,7 @@ body {
 .auth-input-wrap select:focus {
     background: #fff;
     border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(79,70,229,.10);
+    box-shadow: 0 0 0 4px rgba(8,85,161,.10);
 }
 
 .auth-input-wrap input.error,
@@ -387,7 +408,7 @@ body {
 }
 
 .auth-eye:hover {
-    background: #EEF2FF;
+    background: var(--accent-light);
     color: var(--accent);
 }
 
@@ -442,13 +463,13 @@ body {
     justify-content: center;
     gap: 10px;
     cursor: pointer;
-    box-shadow: 0 16px 36px rgba(79,70,229,.22);
+    box-shadow: 0 16px 36px rgba(8,85,161,.22);
     transition: all .2s ease;
 }
 
 .auth-submit:hover {
     transform: translateY(-1px);
-    box-shadow: 0 18px 40px rgba(79,70,229,.26);
+    box-shadow: 0 18px 40px rgba(8,85,161,.26);
 }
 
 .auth-bottom {
@@ -508,6 +529,15 @@ body {
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-direction: column;
+    }
+
+    .auth-mobile-brand {
+        display: block;
+        width: 76px;
+        height: 118px;
+        object-fit: contain;
+        margin: 0 auto 18px;
     }
 
     .auth-card {
@@ -564,8 +594,10 @@ body {
                 </div>
 
                 <div class="auth-brand">
-                    <div class="auth-brand-icon">
-                        <i class="fas fa-graduation-cap"></i>
+                    <div class="auth-brand-logo-wrap">
+                        <img src="{{ asset('assets/brand/karmayoga-logo.png') }}"
+                             alt="Karmayoga Academy"
+                             class="auth-brand-logo">
                     </div>
 
                     <div class="auth-brand-text">
@@ -610,6 +642,9 @@ body {
         </div>
 
         <div class="auth-right">
+            <img src="{{ asset('assets/brand/karmayoga-logo.png') }}"
+                 alt="Karmayoga Academy"
+                 class="auth-mobile-brand">
             @yield('content')
         </div>
     </div>
