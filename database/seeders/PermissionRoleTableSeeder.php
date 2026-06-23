@@ -33,6 +33,7 @@ class PermissionRoleTableSeeder extends Seeder
             'notice_access', 'notice_create', 'notice_edit', 'notice_show',
             'student_batch_access', 'student_batch_create', 'student_batch_edit', 'student_batch_delete',
             'student_attendance_access', 'student_attendance_create',
+            'teacher_attendance_access', 'teacher_attendance_create', 'staff_attendance_access', 'staff_attendance_create',
             'faculty_log_access', 'faculty_log_create', 'faculty_log_edit', 'faculty_log_approve',
             'extra_class_access', 'extra_class_create', 'extra_class_edit', 'extra_class_approve',
             'timetable_access', 'timetable_create', 'timetable_edit', 'timetable_substitute',
@@ -50,6 +51,7 @@ class PermissionRoleTableSeeder extends Seeder
             'study_material_access', 'study_material_create', 'study_material_edit', 'study_material_show',
             'notice_access', 'notice_show',
             'student_attendance_access',
+            'teacher_attendance_access',
             'faculty_log_access', 'faculty_log_create', 'faculty_log_edit',
             'extra_class_access',
             'timetable_access',
@@ -68,6 +70,7 @@ class PermissionRoleTableSeeder extends Seeder
             'notice_access', 'notice_show',
             'maintenance_access', 'maintenance_create', 'maintenance_edit',
             'inventory_access', 'inventory_transaction_create',
+            'staff_attendance_access',
         ]);
 
         $this->syncRole('Student', [

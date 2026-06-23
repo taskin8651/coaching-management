@@ -179,6 +179,8 @@ class PermissionsTableSeeder extends Seeder
             'biometric_logs_access',
             'student_batch_access', 'student_batch_create', 'student_batch_edit', 'student_batch_delete',
             'student_attendance_access', 'student_attendance_create',
+            'teacher_attendance_access', 'teacher_attendance_create',
+            'staff_attendance_access', 'staff_attendance_create',
             'faculty_log_access', 'faculty_log_create', 'faculty_log_edit', 'faculty_log_approve',
             'extra_class_access', 'extra_class_create', 'extra_class_edit', 'extra_class_show', 'extra_class_delete', 'extra_class_approve',
             'salary_calculate', 'salary_report_access',
