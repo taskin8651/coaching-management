@@ -12,12 +12,14 @@
         </p>
     </div>
 
+    @if(auth()->user()->roles()->where('title', 'Teacher')->exists())
     @can('faculty_log_create')
         <a href="{{ route('admin.faculty-log-books.create') }}" class="btn-primary">
             <i class="fas fa-plus"></i>
             Add Log
         </a>
     @endcan
+    @endif
 </div>
 
 <div class="stats-grid">
@@ -162,12 +164,14 @@
                                     </a>
                                 @endcan
 
+                                @if(auth()->user()->roles()->where('title', 'Teacher')->exists() && $log->teacher_id === optional(auth()->user()->teacherProfile)->id)
                                 @can('faculty_log_edit')
                                     <a class="btn-outline btn-outline-edit" href="{{ route('admin.faculty-log-books.edit', $log->id) }}">
                                         <i class="fas fa-pencil-alt"></i>
                                         Edit
                                     </a>
                                 @endcan
+                                @endif
 
                                 @can('faculty_log_approve')
                                     @if($log->approval_status !== 'approved')

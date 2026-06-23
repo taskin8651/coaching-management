@@ -16,6 +16,7 @@ class FacultyLogBook extends Model
     protected $dates = [
         'lecture_date',
         'approved_at',
+        'unique_key',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -49,6 +50,24 @@ class FacultyLogBook extends Model
     public function teacher()
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $log) {
+            $log->unique_key = self::makeUniqueKey($log->getAttributes());
+        });
+    }
+
+    public static function makeUniqueKey(array $data): string
+    {
+        return implode(':', [
+            $data['teacher_id'] ?? 0,
+            $data['batch_id'] ?? 0,
+            $data['subject_id'] ?? 0,
+            $data['lecture_date'] instanceof \DateTimeInterface ? $data['lecture_date']->format('Y-m-d') : ($data['lecture_date'] ?? ''),
+            $data['scheduled_start_time'] ?? '',
+        ]);
     }
 
     public function branch()
