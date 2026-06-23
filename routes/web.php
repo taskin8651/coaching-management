@@ -82,6 +82,7 @@ Route::resource('student-batches', 'StudentBatchesController')->except(['show'])
 
 // Student Attendance
 Route::resource('student-attendances', 'StudentAttendancesController')->only(['index', 'create', 'store']);
+Route::resource('staff-attendances', 'StaffAttendancesController')->only(['index', 'create', 'store']);
 
 // Faculty Log Book
 Route::post('faculty-log-books/{faculty_log_book}/approve', 'FacultyLogBooksController@approve')->name('faculty-log-books.approve');

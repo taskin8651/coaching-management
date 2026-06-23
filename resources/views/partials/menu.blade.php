@@ -384,12 +384,13 @@
         @endcanany
 
         {{-- ACADEMIC GROUP --}}
-        @canany(['exam_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'homework_access', 'student_remark_access'])
+        @canany(['exam_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'staff_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'homework_access', 'student_remark_access'])
             @php
                 $academicActive = request()->is('admin/exams*')
                     || request()->is('admin/study-materials*')
                     || request()->is('admin/student-batches*')
                     || request()->is('admin/student-attendances*')
+                    || request()->is('admin/staff-attendances*')
                     || request()->is('admin/faculty-log-books*')
                     || request()->is('admin/extra-classes*');
             @endphp
@@ -479,6 +480,14 @@
                            class="sub-link {{ request()->is('admin/student-attendances*') ? 'active' : '' }}">
                             <i class="fas fa-user-check"></i>
                             Student Attendance
+                        </a>
+                    @endcan
+
+                    @can('staff_access')
+                        <a href="{{ route('admin.staff-attendances.index') }}"
+                           class="sub-link {{ request()->is('admin/staff-attendances*') ? 'active' : '' }}">
+                            <i class="fas fa-user-clock"></i>
+                            Teacher & Staff Attendance
                         </a>
                     @endcan
 

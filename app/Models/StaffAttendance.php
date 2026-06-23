@@ -25,6 +25,7 @@ class StaffAttendance extends Model
         'teacher_id',
         'staff_id',
         'branch_id',
+        'batch_id',
         'attendance_date',
         'first_in_time',
         'last_out_time',
@@ -54,6 +55,11 @@ class StaffAttendance extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class, 'batch_id');
     }
 
     protected function serializeDate(DateTimeInterface $date)
