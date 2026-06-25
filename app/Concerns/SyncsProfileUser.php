@@ -27,11 +27,25 @@ trait SyncsProfileUser
             $user->roles()->syncWithoutDetaching([$roleId]);
         }
 
-        $user->update([
+        $userData = [
             'phone'        => $data['phone'] ?? null,
             'branch_id'    => $data['branch_id'] ?? null,
             'biometric_id' => $data['biometric_id'] ?? null,
-        ]);
+        ];
+
+        if (array_key_exists('account_name', $data)) {
+            $userData['name'] = $data['account_name'];
+        }
+
+        if (array_key_exists('account_email', $data)) {
+            $userData['email'] = $data['account_email'];
+        }
+
+        if (! empty($data['account_password'])) {
+            $userData['password'] = $data['account_password'];
+        }
+
+        $user->update($userData);
 
         return $user;
     }

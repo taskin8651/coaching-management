@@ -25,6 +25,23 @@ class UpdateTeacherRequest extends FormRequest
                 'exists:users,id',
                 Rule::unique('teachers', 'user_id')->ignore($this->teacher->id),
             ],
+            'account_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'account_email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($this->teacher->user_id),
+            ],
+            'account_password' => [
+                Rule::requiredIf(! $this->teacher->user_id),
+                'nullable',
+                'string',
+                'min:8',
+            ],
             'branch_id' => [
                 'nullable',
                 'integer',

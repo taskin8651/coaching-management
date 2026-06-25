@@ -183,10 +183,10 @@ class StaffController extends Controller
         }
 
         DB::transaction(function () use ($staff, $data) {
-            if (! empty($data['user_id'])) {
-                $user = $this->syncProfileUser($data, 'Staff');
-                $data['user_id'] = $user->id;
-            }
+            $data['user_id'] = $staff->user_id;
+
+            $user = $this->syncProfileUser($data, 'Staff');
+            $data['user_id'] = $user->id;
 
             $staff->update($this->profileData($data));
         });

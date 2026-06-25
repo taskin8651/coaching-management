@@ -25,6 +25,23 @@ class UpdateStaffRequest extends FormRequest
                 'exists:users,id',
                 Rule::unique('staff', 'user_id')->ignore($this->staff->id),
             ],
+            'account_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'account_email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($this->staff->user_id),
+            ],
+            'account_password' => [
+                Rule::requiredIf(! $this->staff->user_id),
+                'nullable',
+                'string',
+                'min:8',
+            ],
             'branch_id' => [
                 'nullable',
                 'integer',

@@ -25,6 +25,23 @@ class UpdateStudentRequest extends FormRequest
                 'exists:users,id',
                 Rule::unique('students', 'user_id')->ignore($this->student->id),
             ],
+            'account_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'account_email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($this->student->user_id),
+            ],
+            'account_password' => [
+                Rule::requiredIf(! $this->student->user_id),
+                'nullable',
+                'string',
+                'min:8',
+            ],
             'guardian_user_id' => [
                 'nullable',
                 'integer',

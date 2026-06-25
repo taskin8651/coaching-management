@@ -62,30 +62,45 @@
             <div class="form-card-body">
 
                 <div class="field-group">
-                    <label class="field-label" for="user_id">
-                        User Account
-                    </label>
-
+                    <label class="field-label" for="account_name">Account Name <span class="req">*</span></label>
                     <div class="input-icon-wrap">
                         <i class="fas fa-user icon"></i>
-
-                        <select name="user_id"
-                                id="user_id"
-                                class="field-input {{ $errors->has('user_id') ? 'error' : '' }}">
-                            @foreach($users as $id => $user)
-                                <option value="{{ $id }}" {{ old('user_id', $student->user_id) == $id ? 'selected' : '' }}>
-                                    {{ $user }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <input type="text"
+                               name="account_name"
+                               id="account_name"
+                               value="{{ old('account_name', $student->user->name ?? '') }}"
+                               placeholder="Student name"
+                               class="field-input {{ $errors->has('account_name') ? 'error' : '' }}">
                     </div>
+                    @if($errors->has('account_name')) <p class="field-error">{{ $errors->first('account_name') }}</p> @endif
+                </div>
 
-                    @if($errors->has('user_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('user_id') }}
-                        </p>
-                    @endif
+                <div class="field-group">
+                    <label class="field-label" for="account_email">Account Email <span class="req">*</span></label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-envelope icon"></i>
+                        <input type="email"
+                               name="account_email"
+                               id="account_email"
+                               value="{{ old('account_email', $student->user->email ?? '') }}"
+                               placeholder="student@example.com"
+                               class="field-input {{ $errors->has('account_email') ? 'error' : '' }}">
+                    </div>
+                    @if($errors->has('account_email')) <p class="field-error">{{ $errors->first('account_email') }}</p> @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="account_password">New Password</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-lock icon"></i>
+                        <input type="password"
+                               name="account_password"
+                               id="account_password"
+                               placeholder="Leave blank to keep old password"
+                               class="field-input {{ $errors->has('account_password') ? 'error' : '' }}">
+                    </div>
+                    @if($errors->has('account_password')) <p class="field-error">{{ $errors->first('account_password') }}</p> @endif
+                    <p class="field-hint">Password blank chhodne par old password same rahega.</p>
                 </div>
 
                 <div class="field-group">

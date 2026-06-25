@@ -281,10 +281,10 @@ class TeachersController extends Controller
         }
 
         DB::transaction(function () use ($teacher, $data) {
-            if (! empty($data['user_id'])) {
-                $user = $this->syncProfileUser($data, 'Teacher');
-                $data['user_id'] = $user->id;
-            }
+            $data['user_id'] = $teacher->user_id;
+
+            $user = $this->syncProfileUser($data, 'Teacher');
+            $data['user_id'] = $user->id;
 
             $teacher->update($this->profileData($data));
         });
