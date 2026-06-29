@@ -117,6 +117,8 @@ Route::delete('study-materials/media/{media}', 'StudyMaterialsController@deleteM
 Route::resource('study-materials', 'StudyMaterialsController');
 
 // Timetable & Substitution
+Route::resource('timetable-substitutions', 'TimetableSubstitutionsController')
+    ->parameters(['timetable-substitutions' => 'timetableSubstitution']);
 Route::post('timetables/{timetable}/substitute', 'TimetablesController@substitute')->name('timetables.substitute');
 Route::resource('timetables', 'TimetablesController')->except(['show', 'destroy']);
 

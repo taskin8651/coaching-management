@@ -67,12 +67,20 @@ class TimetablesController extends Controller
 
     $teacherWiseTimetables = $timetables->groupBy('teacher_id');
 
+    $teachers = $this->scopeBranchQuery(Teacher::with('user'))
+        ->get()
+        ->mapWithKeys(fn($t) => [
+            $t->id => $t->user->name ?? 'Teacher #' . $t->id
+        ])
+        ->prepend('Select Teacher', '');
+
     return view('admin.timetables.index', compact(
         'timetables',
         'days',
         'timeSlots',
         'teacherWiseTimetables',
-        'isStudent'
+        'isStudent',
+        'teachers'
     ));
 }
 
@@ -142,6 +150,23 @@ class TimetablesController extends Controller
             'reason'               => ['nullable', 'string'],
             'change_note'          => ['nullable', 'string'],
         ]);
+
+        abort_if(
+            $timetable->teacher_id && (int) $timetable->teacher_id === (int) $data['substitute_teacher_id'],
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Substitute teacher cannot be the same as original teacher.'
+        );
+
+        abort_if(
+            TimetableSubstitution::where('timetable_id', $timetable->id)
+                ->whereDate('substitution_date', $data['substitution_date'])
+                ->exists(),
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Substitute teacher is already assigned for this timetable and date.'
+        );
+
+        $substituteTeacher = Teacher::findOrFail($data['substitute_teacher_id']);
+        $this->assertBranchAccess($substituteTeacher);
 
         $substitution = TimetableSubstitution::create($data + [
             'timetable_id'        => $timetable->id,

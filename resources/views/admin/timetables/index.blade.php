@@ -13,10 +13,26 @@
     </div>
 
     @can('timetable_create')
-        <a href="{{ route('admin.timetables.create') }}" class="btn-primary">
-            <i class="fas fa-plus"></i>
-            Add Timetable
-        </a>
+        <div class="action-row">
+            @can('timetable_substitute')
+                <a href="{{ route('admin.timetable-substitutions.index') }}" class="btn-ghost">
+                    <i class="fas fa-user-clock"></i>
+                    Substitute Teachers
+                </a>
+            @endcan
+
+            <a href="{{ route('admin.timetables.create') }}" class="btn-primary">
+                <i class="fas fa-plus"></i>
+                Add Timetable
+            </a>
+        </div>
+    @else
+        @can('timetable_substitute')
+            <a href="{{ route('admin.timetable-substitutions.index') }}" class="btn-primary">
+                <i class="fas fa-user-clock"></i>
+                Substitute Teachers
+            </a>
+        @endcan
     @endcan
 </div>
 
@@ -141,38 +157,46 @@
                             @endif
                         </td>
 
-                        <td>
-                            @can('timetable_substitute')
-                                <form method="POST"
-                                      action="{{ route('admin.timetables.substitute', $item->id) }}"
-                                      class="action-row"
-                                      style="justify-content:flex-end; gap:8px;">
-                                    @csrf
+                       <td>
+    @can('timetable_substitute')
+        <form method="POST"
+              action="{{ route('admin.timetables.substitute', $item->id) }}"
+              class="action-row"
+              style="justify-content:flex-end; gap:8px;">
+            @csrf
 
-                                    <input type="date"
-                                           name="substitution_date"
-                                           required
-                                           class="field-input"
-                                           style="width:135px; min-height:38px;">
+            <input type="date"
+                   name="substitution_date"
+                   required
+                   class="field-input"
+                   style="width:135px; min-height:38px;">
 
-                                    <input type="number"
-                                           name="substitute_teacher_id"
-                                           placeholder="Teacher ID"
-                                           required
-                                           class="field-input"
-                                           style="width:100px; min-height:38px;">
+            <select name="substitute_teacher_id"
+                    required
+                    class="field-input"
+                    style="width:170px; min-height:38px;">
+                <option value="">Select Teacher</option>
 
-                                    <button type="submit" class="btn-outline">
-                                        <i class="fas fa-user-plus"></i>
-                                        Assign
-                                    </button>
-                                </form>
-                            @else
-                                <div class="action-row">
-                                    <span style="font-size:12px;color:#94A3B8;">—</span>
-                                </div>
-                            @endcan
-                        </td>
+                @foreach($teachers as $teacherId => $teacherName)
+                    @if($teacherId && $teacherId != $item->teacher_id)
+                        <option value="{{ $teacherId }}">
+                            {{ $teacherName }}
+                        </option>
+                    @endif
+                @endforeach
+            </select>
+
+            <button type="submit" class="btn-outline">
+                <i class="fas fa-user-plus"></i>
+                Assign
+            </button>
+        </form>
+    @else
+        <div class="action-row">
+            <span style="font-size:12px;color:#94A3B8;">—</span>
+        </div>
+    @endcan
+</td>
                     </tr>
                 @endforeach
             </tbody>

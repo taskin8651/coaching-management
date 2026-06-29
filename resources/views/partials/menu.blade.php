@@ -384,7 +384,7 @@
         @endcanany
 
         {{-- ACADEMIC GROUP --}}
-        @canany(['exam_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'homework_access', 'student_remark_access'])
+        @canany(['exam_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'timetable_substitute', 'homework_access', 'student_remark_access'])
             @php
                 $academicActive = request()->is('admin/exams*')
                     || request()->is('admin/study-materials*')
@@ -393,7 +393,9 @@
                     || request()->is('admin/teacher-attendances*')
                     || request()->is('admin/staff-attendances*')
                     || request()->is('admin/faculty-log-books*')
-                    || request()->is('admin/extra-classes*');
+                    || request()->is('admin/extra-classes*')
+                    || request()->is('admin/timetables*')
+                    || request()->is('admin/timetable-substitutions*');
             @endphp
 
             <div x-data="{ open: {{ $academicActive ? 'true' : 'false' }} }">
@@ -441,6 +443,14 @@
                            class="sub-link {{ request()->is('admin/timetables*') ? 'active' : '' }}">
                             <i class="fas fa-calendar"></i>
                             Timetable
+                        </a>
+                    @endcan
+
+                    @can('timetable_substitute')
+                        <a href="{{ route('admin.timetable-substitutions.index') }}"
+                           class="sub-link {{ request()->is('admin/timetable-substitutions*') ? 'active' : '' }}">
+                            <i class="fas fa-user-clock"></i>
+                            Substitute Teachers
                         </a>
                     @endcan
 
