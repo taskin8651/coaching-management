@@ -180,12 +180,7 @@
     </div>
 </div>
 
-@foreach($teacherWiseTimetables as $teacherId => $teacherTimetables)
-
-    @php
-        $firstTimetable = $teacherTimetables->first();
-        $teacherName = $firstTimetable->teacher->user->name ?? 'No Teacher';
-    @endphp
+@if($isStudent)
 
     <div class="timetable-card my-4">
 
@@ -197,7 +192,7 @@
                     <thead>
                         <tr>
                             <th class="teacher-name-cell">
-                                {{ $teacherName }}
+                                My Timetable
                             </th>
 
                             @foreach($days as $dayKey => $dayLabel)
@@ -228,7 +223,7 @@
                                 @foreach($days as $dayKey => $dayLabel)
 
                                     @php
-                                        $class = $teacherTimetables->first(function ($item) use ($dayKey, $startTimeFormat, $endTimeFormat) {
+                                        $class = $timetables->first(function ($item) use ($dayKey, $startTimeFormat, $endTimeFormat) {
                                             return strtolower(trim($item->day_of_week)) == strtolower(trim($dayKey))
                                                 && date('H:i', strtotime($item->start_time)) == $startTimeFormat
                                                 && date('H:i', strtotime($item->end_time)) == $endTimeFormat;
@@ -238,10 +233,10 @@
                                     <td>
                                         @if($class)
                                             <div class="class-box">
-                                                <strong>{{ $class->batch->name ?? '' }}</strong>
+                                                <strong>{{ $class->subject->name ?? $class->batch->name ?? '' }}</strong>
 
-                                                @if($class->subject)
-                                                    <span>{{ $class->subject->name }}</span>
+                                                @if($class->teacher && $class->teacher->user)
+                                                    <span>{{ $class->teacher->user->name }}</span>
                                                 @endif
 
                                                 @if($class->room)
@@ -264,7 +259,95 @@
 
     </div>
 
-@endforeach
+@else
+
+    @foreach($teacherWiseTimetables as $teacherId => $teacherTimetables)
+
+        @php
+            $firstTimetable = $teacherTimetables->first();
+            $teacherName = $firstTimetable->teacher->user->name ?? 'No Teacher';
+        @endphp
+
+        <div class="timetable-card my-4">
+
+            <div class="timetable-card-body">
+
+                <div class="timetable-table-wrap">
+
+                    <table class="timetable-grid">
+                        <thead>
+                            <tr>
+                                <th class="teacher-name-cell">
+                                    {{ $teacherName }}
+                                </th>
+
+                                @foreach($days as $dayKey => $dayLabel)
+                                    <th>
+                                        {{ $dayLabel }}
+                                    </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach($timeSlots as $slot)
+
+                                @php
+                                    [$startTime, $endTime] = explode('-', $slot);
+
+                                    $startTimeFormat = date('H:i', strtotime($startTime));
+                                    $endTimeFormat   = date('H:i', strtotime($endTime));
+                                @endphp
+
+                                <tr>
+                                    <th class="time-cell">
+                                        {{ date('g:i A', strtotime($startTime)) }}
+                                        -
+                                        {{ date('g:i A', strtotime($endTime)) }}
+                                    </th>
+
+                                    @foreach($days as $dayKey => $dayLabel)
+
+                                        @php
+                                            $class = $teacherTimetables->first(function ($item) use ($dayKey, $startTimeFormat, $endTimeFormat) {
+                                                return strtolower(trim($item->day_of_week)) == strtolower(trim($dayKey))
+                                                    && date('H:i', strtotime($item->start_time)) == $startTimeFormat
+                                                    && date('H:i', strtotime($item->end_time)) == $endTimeFormat;
+                                            });
+                                        @endphp
+
+                                        <td>
+                                            @if($class)
+                                                <div class="class-box">
+                                                    <strong>{{ $class->batch->name ?? '' }}</strong>
+
+                                                    @if($class->subject)
+                                                        <span>{{ $class->subject->name }}</span>
+                                                    @endif
+
+                                                    @if($class->room)
+                                                        <small>Room: {{ $class->room }}</small>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                    @endforeach
+                                </tr>
+
+                            @endforeach
+                        </tbody>
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    @endforeach
+
+@endif
 
 <style>
     .timetable-card {

@@ -20,11 +20,13 @@ class TimetablesController extends Controller
 {
     use AppliesErpScope;
 
-   public function index()
+ public function index()
 {
     abort_if(Gate::denies('timetable_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
     $scope = $this->erpScope();
+
+    $isStudent = $scope['is_student'] ?? false;
 
     $timetables = Timetable::with([
         'branch',
@@ -34,7 +36,7 @@ class TimetablesController extends Controller
         'teacher.user'
     ]);
 
-    if (($scope['is_student'] ?? false)) {
+    if ($isStudent) {
         $timetables->whereHas('batch.assignedStudents', function ($query) {
             $query->where('user_id', auth()->id());
         });
@@ -69,7 +71,8 @@ class TimetablesController extends Controller
         'timetables',
         'days',
         'timeSlots',
-        'teacherWiseTimetables'
+        'teacherWiseTimetables',
+        'isStudent'
     ));
 }
 
