@@ -187,7 +187,7 @@
         $teacherName = $firstTimetable->teacher->user->name ?? 'No Teacher';
     @endphp
 
-    <div class="timetable-card mb-4">
+    <div class="timetable-card my-4">
 
         <div class="timetable-card-body">
 
