@@ -180,6 +180,202 @@
     </div>
 </div>
 
+@foreach($teacherWiseTimetables as $teacherId => $teacherTimetables)
+
+    @php
+        $firstTimetable = $teacherTimetables->first();
+        $teacherName = $firstTimetable->teacher->user->name ?? 'No Teacher';
+    @endphp
+
+    <div class="timetable-card mb-4">
+
+        <div class="timetable-card-body">
+
+            <div class="timetable-table-wrap">
+
+                <table class="timetable-grid">
+                    <thead>
+                        <tr>
+                            <th class="teacher-name-cell">
+                                {{ $teacherName }}
+                            </th>
+
+                            @foreach($days as $dayKey => $dayLabel)
+                                <th>
+                                    {{ $dayLabel }}
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach($timeSlots as $slot)
+
+                            @php
+                                [$startTime, $endTime] = explode('-', $slot);
+
+                                $startTimeFormat = date('H:i', strtotime($startTime));
+                                $endTimeFormat   = date('H:i', strtotime($endTime));
+                            @endphp
+
+                            <tr>
+                                <th class="time-cell">
+                                    {{ date('g:i A', strtotime($startTime)) }}
+                                    -
+                                    {{ date('g:i A', strtotime($endTime)) }}
+                                </th>
+
+                                @foreach($days as $dayKey => $dayLabel)
+
+                                    @php
+                                        $class = $teacherTimetables->first(function ($item) use ($dayKey, $startTimeFormat, $endTimeFormat) {
+                                            return strtolower(trim($item->day_of_week)) == strtolower(trim($dayKey))
+                                                && date('H:i', strtotime($item->start_time)) == $startTimeFormat
+                                                && date('H:i', strtotime($item->end_time)) == $endTimeFormat;
+                                        });
+                                    @endphp
+
+                                    <td>
+                                        @if($class)
+                                            <div class="class-box">
+                                                <strong>{{ $class->batch->name ?? '' }}</strong>
+
+                                                @if($class->subject)
+                                                    <span>{{ $class->subject->name }}</span>
+                                                @endif
+
+                                                @if($class->room)
+                                                    <small>Room: {{ $class->room }}</small>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </td>
+
+                                @endforeach
+                            </tr>
+
+                        @endforeach
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+@endforeach
+
+<style>
+    .timetable-card {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.timetable-card-body {
+    padding: 0;
+}
+
+.timetable-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.timetable-grid {
+    width: 100%;
+    min-width: 850px;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    margin: 0;
+    background: #ffffff;
+    table-layout: fixed;
+    border: 1px solid #111827 !important;
+}
+
+.timetable-grid th,
+.timetable-grid td {
+    border: 1px solid #111827 !important;
+    padding: 8px 10px;
+    height: 52px;
+    min-width: 120px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 14px;
+    line-height: 1.25;
+    color: #111827;
+    background: #ffffff;
+}
+
+.timetable-grid thead th {
+    background: #f8fafc !important;
+    font-weight: 700;
+    color: #000000;
+}
+
+.timetable-grid .teacher-name-cell {
+    width: 150px;
+    background: #ffffff !important;
+    font-weight: 700;
+    text-align: left;
+}
+
+.timetable-grid .time-cell {
+    width: 150px;
+    background: #ffffff !important;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.class-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 34px;
+}
+
+.class-box strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.class-box span {
+    display: block;
+    font-size: 12px;
+    color: #475569;
+}
+
+.class-box small {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+}
+
+@media (max-width: 768px) {
+    .timetable-grid {
+        min-width: 760px;
+    }
+
+    .timetable-grid th,
+    .timetable-grid td {
+        font-size: 13px;
+        padding: 7px 8px;
+        min-width: 110px;
+    }
+
+    .timetable-grid .teacher-name-cell,
+    .timetable-grid .time-cell {
+        width: 135px;
+    }
+}
+</style>
+
 @endsection
 
 @section('scripts')

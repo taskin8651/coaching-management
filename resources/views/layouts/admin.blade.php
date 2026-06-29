@@ -126,7 +126,9 @@
 
                         <div class="hidden sm:block text-start">
                             <p class="user-dropdown-name">{{ auth()->user()->name }}</p>
-                            <p class="user-dropdown-role">Administrator</p>
+                            <p class="user-dropdown-role">
+                                {{ auth()->user()->roles->pluck('title')->join(', ') ?: 'User' }}
+                            </p>
                         </div>
 
                         <i class="fas fa-chevron-down hidden sm:block user-dropdown-chevron"></i>
