@@ -18,6 +18,8 @@ class StoreTeacherRequest extends FormRequest
 
     public function rules()
     {
+        $selectedUserId = $this->input('user_id');
+
         return [
             'user_id' => [
                 'nullable',
@@ -30,9 +32,14 @@ class StoreTeacherRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email'),
+                Rule::unique('users', 'email')->ignore($selectedUserId),
             ],
-            'account_password' => ['required', 'string', 'min:8'],
+            'account_password' => [
+                Rule::requiredIf(! $selectedUserId),
+                'nullable',
+                'string',
+                'min:8',
+            ],
             'branch_id' => [
                 'nullable',
                 'integer',
@@ -43,7 +50,7 @@ class StoreTeacherRequest extends FormRequest
                 'string',
                 'max:255',
                 'unique:teachers,biometric_id',
-                Rule::unique('users', 'biometric_id'),
+                Rule::unique('users', 'biometric_id')->ignore($selectedUserId),
             ],
             'phone' => [
                 'nullable',

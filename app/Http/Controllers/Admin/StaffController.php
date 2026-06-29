@@ -62,12 +62,7 @@ class StaffController extends Controller
 
         $branchId = $this->getUserBranchId();
 
-        $users = User::whereHas('roles', function ($query) {
-                $query->where('title', 'Staff');
-            })
-            ->whereDoesntHave('staffProfile')
-            ->pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        ['users' => $users, 'userDetails' => $userDetails] = $this->profileUserSelectData('Staff', 'staffProfile');
 
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
@@ -80,7 +75,7 @@ class StaffController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.staff.create', compact('users', 'branches'));
+        return view('admin.staff.create', compact('users', 'userDetails', 'branches'));
     }
 
     public function store(StoreStaffRequest $request)
@@ -88,7 +83,6 @@ class StaffController extends Controller
         abort_if($this->isStaff() || $this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
-        unset($data['user_id']);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -140,15 +134,7 @@ class StaffController extends Controller
 
         $branchId = $this->getUserBranchId();
 
-        $users = User::whereHas('roles', function ($query) {
-                $query->where('title', 'Staff');
-            })
-            ->where(function ($query) use ($staff) {
-                $query->whereDoesntHave('staffProfile')
-                    ->orWhere('id', $staff->user_id);
-            })
-            ->pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        ['users' => $users, 'userDetails' => $userDetails] = $this->profileUserSelectData('Staff', 'staffProfile', $staff->user_id);
 
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
@@ -163,7 +149,7 @@ class StaffController extends Controller
 
         $staff->load(['user', 'branch']);
 
-        return view('admin.staff.edit', compact('staff', 'users', 'branches'));
+        return view('admin.staff.edit', compact('staff', 'users', 'userDetails', 'branches'));
     }
 
     public function update(UpdateStaffRequest $request, Staff $staff)
@@ -183,7 +169,7 @@ class StaffController extends Controller
         }
 
         DB::transaction(function () use ($staff, $data) {
-            $data['user_id'] = $staff->user_id;
+            $data['user_id'] = $data['user_id'] ?? $staff->user_id;
 
             $user = $this->syncProfileUser($data, 'Staff');
             $data['user_id'] = $user->id;

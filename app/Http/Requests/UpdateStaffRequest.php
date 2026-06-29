@@ -18,6 +18,8 @@ class UpdateStaffRequest extends FormRequest
 
     public function rules()
     {
+        $selectedUserId = $this->input('user_id') ?: $this->staff->user_id;
+
         return [
             'user_id' => [
                 'nullable',
@@ -34,10 +36,10 @@ class UpdateStaffRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($this->staff->user_id),
+                Rule::unique('users', 'email')->ignore($selectedUserId),
             ],
             'account_password' => [
-                Rule::requiredIf(! $this->staff->user_id),
+                Rule::requiredIf(! $selectedUserId),
                 'nullable',
                 'string',
                 'min:8',
@@ -52,7 +54,7 @@ class UpdateStaffRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('staff', 'biometric_id')->ignore($this->staff->id),
-                Rule::unique('users', 'biometric_id')->ignore($this->staff->user_id),
+                Rule::unique('users', 'biometric_id')->ignore($selectedUserId),
             ],
             'phone' => [
                 'nullable',

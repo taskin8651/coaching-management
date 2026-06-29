@@ -153,6 +153,26 @@
                 </div>
 
                 <div class="detail-row">
+                    <span class="detail-label">Phone</span>
+                    <span class="detail-value">{{ $user->phone ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Branch ID</span>
+                    <span class="detail-value">{{ $user->branch_id ? '#' . $user->branch_id : '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Branch</span>
+                    <span class="detail-value">{{ $user->branch->name ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Biometric Code</span>
+                    <span class="detail-value">{{ $user->biometric_id ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
                     <span class="detail-label">{{ trans('cruds.user.fields.email_verified_at') }}</span>
 
                     @if($user->email_verified_at)
@@ -171,6 +191,16 @@
                 </div>
 
                 <div class="detail-row">
+                    <span class="detail-label">Password</span>
+                    <span class="detail-value">Protected / Hidden</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Remember Token</span>
+                    <span class="detail-value">{{ $user->remember_token ?: '-' }}</span>
+                </div>
+
+                <div class="detail-row">
                     <span class="detail-label">Created At</span>
                     <span class="detail-value">
                         {{ optional($user->created_at)->format('d M Y, H:i') ?? '-' }}
@@ -182,6 +212,45 @@
                     <span class="detail-value">
                         {{ optional($user->updated_at)->format('d M Y, H:i') ?? '-' }}
                     </span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Deleted At</span>
+                    <span class="detail-value">
+                        {{ optional($user->deleted_at)->format('d M Y, H:i') ?? '-' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-card mb-3">
+            <div class="detail-section-head">
+                <div class="detail-section-icon">
+                    <i class="fas fa-link"></i>
+                </div>
+
+                <p class="detail-section-title">Linked Profiles & Relations</p>
+            </div>
+
+            <div class="detail-section-body">
+                <div class="detail-row">
+                    <span class="detail-label">Student Profile</span>
+                    <span class="detail-value">{{ $user->studentProfile ? 'Student #' . $user->studentProfile->id : '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Teacher Profile</span>
+                    <span class="detail-value">{{ $user->teacherProfile ? 'Teacher #' . $user->teacherProfile->id : '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Staff Profile</span>
+                    <span class="detail-value">{{ $user->staffProfile ? 'Staff #' . $user->staffProfile->id : '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Managed Branch</span>
+                    <span class="detail-value">{{ $user->managedBranch->name ?? '-' }}</span>
                 </div>
             </div>
         </div>

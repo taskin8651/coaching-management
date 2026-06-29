@@ -66,12 +66,7 @@ class TeachersController extends Controller
 
         $branchId = $this->getUserBranchId();
 
-        $users = User::whereHas('roles', function ($query) {
-                $query->where('title', 'Teacher');
-            })
-            ->whereDoesntHave('teacherProfile')
-            ->pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        ['users' => $users, 'userDetails' => $userDetails] = $this->profileUserSelectData('Teacher', 'teacherProfile');
 
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
@@ -119,6 +114,7 @@ class TeachersController extends Controller
 
         return view('admin.teachers.create', compact(
             'users',
+            'userDetails',
             'branches',
             'courses',
             'subjects',
@@ -131,7 +127,6 @@ class TeachersController extends Controller
         abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
-        unset($data['user_id']);
 
         unset($data['course_ids'], $data['subject_ids'], $data['batch_ids']);
 
@@ -193,15 +188,7 @@ class TeachersController extends Controller
 
         $branchId = $this->getUserBranchId();
 
-        $users = User::whereHas('roles', function ($query) {
-                $query->where('title', 'Teacher');
-            })
-            ->where(function ($query) use ($teacher) {
-                $query->whereDoesntHave('teacherProfile')
-                    ->orWhere('id', $teacher->user_id);
-            })
-            ->pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        ['users' => $users, 'userDetails' => $userDetails] = $this->profileUserSelectData('Teacher', 'teacherProfile', $teacher->user_id);
 
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
@@ -254,6 +241,7 @@ class TeachersController extends Controller
         return view('admin.teachers.edit', compact(
             'teacher',
             'users',
+            'userDetails',
             'branches',
             'courses',
             'subjects',
@@ -281,7 +269,7 @@ class TeachersController extends Controller
         }
 
         DB::transaction(function () use ($teacher, $data) {
-            $data['user_id'] = $teacher->user_id;
+            $data['user_id'] = $data['user_id'] ?? $teacher->user_id;
 
             $user = $this->syncProfileUser($data, 'Teacher');
             $data['user_id'] = $user->id;

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MassDestroyUserRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
 use Gate;
@@ -28,14 +29,19 @@ class UsersController extends Controller
         abort_if(Gate::denies('user_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $roles = Role::pluck('title', 'id');
+        $branches = Branch::pluck('name', 'id')->prepend('Optional', '');
 
-        return view('admin.users.create', compact('roles'));
+        return view('admin.users.create', compact('roles', 'branches'));
     }
 
     public function store(StoreUserRequest $request)
     {
-        $user = User::create($request->all());
-        $user->roles()->sync($request->input('roles', []));
+        $data = $request->validated();
+        $roles = $data['roles'] ?? [];
+        unset($data['roles']);
+
+        $user = User::create($data);
+        $user->roles()->sync($roles);
 
         return redirect()->route('admin.users.index');
     }
@@ -45,16 +51,21 @@ class UsersController extends Controller
         abort_if(Gate::denies('user_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $roles = Role::pluck('title', 'id');
+        $branches = Branch::pluck('name', 'id')->prepend('Optional', '');
 
         $user->load('roles');
 
-        return view('admin.users.edit', compact('roles', 'user'));
+        return view('admin.users.edit', compact('roles', 'branches', 'user'));
     }
 
     public function update(UpdateUserRequest $request, User $user)
     {
-        $user->update($request->all());
-        $user->roles()->sync($request->input('roles', []));
+        $data = $request->validated();
+        $roles = $data['roles'] ?? [];
+        unset($data['roles']);
+
+        $user->update($data);
+        $user->roles()->sync($roles);
 
         return redirect()->route('admin.users.index');
     }
@@ -63,7 +74,14 @@ class UsersController extends Controller
     {
         abort_if(Gate::denies('user_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $user->load('roles');
+        $user->load([
+            'roles.permissions',
+            'branch',
+            'managedBranch',
+            'teacherProfile',
+            'staffProfile',
+            'studentProfile',
+        ]);
 
         return view('admin.users.show', compact('user'));
     }

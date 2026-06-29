@@ -56,4 +56,37 @@ trait SyncsProfileUser
 
         return $data;
     }
+
+    protected function profileUserSelectData(string $roleTitle, string $profileRelation, $currentUserId = null): array
+    {
+        $userRecords = User::whereHas('roles', function ($query) use ($roleTitle) {
+                $query->where('title', $roleTitle);
+            })
+            ->where(function ($query) use ($profileRelation, $currentUserId) {
+                $query->whereDoesntHave($profileRelation);
+
+                if ($currentUserId) {
+                    $query->orWhere('id', $currentUserId);
+                }
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'phone', 'branch_id', 'biometric_id']);
+
+        return [
+            'users' => $userRecords
+                ->pluck('name', 'id')
+                ->prepend('Select User (Optional)', ''),
+            'userDetails' => $userRecords->mapWithKeys(function ($user) {
+                return [
+                    $user->id => [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'branch_id' => $user->branch_id,
+                        'biometric_id' => $user->biometric_id,
+                    ],
+                ];
+            }),
+        ];
+    }
 }

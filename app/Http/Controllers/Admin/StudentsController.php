@@ -71,12 +71,7 @@ class StudentsController extends Controller
 
         $branchId = $this->getUserBranchId();
 
-        $users = User::whereHas('roles', function ($query) {
-                $query->where('title', 'Student');
-            })
-            ->whereDoesntHave('studentProfile')
-            ->pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        ['users' => $users, 'userDetails' => $userDetails] = $this->profileUserSelectData('Student', 'studentProfile');
 
         $guardians = User::whereHas('roles', function ($query) {
                 $query->where('title', 'Parent');
@@ -117,7 +112,7 @@ class StudentsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.students.create', compact('users', 'guardians', 'branches', 'courses', 'batches'));
+        return view('admin.students.create', compact('users', 'userDetails', 'guardians', 'branches', 'courses', 'batches'));
     }
 
     public function store(StoreStudentRequest $request)
@@ -125,7 +120,6 @@ class StudentsController extends Controller
         abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
-        unset($data['user_id']);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -193,15 +187,7 @@ class StudentsController extends Controller
 
         $branchId = $this->getUserBranchId();
 
-        $users = User::whereHas('roles', function ($query) {
-                $query->where('title', 'Student');
-            })
-            ->where(function ($query) use ($student) {
-                $query->whereDoesntHave('studentProfile')
-                    ->orWhere('id', $student->user_id);
-            })
-            ->pluck('name', 'id')
-            ->prepend(trans('global.pleaseSelect'), '');
+        ['users' => $users, 'userDetails' => $userDetails] = $this->profileUserSelectData('Student', 'studentProfile', $student->user_id);
 
         $guardians = User::whereHas('roles', function ($query) {
                 $query->where('title', 'Parent');
@@ -244,7 +230,7 @@ class StudentsController extends Controller
 
         $student->load(['user', 'branch', 'course', 'batch']);
 
-        return view('admin.students.edit', compact('student', 'users', 'guardians', 'branches', 'courses', 'batches'));
+        return view('admin.students.edit', compact('student', 'users', 'userDetails', 'guardians', 'branches', 'courses', 'batches'));
     }
 
     public function update(UpdateStudentRequest $request, Student $student)
@@ -280,7 +266,7 @@ class StudentsController extends Controller
         }
 
         DB::transaction(function () use ($student, $data) {
-            $data['user_id'] = $student->user_id;
+            $data['user_id'] = $data['user_id'] ?? $student->user_id;
 
             $user = $this->syncProfileUser($data, 'Student');
             $data['user_id'] = $user->id;

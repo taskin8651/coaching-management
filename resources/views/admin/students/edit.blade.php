@@ -61,6 +61,8 @@
 
             <div class="form-card-body">
 
+                @include('admin.partials.profile-user-select', ['selectedUserId' => $student->user_id])
+
                 <div class="field-group">
                     <label class="field-label" for="account_name">Account Name <span class="req">*</span></label>
                     <div class="input-icon-wrap">

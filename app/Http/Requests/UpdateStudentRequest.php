@@ -18,6 +18,8 @@ class UpdateStudentRequest extends FormRequest
 
     public function rules()
     {
+        $selectedUserId = $this->input('user_id') ?: $this->student->user_id;
+
         return [
             'user_id' => [
                 'nullable',
@@ -34,10 +36,10 @@ class UpdateStudentRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($this->student->user_id),
+                Rule::unique('users', 'email')->ignore($selectedUserId),
             ],
             'account_password' => [
-                Rule::requiredIf(! $this->student->user_id),
+                Rule::requiredIf(! $selectedUserId),
                 'nullable',
                 'string',
                 'min:8',
@@ -73,7 +75,7 @@ class UpdateStudentRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('students', 'biometric_id')->ignore($this->student->id),
-                Rule::unique('users', 'biometric_id')->ignore($this->student->user_id),
+                Rule::unique('users', 'biometric_id')->ignore($selectedUserId),
             ],
             'father_name' => [
                 'nullable',

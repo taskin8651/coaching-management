@@ -104,6 +104,84 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label" for="phone">Phone</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-phone icon"></i>
+
+                        <input type="text"
+                               name="phone"
+                               id="phone"
+                               value="{{ old('phone', $user->phone) }}"
+                               placeholder="Enter phone number"
+                               class="field-input {{ $errors->has('phone') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('phone'))
+                        <p class="field-error">{{ $errors->first('phone') }}</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="branch_id">Branch</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-school icon"></i>
+
+                        <select name="branch_id"
+                                id="branch_id"
+                                class="field-input {{ $errors->has('branch_id') ? 'error' : '' }}">
+                            @foreach($branches as $id => $branch)
+                                <option value="{{ $id }}" {{ old('branch_id', $user->branch_id) == $id ? 'selected' : '' }}>
+                                    {{ $branch }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if($errors->has('branch_id'))
+                        <p class="field-error">{{ $errors->first('branch_id') }}</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="biometric_id">Biometric Code</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-fingerprint icon"></i>
+
+                        <input type="text"
+                               name="biometric_id"
+                               id="biometric_id"
+                               value="{{ old('biometric_id', $user->biometric_id) }}"
+                               placeholder="BIO-001"
+                               class="field-input {{ $errors->has('biometric_id') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('biometric_id'))
+                        <p class="field-error">{{ $errors->first('biometric_id') }}</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="email_verified_at">Email Verified At</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-calendar-check icon"></i>
+
+                        <input type="datetime-local"
+                               name="email_verified_at"
+                               id="email_verified_at"
+                               value="{{ old('email_verified_at', optional($user->email_verified_at)->format('Y-m-d\TH:i')) }}"
+                               class="field-input {{ $errors->has('email_verified_at') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('email_verified_at'))
+                        <p class="field-error">{{ $errors->first('email_verified_at') }}</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
                     <label class="field-label" for="password">
                         {{ trans('cruds.user.fields.password') }}
                         <span class="field-hint">(optional)</span>
@@ -130,6 +208,25 @@
                         </p>
                     @else
                         <p class="field-hint">{{ trans('cruds.user.fields.password_helper') }}</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="remember_token">Remember Token</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-key icon"></i>
+
+                        <input type="text"
+                               name="remember_token"
+                               id="remember_token"
+                               value="{{ old('remember_token', $user->remember_token) }}"
+                               placeholder="Optional remember token"
+                               class="field-input {{ $errors->has('remember_token') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('remember_token'))
+                        <p class="field-error">{{ $errors->first('remember_token') }}</p>
                     @endif
                 </div>
 

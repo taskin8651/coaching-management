@@ -37,6 +37,8 @@
 
             <div class="form-card-body">
 
+                @include('admin.partials.profile-user-select')
+
                 <div class="field-group">
                     <label class="field-label" for="account_name">Account Name</label>
                     <div class="input-icon-wrap"><i class="fas fa-user icon"></i><input type="text" name="account_name" id="account_name" value="{{ old('account_name') }}" placeholder="Staff name" class="field-input {{ $errors->has('account_name') ? 'error' : '' }}"></div>
