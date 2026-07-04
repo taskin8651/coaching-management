@@ -1,50 +1,127 @@
 @extends('layouts.app')
+
+@section('title', trans('global.reset_password') . ' | ' . trans('panel.site_title'))
+
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card mx-4">
-            <div class="card-body p-4">
-                <h1>{{ trans('panel.site_title') }}</h1>
+<div class="auth-card">
+    <div class="auth-card-head">
+        <div class="auth-card-top">
+            <i class="fas fa-key"></i>
+            Create New Password
+        </div>
 
-                <p class="text-muted">{{ trans('global.reset_password') }}</p>
+        <h2>{{ trans('global.reset_password') }}</h2>
+        <p>Set a new secure password for your institute account.</p>
+    </div>
 
-                <form method="POST" action="{{ route('password.request') }}">
-                    @csrf
+    @if($errors->any())
+        <div class="auth-alert auth-alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>Please check the details and try again.</span>
+        </div>
+    @endif
 
-                    <input name="token" value="{{ $token }}" type="hidden">
+    <form method="POST" action="{{ route('password.request') }}" class="auth-form">
+        @csrf
 
-                    <div class="form-group">
-                        <input id="email" type="email" name="email" class="form-control{{ $errors->has('email') ? ' is-invalid' : '' }}" required autocomplete="email" autofocus placeholder="{{ trans('global.login_email') }}" value="{{ $email ?? old('email') }}">
+        <input name="token" value="{{ $token }}" type="hidden">
 
-                        @if($errors->has('email'))
-                            <div class="invalid-feedback">
-                                {{ $errors->first('email') }}
-                            </div>
-                        @endif
-                    </div>
-                    <div class="form-group">
-                        <input id="password" type="password" name="password" class="form-control" required placeholder="{{ trans('global.login_password') }}">
+        <div class="auth-field">
+            <label for="email">{{ trans('global.login_email') }} <span class="req">*</span></label>
 
-                        @if($errors->has('password'))
-                            <div class="invalid-feedback">
-                                {{ $errors->first('password') }}
-                            </div>
-                        @endif
-                    </div>
-                    <div class="form-group">
-                        <input id="password-confirm" type="password" name="password_confirmation" class="form-control" required placeholder="{{ trans('global.login_password_confirmation') }}">
-                    </div>
+            <div class="auth-input-wrap">
+                <i class="fas fa-envelope"></i>
 
-                    <div class="row">
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary btn-block btn-flat">
-                                {{ trans('global.reset_password') }}
-                            </button>
-                        </div>
-                    </div>
-                </form>
+                <input id="email"
+                       type="email"
+                       name="email"
+                       value="{{ $email ?? old('email') }}"
+                       required
+                       autocomplete="email"
+                       autofocus
+                       placeholder="Enter your email address"
+                       class="{{ $errors->has('email') ? 'error' : '' }}">
+            </div>
+
+            @if($errors->has('email'))
+                <p class="auth-error">{{ $errors->first('email') }}</p>
+            @endif
+        </div>
+
+        <div class="auth-grid-2">
+            <div class="auth-field">
+                <label for="password">{{ trans('global.login_password') }} <span class="req">*</span></label>
+
+                <div class="auth-input-wrap has-eye">
+                    <i class="fas fa-lock"></i>
+
+                    <input id="password"
+                           type="password"
+                           name="password"
+                           required
+                           autocomplete="new-password"
+                           placeholder="Create new password"
+                           class="{{ $errors->has('password') ? 'error' : '' }}">
+
+                    <button type="button" class="auth-eye" onclick="toggleAuthPassword('password', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+
+                @if($errors->has('password'))
+                    <p class="auth-error">{{ $errors->first('password') }}</p>
+                @endif
+            </div>
+
+            <div class="auth-field">
+                <label for="password-confirm">{{ trans('global.login_password_confirmation') }} <span class="req">*</span></label>
+
+                <div class="auth-input-wrap has-eye">
+                    <i class="fas fa-shield-alt"></i>
+
+                    <input id="password-confirm"
+                           type="password"
+                           name="password_confirmation"
+                           required
+                           autocomplete="new-password"
+                           placeholder="Confirm new password">
+
+                    <button type="button" class="auth-eye" onclick="toggleAuthPassword('password-confirm', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
+
+        <button type="submit" class="auth-submit">
+            <i class="fas fa-check-circle"></i>
+            {{ trans('global.reset_password') }}
+        </button>
+
+        <div class="auth-bottom">
+            <a href="{{ route('login') }}">Back to login</a>
+        </div>
+    </form>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+function toggleAuthPassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('i');
+
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+</script>
 @endsection
