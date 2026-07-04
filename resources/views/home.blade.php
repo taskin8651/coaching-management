@@ -4,802 +4,264 @@
 
 @section('styles')
 <style>
-    .dash-wrap {
-        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    }
-
-    .dash-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        margin-bottom: 22px;
-    }
-
-    .dash-title {
-        margin: 0;
-        font-size: 24px;
-        font-weight: 900;
-        color: #0f172a;
-        letter-spacing: -0.5px;
-    }
-
-    .dash-subtitle {
-        margin: 6px 0 0;
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    .role-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        border-radius: 999px;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        color: #334155;
-        font-size: 13px;
-        font-weight: 800;
-        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
-    }
-
-    .dash-hero {
-        display: grid;
-        grid-template-columns: 1.1fr 1fr;
-        gap: 20px;
-        padding: 26px;
-        border-radius: 26px;
-        margin-bottom: 22px;
-        color: #fff;
-        background:
-            radial-gradient(circle at 15% 10%, rgba(255,255,255,.26), transparent 28%),
-            linear-gradient(135deg, #0f172a, #1e293b 48%, #4f46e5);
-        box-shadow: 0 26px 70px rgba(15, 23, 42, 0.22);
-        overflow: hidden;
-        position: relative;
-    }
-
-    .dash-hero::after {
-        content: "";
-        position: absolute;
-        right: -90px;
-        top: -90px;
-        width: 260px;
-        height: 260px;
-        border-radius: 50%;
-        background: rgba(255,255,255,.12);
-    }
-
-    .hero-label {
-        margin: 0 0 8px;
-        font-size: 12px;
-        font-weight: 900;
-        color: #cbd5e1;
-        text-transform: uppercase;
-        letter-spacing: .09em;
-    }
-
-    .hero-title {
-        margin: 0;
-        font-size: 40px;
-        font-weight: 900;
-        letter-spacing: -1px;
-    }
-
-    .hero-text {
-        margin: 10px 0 0;
-        color: #cbd5e1;
-        font-size: 14px;
-    }
-
-    .hero-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        position: relative;
-        z-index: 2;
-    }
-
-    .hero-mini {
-        padding: 16px;
-        border-radius: 18px;
-        background: rgba(255,255,255,.12);
-        border: 1px solid rgba(255,255,255,.18);
-        backdrop-filter: blur(10px);
-    }
-
-    .hero-mini span {
-        display: block;
-        font-size: 12px;
-        color: #cbd5e1;
-        margin-bottom: 6px;
-    }
-
-    .hero-mini strong {
-        display: block;
-        color: #fff;
-        font-size: 18px;
-        font-weight: 900;
-    }
-
-    .stat-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        margin-bottom: 22px;
-    }
-
-    .dash-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        padding: 18px;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
-        transition: .22s ease;
-    }
-
-    .dash-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
-    }
-
-    .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        margin-bottom: 14px;
-        font-size: 18px;
-    }
-
-    .stat-label {
-        margin: 0;
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-    }
-
-    .stat-value {
-        margin: 7px 0 0;
-        color: #0f172a;
-        font-size: 28px;
-        font-weight: 900;
-    }
-
-    .bg-indigo { background: #4f46e5; }
-    .bg-blue { background: #0ea5e9; }
-    .bg-green { background: #10b981; }
-    .bg-orange { background: #f59e0b; }
-    .bg-red { background: #ef4444; }
-    .bg-purple { background: #8b5cf6; }
-    .bg-pink { background: #ec4899; }
-    .bg-slate { background: #475569; }
-
-    .dash-grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 22px;
-    }
-
-    .panel-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 22px;
-        overflow: hidden;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
-    }
-
-    .panel-head {
-        padding: 18px 20px;
-        border-bottom: 1px solid #e2e8f0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-    }
-
-    .panel-title {
-        margin: 0;
-        color: #0f172a;
-        font-size: 15px;
-        font-weight: 900;
-    }
-
-    .panel-note {
-        font-size: 12px;
-        color: #64748b;
-        text-decoration: none;
-        font-weight: 700;
-    }
-
-    .finance-list {
-        padding: 8px 20px 20px;
-    }
-
-    .finance-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 14px 0;
-        border-bottom: 1px solid #e2e8f0;
-        color: #475569;
-        font-size: 14px;
-    }
-
-    .finance-row:last-child {
-        border-bottom: none;
-    }
-
-    .finance-row strong {
-        color: #0f172a;
-        font-weight: 900;
-    }
-
-    .finance-row.total {
-        margin-top: 8px;
-        padding: 16px;
-        border-radius: 16px;
-        background: #0f172a;
-        color: #fff;
-        border: none;
-    }
-
-    .finance-row.total strong {
-        color: #fff;
-    }
-
-    .activity-list {
-        padding: 8px 20px 20px;
-    }
-
-    .activity-row {
-        display: flex;
-        gap: 13px;
-        align-items: center;
-        padding: 13px 0;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .activity-row:last-child {
-        border-bottom: none;
-    }
-
-    .activity-icon {
-        width: 42px;
-        height: 42px;
-        min-width: 42px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-    }
-
-    .activity-row p {
-        margin: 0 0 4px;
-        font-size: 14px;
-        color: #0f172a;
-        font-weight: 900;
-    }
-
-    .activity-row span {
-        font-size: 12px;
-        color: #64748b;
-    }
-
-    .empty-box {
-        margin: 18px;
-        padding: 18px;
-        border-radius: 16px;
-        background: #f8fafc;
-        color: #64748b;
-        text-align: center;
-        font-size: 13px;
-        font-weight: 700;
-    }
-
-    .monthly-chart {
-        padding: 24px 20px 12px;
-        display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        gap: 12px;
-        min-height: 240px;
-        align-items: end;
-    }
-
-    .month-bar {
-        text-align: center;
-    }
-
-    .bar-box {
-        height: 160px;
-        display: flex;
-        align-items: end;
-        justify-content: center;
-        gap: 4px;
-        padding: 9px 4px;
-        border-radius: 14px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-    }
-
-    .bar {
-        width: 8px;
-        min-height: 4px;
-        display: block;
-        border-radius: 999px 999px 0 0;
-    }
-
-    .bar.fee { background: #10b981; }
-    .bar.expense { background: #ef4444; }
-    .bar.salary { background: #f59e0b; }
-
-    .month-bar p {
-        margin: 8px 0 0;
-        font-size: 11px;
-        color: #64748b;
-        font-weight: 800;
-    }
-
-    .legend {
-        display: flex;
-        gap: 18px;
-        padding: 0 20px 20px;
-        font-size: 13px;
-        color: #475569;
-    }
-
-    .legend span {
-        display: flex;
-        gap: 7px;
-        align-items: center;
-    }
-
-    .legend i {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-    .dot-fee { background: #10b981; }
-    .dot-expense { background: #ef4444; }
-    .dot-salary { background: #f59e0b; }
-
-    @media(max-width: 1100px) {
-        .stat-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .dash-hero,
-        .dash-grid-2 {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @media(max-width: 600px) {
-        .stat-grid,
-        .hero-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .dash-head {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .hero-title {
-            font-size: 30px;
-        }
-
-        .monthly-chart {
-            overflow-x: auto;
-            grid-template-columns: repeat(12, 54px);
-        }
-    }
+    .ed-wrap{font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#111827}
+    .ed-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:16px}
+    .ed-title{font-size:25px;font-weight:900;letter-spacing:-.04em;margin:0;color:#0f172a}
+    .ed-crumb{font-size:12px;color:#64748b;margin-top:5px}
+    .date-pill{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 16px;font-weight:800;color:#334155;box-shadow:0 8px 24px rgba(15,23,42,.05)}
+    .metric-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:14px;margin-bottom:18px}
+    .metric-card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:16px;box-shadow:0 10px 28px rgba(15,23,42,.045)}
+    .metric-top{display:flex;gap:13px;align-items:center}
+    .metric-icon{width:50px;height:50px;border-radius:999px;display:grid;place-items:center;font-size:20px}
+    .tone-blue{background:#dbeafe;color:#2563eb}.tone-green{background:#dcfce7;color:#16a34a}.tone-purple{background:#f3e8ff;color:#9333ea}.tone-amber{background:#fef3c7;color:#d97706}.tone-cyan{background:#cffafe;color:#0891b2}.tone-emerald{background:#dcfce7;color:#15803d}.tone-orange{background:#ffedd5;color:#ea580c}.tone-pink{background:#fce7f3;color:#db2777}
+    .metric-value{font-size:24px;font-weight:900;margin:0;color:#111827;line-height:1}
+    .metric-label{font-size:12px;color:#64748b;font-weight:700;margin:5px 0 0}.metric-trend{font-size:11px;color:#16a34a;margin:12px 0 0;font-weight:800}
+    .ed-grid{display:grid;grid-template-columns:1.2fr 1.1fr 1.5fr 1.25fr 1fr;gap:14px;margin-bottom:14px}
+    .ed-card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 10px 28px rgba(15,23,42,.045);overflow:hidden}
+    .card-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #eef2f7}
+    .card-title{font-size:14px;font-weight:900;margin:0;color:#0f172a}.view-link{font-size:12px;color:#2563eb;font-weight:800;text-decoration:none}
+    .donut-row{align-items:center;gap:22px;padding:22px 20px 20px;min-height:206px}
+    .donut-stage{position:relative;display:grid;place-items:center;min-width:168px}
+    .donut-stage:before{content:"";position:absolute;width:166px;height:166px;border-radius:42px;background:linear-gradient(145deg,#f8fafc,#eef2ff);filter:blur(.1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 18px 45px rgba(15,23,42,.08)}
+    .donut{--chart:#e5e7eb;width:148px;height:148px;border-radius:50%;display:grid;place-items:center;background:var(--chart);position:relative;box-shadow:0 16px 38px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.85)}
+    .donut:before{content:"";position:absolute;width:96px;height:96px;border-radius:50%;background:linear-gradient(180deg,#fff,#f8fafc);box-shadow:inset 0 0 0 1px #e5e7eb,0 8px 18px rgba(15,23,42,.08)}
+    .donut span{position:relative;text-align:center;font-size:11px;color:#64748b;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.donut strong{display:block;color:#0f172a;font-size:18px;margin-top:4px;letter-spacing:-.04em;text-transform:none}.donut small{display:block;color:#16a34a;font-size:11px;margin-top:2px;text-transform:none;letter-spacing:0}
+    .legend-list{flex:1;display:grid;gap:12px}.legend-item{display:block;padding:12px 13px;border:1px solid #eef2f7;border-radius:16px;background:linear-gradient(180deg,#fff,#f8fafc);font-size:13px;color:#334155;box-shadow:0 8px 18px rgba(15,23,42,.035)}.legend-item-top{display:flex;justify-content:space-between;gap:12px;align-items:center}.legend-item strong{color:#0f172a;font-weight:900}.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px;box-shadow:0 0 0 4px rgba(148,163,184,.13)}.legend-progress{height:7px;border-radius:999px;background:#e5e7eb;overflow:hidden;margin-top:10px}.legend-progress span{display:block;height:100%;border-radius:999px}.green{background:#22c55e}.yellow{background:#eab308}.red{background:#ef4444}.legend-progress .green{background:linear-gradient(90deg,#86efac,#16a34a)}.legend-progress .yellow{background:linear-gradient(90deg,#fde68a,#ca8a04)}.legend-progress .red{background:linear-gradient(90deg,#fca5a5,#dc2626)}
+    .bar-chart{height:185px;padding:18px;display:grid;grid-template-columns:repeat(12,1fr);gap:8px;align-items:end}.bar-col{text-align:center}.bar-line{height:135px;background:#f8fafc;border-radius:10px;display:flex;align-items:end;justify-content:center}.bar-fill{width:18px;border-radius:8px 8px 2px 2px;background:linear-gradient(180deg,#60a5fa,#2563eb);min-height:4px}.bar-label{font-size:10px;color:#64748b;margin-top:7px}
+    .line-chart{height:185px;padding:16px 18px;display:flex;align-items:end;gap:8px}.line-point{flex:1;text-align:center}.point-dot{height:8px;width:8px;border-radius:50%;background:#7c3aed;margin:0 auto 7px}.line-stick{width:3px;background:#ddd6fe;margin:0 auto;border-radius:999px}.line-label{font-size:10px;color:#64748b}
+    .notice-list,.portal-body,.activity-list{padding:14px 16px}.notice-item,.activity-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #eef2f7}.notice-item:last-child,.activity-item:last-child{border-bottom:0}.mini-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto}.item-title{font-size:13px;font-weight:900;margin:0;color:#0f172a}.item-meta{font-size:11px;color:#64748b;margin-top:4px}
+    .wide-grid{display:grid;grid-template-columns:1.1fr 1.45fr 1.45fr;gap:14px;margin-bottom:14px}.bottom-grid{display:grid;grid-template-columns:2fr .95fr 1fr;gap:14px}
+    .mini-table{width:100%;font-size:12px}.mini-table th{background:#f8fafc;color:#475569;text-align:left;padding:10px;font-weight:900}.mini-table td{padding:10px;border-top:1px solid #eef2f7;color:#334155}.status-pill-sm{font-size:10px;border-radius:999px;padding:5px 9px;font-weight:900}.live{background:#dcfce7;color:#15803d}.upcoming{background:#dbeafe;color:#2563eb}
+    .exam-score{font-size:34px;font-weight:900;color:#0f172a}.score-box{padding:20px}.score-line{height:110px;display:flex;align-items:end;gap:16px;margin-top:12px}.score-month{flex:1;text-align:center}.score-bar{height:75px;border-left:2px solid #2563eb;border-top:2px solid #2563eb;transform:skewY(-12deg);border-radius:4px}
+    .calendar{padding:16px}.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:12px}.cal-day{padding:7px;border-radius:10px;color:#334155}.cal-active{background:#2563eb;color:#fff;font-weight:900}.portal-card{background:linear-gradient(180deg,#eef4ff,#fff)}
+    .portal-meter{width:96px;height:96px;border-radius:50%;background:conic-gradient(#22c55e {{ $attendancePercent }}%,#e5e7eb 0);display:grid;place-items:center;margin:4px auto 16px;position:relative}.portal-meter:before{content:"";position:absolute;width:70px;height:70px;background:#fff;border-radius:50%}.portal-meter strong{position:relative;font-size:18px}
+    .portal-row{display:flex;justify-content:space-between;background:#fff;border-radius:14px;padding:12px;margin-top:10px;font-size:12px;font-weight:800;color:#334155}.portal-btn{display:block;text-align:center;margin-top:14px;border:1px solid #2563eb;border-radius:12px;color:#2563eb;padding:11px;font-weight:900;text-decoration:none}
+    @media(max-width:1500px){.metric-grid{grid-template-columns:repeat(4,1fr)}.ed-grid,.wide-grid,.bottom-grid{grid-template-columns:1fr 1fr}.right-only{grid-column:span 2}}
+    @media(max-width:900px){.metric-grid,.ed-grid,.wide-grid,.bottom-grid{grid-template-columns:1fr}.right-only{grid-column:auto}.ed-head{align-items:flex-start;flex-direction:column}}
 </style>
 @endsection
 
 @section('content')
+@php
+    $maxFee = max($monthlyFee->max('value') ?? 0, 1);
+    $maxEnquiry = max($monthlyEnquiries->max('value') ?? 0, 1);
+    $calendarStart = now()->copy()->startOfMonth();
+    $daysInMonth = now()->daysInMonth;
+@endphp
 
-<div class="dash-wrap">
-
-    <div class="dash-head">
+<div class="ed-wrap">
+    <div class="ed-head">
         <div>
-            <h2 class="dash-title">Dashboard</h2>
-            <p class="dash-subtitle">
-                Welcome back, <strong>{{ auth()->user()->name }}</strong>. Role-wise smart dashboard overview.
-            </p>
+            <h1 class="ed-title">Dashboard</h1>
+            <div class="ed-crumb">{{ $scope['role_label'] }} / {{ auth()->user()->name }}</div>
         </div>
-
-        <div class="role-chip">
-            <i class="fas fa-user-shield"></i>
-            {{ $scope['role_label'] }}
-        </div>
+        <div class="date-pill"><i class="fas fa-calendar-days"></i>{{ now()->format('d M Y, l') }}</div>
     </div>
 
-    <div class="dash-hero">
-        <div>
-            @if($scope['is_student'])
-                <p class="hero-label">My Fee Summary</p>
-                <h1 class="hero-title">₹{{ number_format($totalFeeDue, 2) }}</h1>
-                <p class="hero-text">Your pending fee due amount.</p>
-            @elseif($scope['is_teacher'])
-                <p class="hero-label">My Students</p>
-                <h1 class="hero-title">{{ $myStudents->count() }}</h1>
-                <p class="hero-text">Students visible under your assigned branch/batches.</p>
-            @else
-                <p class="hero-label">Net Balance</p>
-                <h1 class="hero-title">₹{{ number_format($netBalance, 2) }}</h1>
-                <p class="hero-text">Fee Collection - Expenses - Salary Paid</p>
-            @endif
-        </div>
-
-        <div class="hero-grid">
-            <div class="hero-mini">
-                <span>Fee Collection</span>
-                <strong>₹{{ number_format($totalFeeCollection, 0) }}</strong>
-            </div>
-
-            <div class="hero-mini">
-                <span>Fee Due</span>
-                <strong>₹{{ number_format($totalFeeDue, 0) }}</strong>
-            </div>
-
-            <div class="hero-mini">
-                <span>Exams</span>
-                <strong>{{ $completedExams }} Completed</strong>
-            </div>
-
-            <div class="hero-mini">
-                <span>Upcoming</span>
-                <strong>{{ $upcomingExamsCount }} Exams</strong>
-            </div>
-        </div>
-    </div>
-
-    <div class="stat-grid">
-        @foreach($cards as $card)
+    <div class="metric-grid">
+        @foreach($topCards as $card)
             @if($card['show'])
-                <div class="dash-card">
-                    <div class="stat-icon bg-{{ $card['color'] }}">
-                        <i class="{{ $card['icon'] }}"></i>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <div class="metric-icon tone-{{ $card['tone'] }}"><i class="{{ $card['icon'] }}"></i></div>
+                        <div>
+                            <p class="metric-value">{{ $card['value'] }}</p>
+                            <p class="metric-label">{{ $card['title'] }}</p>
+                        </div>
                     </div>
-
-                    <p class="stat-label">{{ $card['title'] }}</p>
-                    <p class="stat-value">{{ $card['value'] }}</p>
+                    <p class="metric-trend"><i class="fas fa-arrow-up"></i> live scoped data</p>
                 </div>
             @endif
         @endforeach
     </div>
 
-    @if(!$scope['is_student'] && !$scope['is_teacher'])
-        <div class="dash-grid-2">
-            <div class="panel-card">
-                <div class="panel-head">
-                    <p class="panel-title">Financial Summary</p>
-                    <span class="panel-note">Live Overview</span>
-                </div>
-
-                <div class="finance-list">
-                    <div class="finance-row">
-                        <span>Fee Collection</span>
-                        <strong>₹{{ number_format($totalFeeCollection, 2) }}</strong>
-                    </div>
-
-                    <div class="finance-row">
-                        <span>Fee Due</span>
-                        <strong>₹{{ number_format($totalFeeDue, 2) }}</strong>
-                    </div>
-
-                    <div class="finance-row">
-                        <span>Expenses</span>
-                        <strong>₹{{ number_format($totalExpenses, 2) }}</strong>
-                    </div>
-
-                    <div class="finance-row">
-                        <span>Salary Paid</span>
-                        <strong>₹{{ number_format($totalSalaryPaid, 2) }}</strong>
-                    </div>
-
-                    <div class="finance-row">
-                        <span>Salary Due</span>
-                        <strong>₹{{ number_format($totalSalaryDue, 2) }}</strong>
-                    </div>
-
-                    <div class="finance-row total">
-                        <span>Net Balance</span>
-                        <strong>₹{{ number_format($netBalance, 2) }}</strong>
+    <div class="ed-grid">
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Fee Collection Status</p></div>
+            <div class="donut-row">
+                <div class="donut-stage">
+                    <div class="donut" style="--chart: conic-gradient(#22c55e 0 {{ $feePaidPercent }}%, #ef4444 {{ $feePaidPercent }}% 100%);">
+                        <span>
+                            Total
+                            <strong>₹{{ number_format($feeCollected + $pendingFees,0) }}</strong>
+                            <small>{{ $feePaidPercent }}% paid</small>
+                        </span>
                     </div>
                 </div>
-            </div>
-
-            <div class="panel-card">
-                <div class="panel-head">
-                    <p class="panel-title">Enquiry Summary</p>
-
-                    @can('enquiry_access')
-                        <a href="{{ route('admin.enquiries.index') }}" class="panel-note">View All</a>
-                    @endcan
-                </div>
-
-                <div class="finance-list">
-                    <div class="finance-row">
-                        <span>Total Enquiries</span>
-                        <strong>{{ $totalEnquiries }}</strong>
+                <div class="legend-list">
+                    <div class="legend-item">
+                        <div class="legend-item-top">
+                            <span><i class="legend-dot green"></i>Paid</span>
+                            <strong>₹{{ number_format($feeCollected,0) }} · {{ $feePaidPercent }}%</strong>
+                        </div>
+                        <div class="legend-progress"><span class="green" style="width:{{ $feePaidPercent }}%"></span></div>
                     </div>
-
-                    <div class="finance-row">
-                        <span>New Enquiries</span>
-                        <strong>{{ $newEnquiries }}</strong>
-                    </div>
-
-                    <div class="finance-row">
-                        <span>Converted</span>
-                        <strong>{{ $convertedEnquiries }}</strong>
-                    </div>
-
-                    <div class="finance-row total">
-                        <span>Pending Follow-ups</span>
-                        <strong>{{ $pendingFollowUps }}</strong>
+                    <div class="legend-item">
+                        <div class="legend-item-top">
+                            <span><i class="legend-dot red"></i>Due</span>
+                            <strong>₹{{ number_format($pendingFees,0) }} · {{ $feeDuePercent }}%</strong>
+                        </div>
+                        <div class="legend-progress"><span class="red" style="width:{{ $feeDuePercent }}%"></span></div>
                     </div>
                 </div>
             </div>
         </div>
-    @endif
 
-    <div class="panel-card" style="margin-bottom:22px;">
-        <div class="panel-head">
-            <p class="panel-title">Monthly Finance Overview</p>
-            <span class="panel-note">Fee / Expense / Salary</span>
-        </div>
-
-        <div class="monthly-chart">
-            @foreach($months as $item)
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Student Attendance Today</p></div>
+            <div class="donut-row">
                 @php
-                    $maxValue = max($item['fee'], $item['expense'], $item['salary'], 1);
-                    $feeHeight = ($item['fee'] / $maxValue) * 100;
-                    $expenseHeight = ($item['expense'] / $maxValue) * 100;
-                    $salaryHeight = ($item['salary'] / $maxValue) * 100;
+                    $lateStart = $attendancePercent;
+                    $lateEnd = $attendancePercent + $latePercent;
+                    $absentStart = $lateEnd;
                 @endphp
-
-                <div class="month-bar">
-                    <div class="bar-box">
-                        <span class="bar fee" style="height: {{ $feeHeight }}%;"></span>
-                        <span class="bar expense" style="height: {{ $expenseHeight }}%;"></span>
-                        <span class="bar salary" style="height: {{ $salaryHeight }}%;"></span>
+                <div class="donut-stage">
+                    <div class="donut" style="--chart: conic-gradient(#22c55e 0 {{ $attendancePercent }}%, #eab308 {{ $lateStart }}% {{ $lateEnd }}%, #ef4444 {{ $absentStart }}% 100%);">
+                        <span>
+                            Total
+                            <strong>{{ $attendanceTotalToday }}</strong>
+                            <small>{{ $attendancePercent }}% present</small>
+                        </span>
                     </div>
-
-                    <p>{{ $item['month'] }}</p>
                 </div>
-            @endforeach
-        </div>
-
-        <div class="legend">
-            <span><i class="dot-fee"></i> Fee</span>
-            <span><i class="dot-expense"></i> Expense</span>
-            <span><i class="dot-salary"></i> Salary</span>
-        </div>
-    </div>
-
-    <div class="dash-grid-2">
-
-        @if(!$scope['is_student'])
-            <div class="panel-card">
-                <div class="panel-head">
-                    <p class="panel-title">
-                        {{ $scope['is_teacher'] ? 'My Students' : 'Recent Students' }}
-                    </p>
-
-                    @can('student_access')
-                        <a href="{{ route('admin.students.index') }}" class="panel-note">View All</a>
-                    @endcan
-                </div>
-
-                <div class="activity-list">
-                    @forelse($myStudents as $student)
-                        <div class="activity-row">
-                            <div class="activity-icon bg-green">
-                                <i class="fas fa-user-graduate"></i>
-                            </div>
-
-                            <div>
-                                <p>{{ $student->user->name ?? 'Student' }}</p>
-                                <span>
-                                    {{ $student->student_code ?? '-' }}
-                                    • {{ $student->course->name ?? '-' }}
-                                    • {{ $student->batch->name ?? '-' }}
-                                </span>
-                            </div>
+                <div class="legend-list">
+                    <div class="legend-item">
+                        <div class="legend-item-top">
+                            <span><i class="legend-dot green"></i>Present</span>
+                            <strong>{{ $presentToday }} · {{ $attendancePercent }}%</strong>
                         </div>
-                    @empty
-                        <div class="empty-box">No students found.</div>
-                    @endforelse
+                        <div class="legend-progress"><span class="green" style="width:{{ $attendancePercent }}%"></span></div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-item-top">
+                            <span><i class="legend-dot yellow"></i>Late</span>
+                            <strong>{{ $lateToday }} · {{ $latePercent }}%</strong>
+                        </div>
+                        <div class="legend-progress"><span class="yellow" style="width:{{ $latePercent }}%"></span></div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-item-top">
+                            <span><i class="legend-dot red"></i>Absent</span>
+                            <strong>{{ $absentToday }} · {{ $absentPercent }}%</strong>
+                        </div>
+                        <div class="legend-progress"><span class="red" style="width:{{ $absentPercent }}%"></span></div>
+                    </div>
                 </div>
             </div>
-        @endif
+        </div>
 
-        <div class="panel-card">
-            <div class="panel-head">
-                <p class="panel-title">Upcoming Exams</p>
-
-                @can('exam_access')
-                    <a href="{{ route('admin.exams.index') }}" class="panel-note">View All</a>
-                @endcan
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Monthly Fee Collection ({{ now()->year }})</p><span class="view-link">This Year</span></div>
+            <div class="bar-chart">
+                @foreach($monthlyFee as $row)
+                    <div class="bar-col"><div class="bar-line"><div class="bar-fill" style="height:{{ max(($row['value'] / $maxFee) * 100, 3) }}%"></div></div><div class="bar-label">{{ $row['label'] }}</div></div>
+                @endforeach
             </div>
+        </div>
 
-            <div class="activity-list">
-                @forelse($upcomingExams as $exam)
-                    <div class="activity-row">
-                        <div class="activity-icon bg-purple">
-                            <i class="fas fa-clipboard-list"></i>
-                        </div>
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Enquiries Trend ({{ now()->year }})</p><span class="view-link">This Year</span></div>
+            <div class="line-chart">
+                @foreach($monthlyEnquiries as $row)
+                    <div class="line-point"><div class="line-stick" style="height:{{ max(($row['value'] / $maxEnquiry) * 130, 8) }}px"></div><div class="point-dot"></div><div class="line-label">{{ $row['label'] }}</div></div>
+                @endforeach
+            </div>
+        </div>
 
-                        <div>
-                            <p>{{ $exam->title }}</p>
-                            <span>
-                                {{ $exam->exam_date ? \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') : '-' }}
-                                • {{ $exam->batch->name ?? '-' }}
-                                • {{ $exam->subject->name ?? '-' }}
-                            </span>
-                        </div>
-                    </div>
+        <div class="ed-card right-only">
+            <div class="card-head"><p class="card-title">Latest Notices</p>@can('notice_access')<a class="view-link" href="{{ route('admin.notices.index') }}">View All</a>@endcan</div>
+            <div class="notice-list">
+                @forelse($latestNotices as $notice)
+                    <div class="notice-item"><div class="mini-icon tone-orange"><i class="fas fa-bullhorn"></i></div><div><p class="item-title">{{ $notice->title }}</p><div class="item-meta">{{ $notice->publish_date ? \Carbon\Carbon::parse($notice->publish_date)->format('d M Y') : optional($notice->created_at)->format('d M Y') }}</div></div></div>
                 @empty
-                    <div class="empty-box">No upcoming exams found.</div>
+                    <div class="item-meta">No notices found.</div>
                 @endforelse
             </div>
         </div>
-
     </div>
 
-    <div class="dash-grid-2">
-
-        <div class="panel-card">
-            <div class="panel-head">
-                <p class="panel-title">Study Materials</p>
-
-                @can('study_material_access')
-                    <a href="{{ route('admin.study-materials.index') }}" class="panel-note">View All</a>
-                @endcan
-            </div>
-
-            <div class="activity-list">
-                @forelse($recentStudyMaterials as $material)
-                    <div class="activity-row">
-                        <div class="activity-icon bg-blue">
-                            <i class="fas fa-book-reader"></i>
-                        </div>
-
-                        <div>
-                            <p>{{ $material->title }}</p>
-                            <span>
-                                {{ $material->material_type ?? 'Material' }}
-                                • {{ $material->course->name ?? '-' }}
-                                • {{ $material->batch->name ?? '-' }}
-                            </span>
-                        </div>
-                    </div>
-                @empty
-                    <div class="empty-box">No study materials found.</div>
-                @endforelse
+    <div class="wide-grid">
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Exam Results Overview</p></div>
+            <div class="score-box">
+                <div class="item-meta">Average Percentage</div>
+                <div class="exam-score">{{ $examAverage ?: 0 }}%</div>
+                <div class="metric-trend"><i class="fas fa-arrow-up"></i> scoped exam result average</div>
+                <div class="score-line"><div class="score-month"><div class="score-bar"></div><div class="bar-label">Jan</div></div><div class="score-month"><div class="score-bar" style="height:88px"></div><div class="bar-label">Feb</div></div><div class="score-month"><div class="score-bar" style="height:100px"></div><div class="bar-label">Mar</div></div></div>
             </div>
         </div>
 
-        <div class="panel-card">
-            <div class="panel-head">
-                <p class="panel-title">Recent Notices</p>
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Recent Admissions</p>@can('admission_access')<a class="view-link" href="{{ route('admin.admissions.index') }}">View All</a>@endcan</div>
+            <table class="mini-table"><thead><tr><th>#</th><th>Student</th><th>Course</th><th>Batch</th><th>Date</th></tr></thead><tbody>
+            @forelse($recentAdmissions as $admission)
+                <tr><td>{{ $loop->iteration }}</td><td>{{ $admission->student->user->name ?? 'Student' }}</td><td>{{ $admission->course->name ?? '-' }}</td><td>{{ $admission->batch->name ?? '-' }}</td><td>{{ $admission->admission_date ? \Carbon\Carbon::parse($admission->admission_date)->format('d M') : '-' }}</td></tr>
+            @empty
+                <tr><td colspan="5">No admissions found.</td></tr>
+            @endforelse
+            </tbody></table>
+        </div>
 
-                @can('notice_access')
-                    <a href="{{ route('admin.notices.index') }}" class="panel-note">View All</a>
-                @endcan
-            </div>
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Recent Fee Payments</p>@can('fee_payment_access')<a class="view-link" href="{{ route('admin.fee-payments.index') }}">View All</a>@endcan</div>
+            <table class="mini-table"><thead><tr><th>#</th><th>Student</th><th>Amount</th><th>Date</th><th>Receipt</th></tr></thead><tbody>
+            @forelse($recentFeePayments as $payment)
+                <tr><td>{{ $loop->iteration }}</td><td>{{ $payment->student->user->name ?? 'Student' }}</td><td>₹{{ number_format($payment->paid_amount,0) }}</td><td>{{ $payment->payment_date ? \Carbon\Carbon::parse($payment->payment_date)->format('d M') : '-' }}</td><td>{{ $payment->receipt_no ?? '-' }}</td></tr>
+            @empty
+                <tr><td colspan="5">No fee payments found.</td></tr>
+            @endforelse
+            </tbody></table>
+        </div>
+    </div>
 
-            <div class="activity-list">
-                @forelse($recentNotices as $notice)
-                    <div class="activity-row">
-                        <div class="activity-icon bg-orange">
-                            <i class="fas fa-bullhorn"></i>
-                        </div>
+    <div class="bottom-grid">
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Today’s Classes / Timetable</p>@can('timetable_access')<a class="view-link" href="{{ route('admin.timetables.index') }}">View Full Timetable</a>@endcan</div>
+            <table class="mini-table"><thead><tr><th>Time</th><th>Batch</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Status</th></tr></thead><tbody>
+            @forelse($todayClasses as $class)
+                @php $isLive = now()->format('H:i:s') >= $class->start_time && now()->format('H:i:s') <= $class->end_time; @endphp
+                <tr><td>{{ \Carbon\Carbon::parse($class->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($class->end_time)->format('h:i A') }}</td><td>{{ $class->batch->name ?? '-' }}</td><td>{{ $class->subject->name ?? '-' }}</td><td>{{ $class->teacher->user->name ?? '-' }}</td><td>{{ $class->room ?? '-' }}</td><td><span class="status-pill-sm {{ $isLive ? 'live' : 'upcoming' }}">{{ $isLive ? 'Live' : 'Upcoming' }}</span></td></tr>
+            @empty
+                <tr><td colspan="6">No classes found for today.</td></tr>
+            @endforelse
+            </tbody></table>
+        </div>
 
-                        <div>
-                            <p>{{ $notice->title }}</p>
-                            <span>
-                                {{ $notice->notice_type ?? 'Notice' }}
-                                • {{ $notice->publish_date ? \Carbon\Carbon::parse($notice->publish_date)->format('d M Y') : '-' }}
-                            </span>
-                        </div>
-                    </div>
-                @empty
-                    <div class="empty-box">No notices found.</div>
-                @endforelse
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Calendar</p></div>
+            <div class="calendar">
+                <div style="text-align:center;font-weight:900;margin-bottom:12px">{{ now()->format('F Y') }}</div>
+                <div class="cal-grid">
+                    @foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $day)<strong>{{ $day }}</strong>@endforeach
+                    @for($i = 1; $i < $calendarStart->dayOfWeekIso; $i++)<span></span>@endfor
+                    @for($day = 1; $day <= $daysInMonth; $day++)<div class="cal-day {{ $day == now()->day ? 'cal-active' : '' }}">{{ $day }}</div>@endfor
+                </div>
             </div>
         </div>
 
+        <div class="ed-card">
+            <div class="card-head"><p class="card-title">Activity Feed</p></div>
+            <div class="activity-list">
+                @forelse($activityFeed as $activity)
+                    <div class="activity-item"><div class="mini-icon tone-{{ $activity['tone'] }}"><i class="{{ $activity['icon'] }}"></i></div><div><p class="item-title">{{ $activity['title'] }}</p><div class="item-meta">{{ $activity['meta'] }}</div></div></div>
+                @empty
+                    <div class="item-meta">No activity found.</div>
+                @endforelse
+            </div>
+        </div>
     </div>
 
-    @if(!$scope['is_teacher'])
-        <div class="dash-grid-2">
-
-            <div class="panel-card">
-                <div class="panel-head">
-                    <p class="panel-title">
-                        {{ $scope['is_student'] ? 'My Fee Payments' : 'Recent Fee Payments' }}
-                    </p>
-
-                    @can('fee_payment_access')
-                        <a href="{{ route('admin.fee-payments.index') }}" class="panel-note">View All</a>
-                    @endcan
-                </div>
-
-                <div class="activity-list">
-                    @forelse($recentFeePayments as $payment)
-                        <div class="activity-row">
-                            <div class="activity-icon bg-green">
-                                <i class="fas fa-rupee-sign"></i>
-                            </div>
-
-                            <div>
-                                <p>
-                                    {{ $payment->student->user->name ?? 'Student' }}
-                                    — ₹{{ number_format($payment->paid_amount, 0) }}
-                                </p>
-                                <span>
-                                    {{ $payment->receipt_no ?? '-' }}
-                                    • Due ₹{{ number_format($payment->due_amount, 0) }}
-                                    • {{ $payment->payment_date ? \Carbon\Carbon::parse($payment->payment_date)->format('d M Y') : '-' }}
-                                </span>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="empty-box">No fee payments found.</div>
-                    @endforelse
-                </div>
+    @if($scope['is_student'])
+        <div class="ed-card portal-card" style="margin-top:14px">
+            <div class="card-head"><p class="card-title"><i class="fas fa-graduation-cap"></i> Student Portal</p></div>
+            <div class="portal-body">
+                <div class="portal-meter"><strong>{{ $attendancePercent }}%</strong></div>
+                <div class="portal-row"><span>Upcoming Exams</span><strong>{{ $upcomingExams->count() }}</strong></div>
+                <div class="portal-row"><span>Pending Homework</span><strong>{{ $pendingHomeworkCount }}</strong></div>
+                <div class="portal-row"><span>New Study Materials</span><strong>{{ $recentMaterials->count() }}</strong></div>
+                <a href="{{ route('admin.my-portal.index') }}" class="portal-btn">Go to Student Portal</a>
             </div>
-
-            @if(!$scope['is_student'])
-                <div class="panel-card">
-                    <div class="panel-head">
-                        <p class="panel-title">Recent Enquiries</p>
-
-                        @can('enquiry_access')
-                            <a href="{{ route('admin.enquiries.index') }}" class="panel-note">View All</a>
-                        @endcan
-                    </div>
-
-                    <div class="activity-list">
-                        @forelse($recentEnquiries as $enquiry)
-                            <div class="activity-row">
-                                <div class="activity-icon bg-pink">
-                                    <i class="fas fa-headset"></i>
-                                </div>
-
-                                <div>
-                                    <p>{{ $enquiry->student_name }}</p>
-                                    <span>
-                                        {{ $enquiry->phone }}
-                                        • {{ ucwords(str_replace('_', ' ', $enquiry->status)) }}
-                                        • {{ $enquiry->branch->name ?? '-' }}
-                                    </span>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="empty-box">No enquiries found.</div>
-                        @endforelse
-                    </div>
-                </div>
-            @endif
-
         </div>
     @endif
-
 </div>
-
-
 @endsection
