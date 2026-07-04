@@ -43,7 +43,7 @@
                     <input type="date"
                            name="substitution_date"
                            id="substitution_date"
-                           value="{{ old('substitution_date', optional($substitution->substitution_date ?? null)->format('Y-m-d')) }}"
+                           value="{{ old('substitution_date', ! empty($substitution?->substitution_date) ? \Carbon\Carbon::parse($substitution->substitution_date)->format('Y-m-d') : '') }}"
                            required
                            class="field-input {{ $errors->has('substitution_date') ? 'error' : '' }}">
                 </div>
@@ -74,12 +74,9 @@
                 <select name="substitute_teacher_id"
                         id="substitute_teacher_id"
                         required
+                        data-selected="{{ old('substitute_teacher_id', $substitution->substitute_teacher_id ?? '') }}"
                         class="field-input {{ $errors->has('substitute_teacher_id') ? 'error' : '' }}">
-                    @foreach($teachers as $id => $teacher)
-                        <option value="{{ $id }}" {{ old('substitute_teacher_id', $substitution->substitute_teacher_id ?? '') == $id ? 'selected' : '' }}>
-                            {{ $teacher }}
-                        </option>
-                    @endforeach
+                    <option value="">Select timetable and date first</option>
                 </select>
 
                 @if($errors->has('substitute_teacher_id'))
@@ -116,6 +113,66 @@
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const timetableSelect = document.getElementById('timetable_id');
+    const dateInput = document.getElementById('substitution_date');
+    const teacherSelect = document.getElementById('substitute_teacher_id');
+    const selectedTeacher = teacherSelect.dataset.selected || '';
+    const ignoreSubstitutionId = @json($substitution->id ?? null);
+    const endpoint = @json(route('admin.timetable-substitutions.free-teachers'));
+
+    function setPlaceholder(text) {
+        teacherSelect.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = text;
+        teacherSelect.appendChild(option);
+    }
+
+    function loadFreeTeachers() {
+        if (! timetableSelect.value || ! dateInput.value) {
+            setPlaceholder('Select timetable and date first');
+            return;
+        }
+
+        setPlaceholder('Loading free teachers...');
+
+        const url = new URL(endpoint);
+        url.searchParams.set('timetable_id', timetableSelect.value);
+        url.searchParams.set('substitution_date', dateInput.value);
+
+        if (ignoreSubstitutionId) {
+            url.searchParams.set('ignore_substitution_id', ignoreSubstitutionId);
+        }
+
+        fetch(url, { headers: { 'Accept': 'application/json' } })
+            .then(response => response.json())
+            .then(data => {
+                teacherSelect.innerHTML = '';
+
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = data.teachers && data.teachers.length ? 'Select Substitute Teacher' : 'No free teacher found';
+                teacherSelect.appendChild(defaultOption);
+
+                (data.teachers || []).forEach(function (teacher) {
+                    const option = document.createElement('option');
+                    option.value = teacher.id;
+                    option.textContent = teacher.name;
+                    option.selected = String(selectedTeacher) === String(teacher.id);
+                    teacherSelect.appendChild(option);
+                });
+            })
+            .catch(() => setPlaceholder('Unable to load free teachers'));
+    }
+
+    timetableSelect.addEventListener('change', loadFreeTeachers);
+    dateInput.addEventListener('change', loadFreeTeachers);
+    loadFreeTeachers();
+});
+</script>
+
 <div class="form-actions">
     <button type="submit" class="btn-primary">
         <i class="fas fa-check"></i>
@@ -126,4 +183,3 @@
         {{ trans('global.cancel') }}
     </a>
 </div>
-

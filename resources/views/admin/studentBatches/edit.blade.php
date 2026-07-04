@@ -39,25 +39,26 @@
             <div class="form-card-body">
 
                 <div class="field-group">
-                    <label class="field-label" for="student_id">
+                    <label class="field-label">
                         Student <span class="req">*</span>
                     </label>
 
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-user-graduate icon"></i>
+                    <div class="checkbox-grid">
+                        @foreach($students as $id => $name)
+                            @if($id)
+                                <label class="role-checkbox-item {{ old('student_id', $studentBatch->student_id) == $id ? 'checked' : '' }}">
+                                    <input type="radio"
+                                           name="student_id"
+                                           value="{{ $id }}"
+                                           class="role-checkbox"
+                                           required
+                                           {{ old('student_id', $studentBatch->student_id) == $id ? 'checked' : '' }}>
 
-                        <select name="student_id"
-                                id="student_id"
-                                required
-                                class="field-input {{ $errors->has('student_id') ? 'error' : '' }}">
-                            <option value="">Select Student</option>
-
-                            @foreach($students as $id => $name)
-                                <option value="{{ $id }}" {{ old('student_id', $studentBatch->student_id) == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
+                                    <div class="check-icon"></div>
+                                    <span class="checkbox-text">{{ $name }}</span>
+                                </label>
+                            @endif
+                        @endforeach
                     </div>
 
                     @if($errors->has('student_id'))
@@ -99,35 +100,27 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="subject_id">
+                    <label class="field-label">
                         Subject
                     </label>
 
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-book-open icon"></i>
-
-                        <select name="subject_id"
-                                id="subject_id"
-                                class="field-input {{ $errors->has('subject_id') ? 'error' : '' }}">
-                            <option value="">Select Subject</option>
-
-                            @foreach($subjects as $id => $name)
-                                <option value="{{ $id }}" {{ old('subject_id', $studentBatch->subject_id) == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <div id="subjectRadioGrid" class="checkbox-grid">
+                        <div class="form-info-box">
+                            <p><i class="fas fa-info-circle"></i> Batch select karne ke baad subjects yahan show honge.</p>
+                        </div>
                     </div>
 
-                    @if($errors->has('subject_id'))
+                    @if($errors->has('subject_ids'))
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('subject_id') }}
+                            {{ $errors->first('subject_ids') }}
                         </p>
+                    @elseif($errors->has('subject_ids.*'))
+                        <p class="field-error">{{ $errors->first('subject_ids.*') }}</p>
                     @else
                         <p class="field-hint">
                             <i class="fas fa-info-circle"></i>
-                            Subject is optional for full batch assignment
+                            Multiple subjects select kar sakte ho. Extra selected subjects ke liye new assignment create ho jayega.
                         </p>
                     @endif
                 </div>
@@ -261,4 +254,58 @@
 
 </form>
 
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const batchSubjects = @json($batchSubjects);
+    const selectedSubjects = @json(old('subject_ids', $studentBatch->subject_id ? [$studentBatch->subject_id] : []));
+    const batchSelect = document.getElementById('batch_id');
+    const subjectWrapper = document.getElementById('subjectRadioGrid');
+
+    function renderSubjects() {
+        const subjects = batchSubjects[batchSelect.value] || [];
+        subjectWrapper.innerHTML = '';
+
+        subjects.forEach(function (subject) {
+            const checked = selectedSubjects.map(String).includes(String(subject.id));
+            const label = document.createElement('label');
+            label.className = 'role-checkbox-item ' + (checked ? 'checked' : '');
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = 'subject_ids[]';
+            input.value = subject.id;
+            input.className = 'role-checkbox';
+            input.checked = checked;
+            const icon = document.createElement('div');
+            icon.className = 'check-icon';
+            const text = document.createElement('span');
+            text.className = 'checkbox-text';
+            text.textContent = subject.name;
+            label.appendChild(input);
+            label.appendChild(icon);
+            label.appendChild(text);
+            subjectWrapper.appendChild(label);
+        });
+
+        if (! subjects.length) {
+            subjectWrapper.innerHTML += '<div class="form-info-box"><p><i class="fas fa-info-circle"></i> No subjects linked with selected batch.</p></div>';
+        }
+    }
+
+    batchSelect.addEventListener('change', renderSubjects);
+    document.addEventListener('change', function (event) {
+        if (! event.target.classList.contains('role-checkbox')) {
+            return;
+        }
+
+        const label = event.target.closest('.role-checkbox-item');
+        if (label) {
+            label.classList.toggle('checked', event.target.checked);
+        }
+    });
+    renderSubjects();
+});
+</script>
 @endsection

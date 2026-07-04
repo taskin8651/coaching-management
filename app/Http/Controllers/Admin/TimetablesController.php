@@ -12,6 +12,7 @@ use App\Models\Teacher;
 use App\Models\Timetable;
 use App\Models\TimetableSubstitution;
 use App\Services\WhatsappService;
+use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -168,6 +169,12 @@ class TimetablesController extends Controller
         $substituteTeacher = Teacher::findOrFail($data['substitute_teacher_id']);
         $this->assertBranchAccess($substituteTeacher);
 
+        abort_if(
+            ! $this->isTeacherFree($substituteTeacher->id, $timetable, $data['substitution_date']),
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Selected substitute teacher is not free in this timetable slot.'
+        );
+
         $substitution = TimetableSubstitution::create($data + [
             'timetable_id'        => $timetable->id,
             'original_teacher_id' => $timetable->teacher_id,
@@ -232,5 +239,44 @@ class TimetablesController extends Controller
             'room'          => ['nullable', 'string', 'max:255'],
             'status'        => ['required', 'in:scheduled,changed,cancelled'],
         ]);
+    }
+
+    private function isTeacherFree(int $teacherId, Timetable $targetTimetable, string $substitutionDate): bool
+    {
+        if ($targetTimetable->teacher_id && (int) $targetTimetable->teacher_id === (int) $teacherId) {
+            return false;
+        }
+
+        $date = Carbon::parse($substitutionDate);
+        $day = strtolower($date->format('l'));
+        $start = Carbon::parse($targetTimetable->start_time)->format('H:i:s');
+        $end = Carbon::parse($targetTimetable->end_time)->format('H:i:s');
+
+        $hasTimetableClash = Timetable::where('teacher_id', $teacherId)
+            ->where('id', '!=', $targetTimetable->id)
+            ->where('status', '!=', 'cancelled')
+            ->whereTime('start_time', '<', $end)
+            ->whereTime('end_time', '>', $start)
+            ->where(function ($query) use ($date, $day) {
+                $query->whereDate('schedule_date', $date->toDateString())
+                    ->orWhere(function ($q) use ($day) {
+                        $q->whereNull('schedule_date')
+                            ->whereRaw('LOWER(day_of_week) = ?', [$day]);
+                    });
+            })
+            ->exists();
+
+        if ($hasTimetableClash) {
+            return false;
+        }
+
+        return ! TimetableSubstitution::where('substitute_teacher_id', $teacherId)
+            ->whereDate('substitution_date', $date->toDateString())
+            ->whereHas('timetable', function ($query) use ($start, $end) {
+                $query->where('status', '!=', 'cancelled')
+                    ->whereTime('start_time', '<', $end)
+                    ->whereTime('end_time', '>', $start);
+            })
+            ->exists();
     }
 }

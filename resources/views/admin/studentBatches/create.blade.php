@@ -38,32 +38,36 @@
             <div class="form-card-body">
 
                 <div class="field-group">
-                    <label class="field-label" for="student_id">
-                        Student <span class="req">*</span>
+                    <label class="field-label">
+                        Students <span class="req">*</span>
                     </label>
 
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-user-graduate icon"></i>
+                    <div class="checkbox-grid">
+                        @foreach($students as $id => $name)
+                            @if($id)
+                                <label class="role-checkbox-item {{ in_array($id, old('student_ids', [])) ? 'checked' : '' }}">
+                                    <input type="checkbox"
+                                           name="student_ids[]"
+                                           value="{{ $id }}"
+                                           class="role-checkbox"
+                                           {{ in_array($id, old('student_ids', [])) ? 'checked' : '' }}>
 
-                        <select name="student_id"
-                                id="student_id"
-                                required
-                                class="field-input {{ $errors->has('student_id') ? 'error' : '' }}">
-                            <option value="">Select Student</option>
-
-                            @foreach($students as $id => $name)
-                                <option value="{{ $id }}" {{ old('student_id') == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
+                                    <div class="check-icon"></div>
+                                    <span class="checkbox-text">{{ $name }}</span>
+                                </label>
+                            @endif
+                        @endforeach
                     </div>
 
-                    @if($errors->has('student_id'))
+                    @if($errors->has('student_ids'))
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('student_id') }}
+                            {{ $errors->first('student_ids') }}
                         </p>
+                    @elseif($errors->has('student_ids.*'))
+                        <p class="field-error">{{ $errors->first('student_ids.*') }}</p>
+                    @else
+                        <p class="field-hint">Hold Ctrl/Command to select multiple students.</p>
                     @endif
                 </div>
 
@@ -98,35 +102,27 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="subject_id">
-                        Subject
+                    <label class="field-label">
+                        Subjects
                     </label>
 
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-book-open icon"></i>
-
-                        <select name="subject_id"
-                                id="subject_id"
-                                class="field-input {{ $errors->has('subject_id') ? 'error' : '' }}">
-                            <option value="">Select Subject</option>
-
-                            @foreach($subjects as $id => $name)
-                                <option value="{{ $id }}" {{ old('subject_id') == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <div id="subjectCheckboxGrid" class="checkbox-grid">
+                        <div class="form-info-box">
+                            <p><i class="fas fa-info-circle"></i> Batch select karne ke baad subjects yahan show honge.</p>
+                        </div>
                     </div>
 
-                    @if($errors->has('subject_id'))
+                    @if($errors->has('subject_ids'))
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('subject_id') }}
+                            {{ $errors->first('subject_ids') }}
                         </p>
+                    @elseif($errors->has('subject_ids.*'))
+                        <p class="field-error">{{ $errors->first('subject_ids.*') }}</p>
                     @else
                         <p class="field-hint">
                             <i class="fas fa-info-circle"></i>
-                            Subject is optional for full batch assignment
+                            Batch select karne ke baad sirf us batch ke linked subjects show honge. Hold Ctrl/Command to select multiple.
                         </p>
                     @endif
                 </div>
@@ -265,4 +261,72 @@
 
 </form>
 
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const batchSubjects = @json($batchSubjects);
+    const oldSubjects = @json(old('subject_ids', []));
+    const batchSelect = document.getElementById('batch_id');
+    const subjectWrapper = document.getElementById('subjectCheckboxGrid');
+
+    function renderSubjects() {
+        const selectedBatch = batchSelect.value;
+        const subjects = batchSubjects[selectedBatch] || [];
+        subjectWrapper.innerHTML = '';
+
+        subjects.forEach(function (subject) {
+            const label = document.createElement('label');
+            label.className = 'role-checkbox-item';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = 'subject_ids[]';
+            input.value = subject.id;
+            input.className = 'role-checkbox';
+
+            if (oldSubjects.map(String).includes(String(subject.id))) {
+                input.checked = true;
+                label.classList.add('checked');
+            }
+
+            const icon = document.createElement('div');
+            icon.className = 'check-icon';
+
+            const text = document.createElement('span');
+            text.className = 'checkbox-text';
+            text.textContent = subject.name;
+
+            label.appendChild(input);
+            label.appendChild(icon);
+            label.appendChild(text);
+            subjectWrapper.appendChild(label);
+        });
+
+        if (! subjects.length) {
+            subjectWrapper.innerHTML = '<div class="form-info-box"><p><i class="fas fa-info-circle"></i> No subjects linked with selected batch.</p></div>';
+        }
+    }
+
+    batchSelect.addEventListener('change', function () {
+        oldSubjects.splice(0, oldSubjects.length);
+        renderSubjects();
+    });
+
+    document.addEventListener('change', function (event) {
+        if (! event.target.classList.contains('role-checkbox')) {
+            return;
+        }
+
+        const label = event.target.closest('.role-checkbox-item');
+
+        if (label) {
+            label.classList.toggle('checked', event.target.checked);
+        }
+    });
+
+    renderSubjects();
+});
+</script>
 @endsection

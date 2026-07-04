@@ -29,6 +29,14 @@ class UpdateBatchRequest extends FormRequest
                 'integer',
                 'exists:courses,id',
             ],
+            'subject_ids' => [
+                'nullable',
+                'array',
+            ],
+            'subject_ids.*' => [
+                'integer',
+                'exists:subjects,id',
+            ],
             'name' => [
                 'required',
                 'string',

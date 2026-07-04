@@ -212,6 +212,39 @@
                     @endif
                 </div>
 
+                <div class="field-group">
+                    <label class="field-label">
+                        Subjects
+                    </label>
+
+                    <div class="checkbox-grid">
+                        @forelse($subjects as $id => $subject)
+                            <label class="role-checkbox-item {{ in_array($id, old('subject_ids', [])) ? 'checked' : '' }}">
+                                <input type="checkbox"
+                                       name="subject_ids[]"
+                                       value="{{ $id }}"
+                                       class="role-checkbox"
+                                       {{ in_array($id, old('subject_ids', [])) ? 'checked' : '' }}>
+
+                                <div class="check-icon"></div>
+                                <span class="checkbox-text">{{ $subject }}</span>
+                            </label>
+                        @empty
+                            <div class="form-info-box">
+                                <p><i class="fas fa-info-circle"></i> No active subjects found for selected branch.</p>
+                            </div>
+                        @endforelse
+                    </div>
+
+                    @if($errors->has('subject_ids'))
+                        <p class="field-error">{{ $errors->first('subject_ids') }}</p>
+                    @elseif($errors->has('subject_ids.*'))
+                        <p class="field-error">{{ $errors->first('subject_ids.*') }}</p>
+                    @else
+                        <p class="field-hint">Select one or more subjects linked with this batch.</p>
+                    @endif
+                </div>
+
                 <div class="form-info-box">
                     <p>
                         <i class="fas fa-info-circle"></i>

@@ -32,7 +32,7 @@
 
             <p class="profile-title">{{ $item->substituteTeacher->user->name ?? 'Substitute Teacher' }}</p>
             <p class="profile-subtitle">
-                {{ optional($item->substitution_date)->format('d M Y') ?? '-' }}
+                {{ $item->substitution_date ? \Carbon\Carbon::parse($item->substitution_date)->format('d M Y') : '-' }}
             </p>
         </div>
     </div>
@@ -64,7 +64,7 @@
             <div class="detail-section-body">
                 <div class="detail-row"><span class="detail-label">Original Teacher</span><span class="detail-value">{{ $item->originalTeacher->user->name ?? '-' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Substitute Teacher</span><span class="detail-value">{{ $item->substituteTeacher->user->name ?? '-' }}</span></div>
-                <div class="detail-row"><span class="detail-label">Substitution Date</span><span class="detail-value">{{ optional($item->substitution_date)->format('d M Y') ?? '-' }}</span></div>
+                <div class="detail-row"><span class="detail-label">Substitution Date</span><span class="detail-value">{{ $item->substitution_date ? \Carbon\Carbon::parse($item->substitution_date)->format('d M Y') : '-' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Reason</span><span class="detail-value">{{ $item->reason ?: '-' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Change Note</span><span class="detail-value">{{ $item->change_note ?: '-' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Changed By</span><span class="detail-value">{{ $item->changedBy->name ?? '-' }}</span></div>

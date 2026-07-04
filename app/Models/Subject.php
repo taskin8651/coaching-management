@@ -60,4 +60,10 @@ public function teacherAssignments()
 {
     return $this->hasMany(TeacherAssignment::class, 'subject_id');
 }
+
+public function batches()
+{
+    return $this->belongsToMany(Batch::class, 'batch_subject', 'subject_id', 'batch_id')
+        ->withTimestamps();
+}
 }

@@ -168,22 +168,17 @@
             <input type="date"
                    name="substitution_date"
                    required
+                   data-substitution-date
                    class="field-input"
                    style="width:135px; min-height:38px;">
 
             <select name="substitute_teacher_id"
                     required
+                    data-free-teacher-select
+                    data-timetable-id="{{ $item->id }}"
                     class="field-input"
                     style="width:170px; min-height:38px;">
-                <option value="">Select Teacher</option>
-
-                @foreach($teachers as $teacherId => $teacherName)
-                    @if($teacherId && $teacherId != $item->teacher_id)
-                        <option value="{{ $teacherId }}">
-                            {{ $teacherName }}
-                        </option>
-                    @endif
-                @endforeach
+                <option value="">Select date first</option>
             </select>
 
             <button type="submit" class="btn-outline">
@@ -495,4 +490,59 @@ $(function () {
     });
 });
 </script>
+
+@can('timetable_substitute')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const endpoint = @json(route('admin.timetable-substitutions.free-teachers'));
+
+    document.querySelectorAll('[data-free-teacher-select]').forEach(function (select) {
+        const form = select.closest('form');
+        const dateInput = form.querySelector('[data-substitution-date]');
+
+        function setPlaceholder(text) {
+            select.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = text;
+            select.appendChild(option);
+        }
+
+        function loadTeachers() {
+            if (! dateInput.value) {
+                setPlaceholder('Select date first');
+                return;
+            }
+
+            setPlaceholder('Loading...');
+
+            const url = new URL(endpoint);
+            url.searchParams.set('timetable_id', select.dataset.timetableId);
+            url.searchParams.set('substitution_date', dateInput.value);
+
+            fetch(url, { headers: { 'Accept': 'application/json' } })
+                .then(response => response.json())
+                .then(data => {
+                    select.innerHTML = '';
+
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = data.teachers && data.teachers.length ? 'Select Teacher' : 'No free teacher';
+                    select.appendChild(defaultOption);
+
+                    (data.teachers || []).forEach(function (teacher) {
+                        const option = document.createElement('option');
+                        option.value = teacher.id;
+                        option.textContent = teacher.name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(() => setPlaceholder('Unable to load'));
+        }
+
+        dateInput.addEventListener('change', loadTeachers);
+    });
+});
+</script>
+@endcan
 @endsection

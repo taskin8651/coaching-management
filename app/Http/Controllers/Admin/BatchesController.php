@@ -10,10 +10,12 @@ use App\Models\Branch;
 use App\Models\Course;
 use App\Models\Staff;
 use App\Models\Student;
+use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class BatchesController extends Controller
@@ -87,7 +89,9 @@ class BatchesController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.batches.create', compact('branches', 'courses'));
+        $subjects = $this->subjectOptions($branchId);
+
+        return view('admin.batches.create', compact('branches', 'courses', 'subjects'));
     }
 
     public function store(StoreBatchRequest $request)
@@ -112,7 +116,15 @@ class BatchesController extends Controller
             }
         }
 
-        Batch::create($data);
+        $subjectIds = $data['subject_ids'] ?? [];
+        unset($data['subject_ids']);
+
+        $this->validateSubjectAccess($subjectIds, $data['branch_id'] ?? null, $data['course_id'] ?? null);
+
+        DB::transaction(function () use ($data, $subjectIds) {
+            $batch = Batch::create($data);
+            $batch->subjects()->sync($subjectIds);
+        });
 
         return redirect()->route('admin.batches.index')->with('message', 'Batch created successfully.');
     }
@@ -160,9 +172,11 @@ class BatchesController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $batch->load(['branch', 'course']);
+        $subjects = $this->subjectOptions($branchId);
 
-        return view('admin.batches.edit', compact('batch', 'branches', 'courses'));
+        $batch->load(['branch', 'course', 'subjects']);
+
+        return view('admin.batches.edit', compact('batch', 'branches', 'courses', 'subjects'));
     }
 
     public function update(UpdateBatchRequest $request, Batch $batch)
@@ -189,7 +203,15 @@ class BatchesController extends Controller
             }
         }
 
-        $batch->update($data);
+        $subjectIds = $data['subject_ids'] ?? [];
+        unset($data['subject_ids']);
+
+        $this->validateSubjectAccess($subjectIds, $data['branch_id'] ?? null, $data['course_id'] ?? null);
+
+        DB::transaction(function () use ($batch, $data, $subjectIds) {
+            $batch->update($data);
+            $batch->subjects()->sync($subjectIds);
+        });
 
         return redirect()->route('admin.batches.index')->with('message', 'Batch updated successfully.');
     }
@@ -329,5 +351,41 @@ class BatchesController extends Controller
             ->roles()
             ->where('title', 'Teacher')
             ->exists();
+    }
+
+    private function subjectOptions($branchId)
+    {
+        return Subject::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
+            ->pluck('name', 'id');
+    }
+
+    private function validateSubjectAccess(array $subjectIds, $branchId, $courseId): void
+    {
+        if (empty($subjectIds)) {
+            return;
+        }
+
+        $query = Subject::whereIn('id', $subjectIds);
+
+        if (! auth()->user()->is_admin) {
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+            $query->where('branch_id', $branchId);
+        }
+
+        if ($courseId) {
+            $query->where(function ($q) use ($courseId) {
+                $q->whereNull('course_id')
+                    ->orWhere('course_id', $courseId);
+            });
+        }
+
+        abort_if($query->count() !== count(array_unique($subjectIds)), Response::HTTP_FORBIDDEN, 'Invalid subject for selected batch.');
     }
 }

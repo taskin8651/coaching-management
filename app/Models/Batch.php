@@ -98,4 +98,10 @@ public function teacherAssignments()
 {
     return $this->hasMany(TeacherAssignment::class, 'batch_id');
 }
+
+public function subjects()
+{
+    return $this->belongsToMany(Subject::class, 'batch_subject', 'batch_id', 'subject_id')
+        ->withTimestamps();
+}
 }
