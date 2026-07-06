@@ -32,6 +32,7 @@ return [
     ],
 
     '11za' => [
+        'enabled' => env('WHATSAPP_ENABLED', false),
         'api_url' => env(
             'WHATSAPP_11ZA_API_URL',
             'https://api.11za.in/apis/template/sendTemplate'

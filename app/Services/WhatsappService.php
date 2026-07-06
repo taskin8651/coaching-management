@@ -13,7 +13,7 @@ use Throwable;
 class WhatsappService
 {
     private const BIOMETRIC_CHECK_IN_TEMPLATE = 'student_biometric_check_in_new_crm';
-    private const WELCOME_TEMPLATE = 'welcome_message';
+    private const WELCOME_TEMPLATE = 'karmayoga_welcome_message_crm';
 
     public function sendWelcomeMessage(User $user): WhatsappNotificationLog
     {
@@ -25,9 +25,14 @@ class WhatsappService
             return $this->failLog($log, 'Registered mobile number is missing.');
         }
 
+        if (! config('services.11za.enabled')) {
+            return $this->failLog($log, 'WhatsApp sending is disabled.');
+        }
+
         $apiUrl = config('services.11za.api_url');
         $authToken = config('services.11za.auth_token');
         $originWebsite = config('services.11za.origin_website');
+        $sendTo = $this->normalizeIndianNumber($number);
 
         if (! $apiUrl || ! $authToken || ! $originWebsite) {
             return $this->failLog($log, '11za WhatsApp configuration is incomplete.');
@@ -39,10 +44,13 @@ class WhatsappService
                 ->post($apiUrl, [
                     'authToken' => $authToken,
                     'name' => $user->name,
-                    'sendto' => $this->normalizeIndianNumber($number),
+                    'sendto' => $sendTo,
                     'originWebsite' => $originWebsite,
                     'templateName' => self::WELCOME_TEMPLATE,
                     'language' => config('services.11za.language', 'en'),
+                    'data' => [
+                        $sendTo,
+                    ],
                 ]);
 
             $log->update([
