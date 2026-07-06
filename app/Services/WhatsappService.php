@@ -8,6 +8,7 @@ use App\Models\WhatsappNotificationLog;
 use App\Models\WhatsappSetting;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class WhatsappService
@@ -17,12 +18,23 @@ class WhatsappService
 
     public function sendWelcomeMessage(User $user): WhatsappNotificationLog
     {
+        $user->loadMissing('branch');
+
         $number = $user->phone;
+        $branchNumber = $user->branch->phone ?? null;
         $message = sprintf('Welcome message sent to %s.', $user->name);
-        $log = $this->createLog(null, 'registration_welcome', $message, $number);
+        $log = $this->createLog(null, 'registration_welcome', $message, $number, $user);
 
         if (! $number) {
             return $this->failLog($log, 'Registered mobile number is missing.');
+        }
+
+        if (! $user->branch_id) {
+            return $this->failLog($log, 'Branch is missing for this registered user.');
+        }
+
+        if (! $branchNumber) {
+            return $this->failLog($log, 'Selected branch phone number is missing.');
         }
 
         if (! config('services.11za.enabled')) {
@@ -33,6 +45,7 @@ class WhatsappService
         $authToken = config('services.11za.auth_token');
         $originWebsite = config('services.11za.origin_website');
         $sendTo = $this->normalizeIndianNumber($number);
+        $branchContactNumber = $this->templateDisplayNumber($branchNumber);
 
         if (! $apiUrl || ! $authToken || ! $originWebsite) {
             return $this->failLog($log, '11za WhatsApp configuration is incomplete.');
@@ -49,7 +62,7 @@ class WhatsappService
                     'templateName' => self::WELCOME_TEMPLATE,
                     'language' => config('services.11za.language', 'en'),
                     'data' => [
-                        $sendTo,
+                        $branchContactNumber,
                     ],
                 ]);
 
@@ -178,15 +191,37 @@ class WhatsappService
             ?: $student->alternate_phone;
     }
 
-    private function createLog(?Student $student, string $module, string $message, ?string $number): WhatsappNotificationLog
+    public function welcomeMessageAlreadyLogged(User $user): bool
     {
-        return WhatsappNotificationLog::create([
+        if (! Schema::hasTable('whatsapp_notification_logs')) {
+            return false;
+        }
+
+        return WhatsappNotificationLog::query()
+            ->where('module_name', 'registration_welcome')
+            ->when(
+                Schema::hasColumn('whatsapp_notification_logs', 'user_id'),
+                fn ($query) => $query->where('user_id', $user->id),
+                fn ($query) => $query->where('guardian_number', $user->phone)
+            )
+            ->exists();
+    }
+
+    private function createLog(?Student $student, string $module, string $message, ?string $number, ?User $user = null): WhatsappNotificationLog
+    {
+        $data = [
             'student_id' => $student?->id,
             'guardian_number' => $number,
             'module_name' => $module,
             'message' => $message,
             'status' => 'pending',
-        ]);
+        ];
+
+        if ($user && Schema::hasColumn('whatsapp_notification_logs', 'user_id')) {
+            $data['user_id'] = $user->id;
+        }
+
+        return WhatsappNotificationLog::create($data);
     }
 
     private function failLog(WhatsappNotificationLog $log, string $response): WhatsappNotificationLog
@@ -209,6 +244,17 @@ class WhatsappService
 
         if (strlen($digits) === 12 && str_starts_with($digits, '91')) {
             return $digits;
+        }
+
+        return ltrim($digits, '0');
+    }
+
+    private function templateDisplayNumber(string $number): string
+    {
+        $digits = preg_replace('/\D+/', '', $number) ?: '';
+
+        if (strlen($digits) === 12 && str_starts_with($digits, '91')) {
+            return substr($digits, 2);
         }
 
         return ltrim($digits, '0');

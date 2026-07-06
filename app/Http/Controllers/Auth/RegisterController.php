@@ -7,12 +7,10 @@ use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
 use App\Providers\RouteServiceProvider;
-use App\Services\WhatsappService;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Throwable;
 
 class RegisterController extends Controller
 {
@@ -73,12 +71,6 @@ class RegisterController extends Controller
         ]);
 
         $user->roles()->sync([$data['role_id']]);
-
-        try {
-            app(WhatsappService::class)->sendWelcomeMessage($user);
-        } catch (Throwable $exception) {
-            report($exception);
-        }
 
         return $user;
     }

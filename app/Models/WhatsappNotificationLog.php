@@ -19,6 +19,7 @@ class WhatsappNotificationLog extends Model
 
     protected $fillable = [
         'student_id',
+        'user_id',
         'guardian_number',
         'module_name',
         'message',
@@ -30,5 +31,10 @@ class WhatsappNotificationLog extends Model
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }
