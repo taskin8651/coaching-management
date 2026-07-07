@@ -53,7 +53,6 @@ class CreateAdmissionsTable extends Migration
             $table->unsignedBigInteger('created_by_id')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('student_id')->references('id')->on('students')->nullOnDelete();
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();

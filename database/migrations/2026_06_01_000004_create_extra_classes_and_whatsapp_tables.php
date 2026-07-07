@@ -25,7 +25,6 @@ return new class extends Migration
             $table->decimal('salary_amount', 12, 2)->default(0);
             $table->text('remarks')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('teacher_id')->references('id')->on('teachers')->cascadeOnDelete();
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();

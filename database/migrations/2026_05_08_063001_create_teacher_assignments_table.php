@@ -20,7 +20,6 @@ class CreateTeacherAssignmentsTable extends Migration
             $table->enum('status', ['active', 'inactive'])->default('active');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('teacher_id')->references('id')->on('teachers')->cascadeOnDelete();
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();

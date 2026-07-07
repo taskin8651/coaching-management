@@ -38,7 +38,6 @@ class CreateNoticesTable extends Migration
             $table->enum('status', ['draft', 'published', 'inactive'])->default('published');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('course_id')->references('id')->on('courses')->nullOnDelete();

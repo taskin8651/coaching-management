@@ -45,13 +45,12 @@ return new class extends Migration
             $table->enum('source', ['manual', 'biometric'])->default('manual');
             $table->text('remarks')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
             $table->foreign('batch_id')->references('id')->on('batches')->cascadeOnDelete();
             $table->foreign('subject_id')->references('id')->on('subjects')->nullOnDelete();
             $table->foreign('biometric_device_log_id')->references('id')->on('biometric_device_logs')->nullOnDelete();
-            $table->unique(['student_id', 'batch_id', 'subject_id', 'attendance_date', 'deleted_at'], 'student_attendance_unique');
+            $table->unique(['student_id', 'batch_id', 'subject_id', 'attendance_date'], 'student_attendance_unique');
         });
 
         Schema::create('staff_attendances', function (Blueprint $table) {
@@ -70,7 +69,6 @@ return new class extends Migration
             $table->enum('source', ['manual', 'biometric'])->default('manual');
             $table->text('remarks')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
             $table->foreign('teacher_id')->references('id')->on('teachers')->nullOnDelete();
@@ -99,7 +97,6 @@ return new class extends Migration
             $table->unsignedBigInteger('approved_by')->nullable();
             $table->dateTime('approved_at')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('teacher_id')->references('id')->on('teachers')->cascadeOnDelete();
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();

@@ -90,8 +90,18 @@ class BatchesController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $subjects = $this->subjectOptions($branchId);
+        $coursesByBranch = $this->coursesByBranch($branchId);
+        $subjectsByBranchCourse = $this->subjectsByBranchCourse($branchId);
+        $defaultBranchId = auth()->user()->is_admin ? null : $branchId;
 
-        return view('admin.batches.create', compact('branches', 'courses', 'subjects'));
+        return view('admin.batches.create', compact(
+            'branches',
+            'courses',
+            'subjects',
+            'coursesByBranch',
+            'subjectsByBranchCourse',
+            'defaultBranchId'
+        ));
     }
 
     public function store(StoreBatchRequest $request)
@@ -106,19 +116,12 @@ class BatchesController extends Controller
             abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
 
             $data['branch_id'] = $branchId;
-
-            if (! empty($data['course_id'])) {
-                $course = Course::where('id', $data['course_id'])
-                    ->where('branch_id', $branchId)
-                    ->first();
-
-                abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
-            }
         }
 
         $subjectIds = $data['subject_ids'] ?? [];
         unset($data['subject_ids']);
 
+        $this->validateCourseBranch($data);
         $this->validateSubjectAccess($subjectIds, $data['branch_id'] ?? null, $data['course_id'] ?? null);
 
         DB::transaction(function () use ($data, $subjectIds) {
@@ -173,10 +176,19 @@ class BatchesController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $subjects = $this->subjectOptions($branchId);
+        $coursesByBranch = $this->coursesByBranch($branchId);
+        $subjectsByBranchCourse = $this->subjectsByBranchCourse($branchId);
 
         $batch->load(['branch', 'course', 'subjects']);
 
-        return view('admin.batches.edit', compact('batch', 'branches', 'courses', 'subjects'));
+        return view('admin.batches.edit', compact(
+            'batch',
+            'branches',
+            'courses',
+            'subjects',
+            'coursesByBranch',
+            'subjectsByBranchCourse'
+        ));
     }
 
     public function update(UpdateBatchRequest $request, Batch $batch)
@@ -193,19 +205,12 @@ class BatchesController extends Controller
             abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
 
             $data['branch_id'] = $branchId;
-
-            if (! empty($data['course_id'])) {
-                $course = Course::where('id', $data['course_id'])
-                    ->where('branch_id', $branchId)
-                    ->first();
-
-                abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
-            }
         }
 
         $subjectIds = $data['subject_ids'] ?? [];
         unset($data['subject_ids']);
 
+        $this->validateCourseBranch($data);
         $this->validateSubjectAccess($subjectIds, $data['branch_id'] ?? null, $data['course_id'] ?? null);
 
         DB::transaction(function () use ($batch, $data, $subjectIds) {
@@ -366,6 +371,67 @@ class BatchesController extends Controller
             ->pluck('name', 'id');
     }
 
+    private function coursesByBranch($branchId = null): array
+    {
+        return Course::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id'])
+            ->groupBy('branch_id')
+            ->map(fn ($courses) => $courses->map(fn ($course) => [
+                'id' => $course->id,
+                'name' => $course->name,
+            ])->values())
+            ->toArray();
+    }
+
+    private function subjectsByBranchCourse($branchId = null): array
+    {
+        return Subject::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id', 'course_id'])
+            ->groupBy(fn ($subject) => $subject->branch_id ?: 'none')
+            ->map(function ($branchSubjects) {
+                return $branchSubjects
+                    ->groupBy(fn ($subject) => $subject->course_id ?: 'all')
+                    ->map(fn ($subjects) => $subjects->map(fn ($subject) => [
+                        'id' => $subject->id,
+                        'name' => $subject->name,
+                        'course_id' => $subject->course_id,
+                    ])->values())
+                    ->toArray();
+            })
+            ->toArray();
+    }
+
+    private function validateCourseBranch(array $data): void
+    {
+        if (empty($data['course_id'])) {
+            return;
+        }
+
+        $course = Course::find($data['course_id']);
+
+        abort_if(! $course, Response::HTTP_UNPROCESSABLE_ENTITY, 'Invalid course selected.');
+
+        if (! empty($data['branch_id'])) {
+            abort_if((int) $course->branch_id !== (int) $data['branch_id'], Response::HTTP_UNPROCESSABLE_ENTITY, 'Selected course does not belong to selected branch.');
+        }
+    }
+
     private function validateSubjectAccess(array $subjectIds, $branchId, $courseId): void
     {
         if (empty($subjectIds)) {
@@ -374,9 +440,10 @@ class BatchesController extends Controller
 
         $query = Subject::whereIn('id', $subjectIds);
 
-        if (! auth()->user()->is_admin) {
-            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
+        if ($branchId) {
             $query->where('branch_id', $branchId);
+        } elseif (! auth()->user()->is_admin) {
+            abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
         }
 
         if ($courseId) {

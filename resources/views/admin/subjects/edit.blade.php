@@ -36,6 +36,10 @@
 <form method="POST" action="{{ route('admin.subjects.update', $subject->id) }}">
     @method('PUT')
     @csrf
+    @php
+        $selectedBranchId = old('branch_id', $subject->branch_id);
+        $selectedCourseId = old('course_id', $subject->course_id);
+    @endphp
 
     <div class="admin-form-grid">
 
@@ -152,9 +156,10 @@
 
                         <select name="branch_id"
                                 id="branch_id"
+                                data-selected="{{ $selectedBranchId }}"
                                 class="field-input {{ $errors->has('branch_id') ? 'error' : '' }}">
                             @foreach($branches as $id => $branch)
-                                <option value="{{ $id }}" {{ old('branch_id', $subject->branch_id) == $id ? 'selected' : '' }}>
+                                <option value="{{ $id }}" {{ $selectedBranchId == $id ? 'selected' : '' }}>
                                     {{ $branch }}
                                 </option>
                             @endforeach
@@ -179,9 +184,10 @@
 
                         <select name="course_id"
                                 id="course_id"
+                                data-selected="{{ $selectedCourseId }}"
                                 class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
                             @foreach($courses as $id => $course)
-                                <option value="{{ $id }}" {{ old('course_id', $subject->course_id) == $id ? 'selected' : '' }}>
+                                <option value="{{ $id }}" {{ $selectedCourseId == $id ? 'selected' : '' }}>
                                     {{ $course }}
                                 </option>
                             @endforeach
@@ -276,4 +282,43 @@
 
 </form>
 
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const coursesByBranch = @json($coursesByBranch);
+    const placeholder = @json(trans('global.pleaseSelect'));
+
+    function renderCourses() {
+        if (!branchSelect || !courseSelect) return;
+
+        const branchId = branchSelect.value;
+        const selectedCourseId = courseSelect.dataset.selected || '';
+        const courses = branchId && coursesByBranch[branchId] ? coursesByBranch[branchId] : [];
+
+        courseSelect.innerHTML = '';
+        courseSelect.appendChild(new Option(placeholder, ''));
+
+        courses.forEach(function (course) {
+            const option = new Option(course.name, course.id);
+            option.selected = String(course.id) === String(selectedCourseId);
+            courseSelect.appendChild(option);
+        });
+
+        if (!courses.some(course => String(course.id) === String(selectedCourseId))) {
+            courseSelect.value = '';
+        }
+    }
+
+    branchSelect?.addEventListener('change', function () {
+        courseSelect.dataset.selected = '';
+        renderCourses();
+    });
+
+    renderCourses();
+});
+</script>
 @endsection

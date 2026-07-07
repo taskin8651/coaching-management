@@ -87,7 +87,10 @@ class SubjectsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.subjects.create', compact('branches', 'courses'));
+        $coursesByBranch = $this->coursesByBranch($branchId);
+        $defaultBranchId = auth()->user()->is_admin ? null : $branchId;
+
+        return view('admin.subjects.create', compact('branches', 'courses', 'coursesByBranch', 'defaultBranchId'));
     }
 
     public function store(StoreSubjectRequest $request)
@@ -102,15 +105,9 @@ class SubjectsController extends Controller
             abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
 
             $data['branch_id'] = $branchId;
-
-            if (! empty($data['course_id'])) {
-                $course = Course::where('id', $data['course_id'])
-                    ->where('branch_id', $branchId)
-                    ->first();
-
-                abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
-            }
         }
+
+        $this->validateCourseBranch($data);
 
         Subject::create($data);
 
@@ -160,9 +157,11 @@ class SubjectsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
+        $coursesByBranch = $this->coursesByBranch($branchId);
+
         $subject->load(['branch', 'course']);
 
-        return view('admin.subjects.edit', compact('subject', 'branches', 'courses'));
+        return view('admin.subjects.edit', compact('subject', 'branches', 'courses', 'coursesByBranch'));
     }
 
     public function update(UpdateSubjectRequest $request, Subject $subject)
@@ -179,15 +178,9 @@ class SubjectsController extends Controller
             abort_if(! $branchId, Response::HTTP_FORBIDDEN, 'Branch not assigned.');
 
             $data['branch_id'] = $branchId;
-
-            if (! empty($data['course_id'])) {
-                $course = Course::where('id', $data['course_id'])
-                    ->where('branch_id', $branchId)
-                    ->first();
-
-                abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
-            }
         }
+
+        $this->validateCourseBranch($data);
 
         $subject->update($data);
 
@@ -329,5 +322,40 @@ class SubjectsController extends Controller
             ->roles()
             ->where('title', 'Teacher')
             ->exists();
+    }
+
+    private function coursesByBranch($branchId = null): array
+    {
+        return Course::where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id'])
+            ->groupBy('branch_id')
+            ->map(fn ($courses) => $courses->map(fn ($course) => [
+                'id' => $course->id,
+                'name' => $course->name,
+            ])->values())
+            ->toArray();
+    }
+
+    private function validateCourseBranch(array $data): void
+    {
+        if (empty($data['course_id'])) {
+            return;
+        }
+
+        $course = Course::find($data['course_id']);
+
+        abort_if(! $course, Response::HTTP_UNPROCESSABLE_ENTITY, 'Invalid course selected.');
+
+        if (! empty($data['branch_id'])) {
+            abort_if((int) $course->branch_id !== (int) $data['branch_id'], Response::HTTP_UNPROCESSABLE_ENTITY, 'Selected course does not belong to selected branch.');
+        }
     }
 }

@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Exam extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'exams';
 
@@ -17,7 +16,6 @@ class Exam extends Model
         'exam_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $casts = [
@@ -42,7 +40,6 @@ class Exam extends Model
         'remarks',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     public function branch()

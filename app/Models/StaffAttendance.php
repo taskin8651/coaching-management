@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StaffAttendance extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'staff_attendances';
 
@@ -17,7 +16,6 @@ class StaffAttendance extends Model
         'attendance_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $fillable = [

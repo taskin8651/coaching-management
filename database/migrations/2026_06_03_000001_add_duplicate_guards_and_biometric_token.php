@@ -84,14 +84,13 @@ return new class extends Migration
     {
         $duplicates = DB::table('student_batches')
             ->selectRaw('MIN(id) as keep_id, GROUP_CONCAT(id) as ids')
-            ->whereNull('deleted_at')
             ->groupBy('student_id', 'batch_id', 'subject_id')
             ->havingRaw('COUNT(*) > 1')
             ->get();
 
         foreach ($duplicates as $duplicate) {
             $ids = collect(explode(',', $duplicate->ids))->map(fn ($id) => (int) $id)->reject(fn ($id) => $id === (int) $duplicate->keep_id);
-            DB::table('student_batches')->whereIn('id', $ids)->update(['deleted_at' => now(), 'updated_at' => now()]);
+            DB::table('student_batches')->whereIn('id', $ids)->delete();
         }
     }
 
@@ -99,14 +98,13 @@ return new class extends Migration
     {
         $duplicates = DB::table('student_attendances')
             ->selectRaw('MIN(id) as keep_id, GROUP_CONCAT(id) as ids')
-            ->whereNull('deleted_at')
             ->groupBy('student_id', 'batch_id', 'subject_id', 'attendance_date')
             ->havingRaw('COUNT(*) > 1')
             ->get();
 
         foreach ($duplicates as $duplicate) {
             $ids = collect(explode(',', $duplicate->ids))->map(fn ($id) => (int) $id)->reject(fn ($id) => $id === (int) $duplicate->keep_id);
-            DB::table('student_attendances')->whereIn('id', $ids)->update(['deleted_at' => now(), 'updated_at' => now()]);
+            DB::table('student_attendances')->whereIn('id', $ids)->delete();
         }
     }
 
@@ -114,14 +112,13 @@ return new class extends Migration
     {
         $duplicates = DB::table('homework_submissions')
             ->selectRaw('MIN(id) as keep_id, GROUP_CONCAT(id) as ids')
-            ->whereNull('deleted_at')
             ->groupBy('homework_id', 'student_id')
             ->havingRaw('COUNT(*) > 1')
             ->get();
 
         foreach ($duplicates as $duplicate) {
             $ids = collect(explode(',', $duplicate->ids))->map(fn ($id) => (int) $id)->reject(fn ($id) => $id === (int) $duplicate->keep_id);
-            DB::table('homework_submissions')->whereIn('id', $ids)->update(['deleted_at' => now(), 'updated_at' => now()]);
+            DB::table('homework_submissions')->whereIn('id', $ids)->delete();
         }
     }
 
@@ -129,9 +126,7 @@ return new class extends Migration
     {
         DB::table('student_batches')->orderBy('id')->chunk(200, function ($rows) {
             foreach ($rows as $row) {
-                $key = $row->deleted_at
-                    ? 'deleted:' . $row->id
-                    : implode(':', ['active', $row->student_id, $row->batch_id, $row->subject_id ?: 0]);
+                $key = implode(':', ['active', $row->student_id, $row->batch_id, $row->subject_id ?: 0]);
 
                 DB::table('student_batches')->where('id', $row->id)->update(['unique_key' => $key]);
             }
@@ -142,9 +137,7 @@ return new class extends Migration
     {
         DB::table('student_attendances')->orderBy('id')->chunk(200, function ($rows) {
             foreach ($rows as $row) {
-                $key = $row->deleted_at
-                    ? 'deleted:' . $row->id
-                    : implode(':', ['active', $row->student_id, $row->batch_id, $row->subject_id ?: 0, $row->attendance_date]);
+                $key = implode(':', ['active', $row->student_id, $row->batch_id, $row->subject_id ?: 0, $row->attendance_date]);
 
                 DB::table('student_attendances')->where('id', $row->id)->update(['unique_key' => $key]);
             }
@@ -155,9 +148,7 @@ return new class extends Migration
     {
         DB::table('homework_submissions')->orderBy('id')->chunk(200, function ($rows) {
             foreach ($rows as $row) {
-                $key = $row->deleted_at
-                    ? 'deleted:' . $row->id
-                    : implode(':', ['active', $row->homework_id, $row->student_id]);
+                $key = implode(':', ['active', $row->homework_id, $row->student_id]);
 
                 DB::table('homework_submissions')->where('id', $row->id)->update(['unique_key' => $key]);
             }

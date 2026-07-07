@@ -6,13 +6,12 @@ use DateTimeInterface;
 use Hash;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use SoftDeletes, Notifiable, HasFactory;
+    use Notifiable, HasFactory;
 
     public $table = 'users';
 
@@ -25,7 +24,6 @@ class User extends Authenticatable
         'email_verified_at',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $casts = [
@@ -43,7 +41,6 @@ class User extends Authenticatable
         'remember_token',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

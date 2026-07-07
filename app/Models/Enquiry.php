@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Enquiry extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'enquiries';
 
@@ -18,7 +17,6 @@ class Enquiry extends Model
         'next_follow_up_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
      protected $casts = [
         'enquiry_date' => 'date',
@@ -42,7 +40,6 @@ class Enquiry extends Model
         'remarks',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     public function branch()

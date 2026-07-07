@@ -31,7 +31,6 @@ return new class extends Migration
                 DB::table('student_batches')
                     ->whereNotNull('batch_id')
                     ->whereNotNull('subject_id')
-                    ->whereNull('deleted_at')
                     ->select('batch_id', 'subject_id')
                     ->distinct()
                     ->get()

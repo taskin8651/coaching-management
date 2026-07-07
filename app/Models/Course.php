@@ -5,20 +5,18 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Course extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia;
 
     public $table = 'courses';
 
     protected $dates = [
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $fillable = [
@@ -31,7 +29,6 @@ class Course extends Model implements HasMedia
         'status',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $appends = [

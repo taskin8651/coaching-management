@@ -4,18 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Homework extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia;
 
     public $table = 'homeworks';
 
     protected $fillable = ['branch_id', 'batch_id', 'subject_id', 'teacher_id', 'title', 'details', 'homework_date', 'due_date', 'status'];
-    protected $dates = ['homework_date', 'due_date', 'created_at', 'updated_at', 'deleted_at'];
+    protected $dates = ['homework_date', 'due_date', 'created_at', 'updated_at'];
 
     public function registerMediaCollections(): void { $this->addMediaCollection('homework_attachments'); }
     public function branch() { return $this->belongsTo(Branch::class); }

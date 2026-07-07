@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FacultyLogBook extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'faculty_log_books';
 
@@ -19,7 +18,6 @@ class FacultyLogBook extends Model
         'unique_key',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $casts = [

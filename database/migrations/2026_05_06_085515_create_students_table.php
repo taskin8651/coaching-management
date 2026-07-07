@@ -37,7 +37,6 @@ class CreateStudentsTable extends Migration
             $table->enum('status', ['active', 'inactive', 'completed', 'dropped'])->default('active');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('user_id')
                 ->references('id')

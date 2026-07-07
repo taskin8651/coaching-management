@@ -29,7 +29,6 @@ class CreateFeeStructuresTable extends Migration
             $table->enum('status', ['active', 'inactive'])->default('active');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('course_id')->references('id')->on('courses')->nullOnDelete();

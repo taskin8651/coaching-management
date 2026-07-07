@@ -25,7 +25,6 @@ class CreateExamResultsTable extends Migration
             $table->longText('remarks')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('exam_id')->references('id')->on('exams')->cascadeOnDelete();
             $table->foreign('student_id')->references('id')->on('students')->nullOnDelete();

@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ExamResult extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'exam_results';
 
@@ -30,7 +29,6 @@ class ExamResult extends Model
         'remarks',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     public function exam()

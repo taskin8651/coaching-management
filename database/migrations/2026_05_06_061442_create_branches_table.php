@@ -26,7 +26,6 @@ class CreateBranchesTable extends Migration
             $table->enum('status', ['active', 'inactive'])->default('active');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('manager_id')
                 ->references('id')

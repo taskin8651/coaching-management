@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EnquiryFollowUp extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'enquiry_follow_ups';
 
@@ -18,7 +17,6 @@ class EnquiryFollowUp extends Model
         'next_follow_up_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
         protected $casts = [
@@ -37,7 +35,6 @@ class EnquiryFollowUp extends Model
         'remarks',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     public function enquiry()

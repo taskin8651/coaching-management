@@ -53,8 +53,7 @@ class RegisterController extends Controller
             'role_id'   => [
                 'required',
                 Rule::exists('roles', 'id')->where(fn ($query) => $query
-                    ->whereIn('title', self::REGISTRATION_ROLES)
-                    ->whereNull('deleted_at')),
+                    ->whereIn('title', self::REGISTRATION_ROLES)),
             ],
             'password'  => ['required', 'string', 'min:8', 'confirmed'],
         ]);

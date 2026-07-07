@@ -9,16 +9,14 @@ class UsersTableSeeder extends Seeder
 {
     public function run()
     {
-        $users = [
+        User::updateOrCreate(
+            ['id' => 1],
             [
-                'id'             => 1,
                 'name'           => 'Admin',
                 'email'          => 'admin@admin.com',
                 'password'       => bcrypt('password'),
                 'remember_token' => null,
-            ],
-        ];
-
-        User::insert($users);
+            ]
+        );
     }
 }

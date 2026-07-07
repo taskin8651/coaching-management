@@ -22,7 +22,6 @@ return new class extends Migration
             $table->string('room')->nullable();
             $table->enum('status', ['scheduled', 'changed', 'cancelled'])->default('scheduled');
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('course_id')->references('id')->on('courses')->nullOnDelete();
@@ -60,7 +59,6 @@ return new class extends Migration
             $table->date('due_date')->nullable();
             $table->enum('status', ['active', 'closed'])->default('active');
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('batch_id')->references('id')->on('batches')->cascadeOnDelete();
@@ -76,11 +74,10 @@ return new class extends Migration
             $table->dateTime('submitted_at')->nullable();
             $table->text('remarks')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('homework_id')->references('id')->on('homeworks')->cascadeOnDelete();
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
-            $table->unique(['homework_id', 'student_id', 'deleted_at'], 'homework_student_unique');
+            $table->unique(['homework_id', 'student_id'], 'homework_student_unique');
         });
 
         Schema::create('student_remarks', function (Blueprint $table) {
@@ -94,7 +91,6 @@ return new class extends Migration
             $table->text('remark');
             $table->boolean('visible_to_parent')->default(true);
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
             $table->foreign('teacher_id')->references('id')->on('teachers')->nullOnDelete();
@@ -116,7 +112,6 @@ return new class extends Migration
             $table->date('reported_date')->nullable();
             $table->date('resolved_date')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('reported_by_id')->references('id')->on('users')->nullOnDelete();
@@ -136,7 +131,6 @@ return new class extends Migration
             $table->decimal('unit_cost', 12, 2)->default(0);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
         });
@@ -153,7 +147,6 @@ return new class extends Migration
             $table->text('remarks')->nullable();
             $table->unsignedBigInteger('created_by_id')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('inventory_item_id')->references('id')->on('inventory_items')->cascadeOnDelete();
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
@@ -173,7 +166,6 @@ return new class extends Migration
             $table->enum('status', ['pending', 'partial', 'paid', 'overdue'])->default('pending');
             $table->dateTime('reminded_at')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
             $table->foreign('fee_structure_id')->references('id')->on('fee_structures')->nullOnDelete();
@@ -193,7 +185,6 @@ return new class extends Migration
             $table->boolean('published_to_parent')->default(false);
             $table->date('published_at')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
             $table->foreign('exam_id')->references('id')->on('exams')->nullOnDelete();

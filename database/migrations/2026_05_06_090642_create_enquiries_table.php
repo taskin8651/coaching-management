@@ -40,7 +40,6 @@ class CreateEnquiriesTable extends Migration
             $table->longText('remarks')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')
                 ->references('id')

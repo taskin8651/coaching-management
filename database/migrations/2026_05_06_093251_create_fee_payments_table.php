@@ -46,7 +46,6 @@ class CreateFeePaymentsTable extends Migration
             $table->longText('remarks')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('student_id')->references('id')->on('students')->nullOnDelete();

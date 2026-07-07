@@ -48,15 +48,6 @@ class UpdateBatchRequest extends FormRequest
                 'max:255',
                 Rule::unique('batches', 'batch_code')->ignore($this->batch->id),
             ],
-            'start_date' => [
-                'nullable',
-                'date',
-            ],
-            'end_date' => [
-                'nullable',
-                'date',
-                'after_or_equal:start_date',
-            ],
             'start_time' => [
                 'nullable',
                 'date_format:H:i',

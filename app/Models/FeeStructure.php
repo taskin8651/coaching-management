@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FeeStructure extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'fee_structures';
 
@@ -28,13 +27,11 @@ class FeeStructure extends Model
         'status',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $dates = [
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     public function branch()

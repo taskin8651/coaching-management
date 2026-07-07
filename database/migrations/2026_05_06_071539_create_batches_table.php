@@ -29,7 +29,6 @@ class CreateBatchesTable extends Migration
             $table->enum('status', ['active', 'inactive', 'completed'])->default('active');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')
                 ->references('id')

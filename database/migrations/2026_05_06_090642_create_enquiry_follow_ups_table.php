@@ -32,7 +32,6 @@ class CreateEnquiryFollowUpsTable extends Migration
             $table->longText('remarks')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('enquiry_id')
                 ->references('id')

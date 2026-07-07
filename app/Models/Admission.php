@@ -5,13 +5,12 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Admission extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia;
 
     public $table = 'admissions';
 
@@ -44,14 +43,12 @@ class Admission extends Model implements HasMedia
         'created_by_id',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $dates = [
         'admission_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $appends = [

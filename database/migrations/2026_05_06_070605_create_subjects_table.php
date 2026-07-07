@@ -21,7 +21,6 @@ class CreateSubjectsTable extends Migration
             $table->enum('status', ['active', 'inactive'])->default('active');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')
                 ->references('id')

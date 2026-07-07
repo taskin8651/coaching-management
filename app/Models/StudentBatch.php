@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentBatch extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'student_batches';
 
@@ -18,7 +17,6 @@ class StudentBatch extends Model
         'end_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $fillable = [
@@ -34,16 +32,11 @@ class StudentBatch extends Model
     protected static function booted(): void
     {
         static::saving(function (self $studentBatch) {
-            $studentBatch->unique_key = $studentBatch->deleted_at
-                ? 'deleted:' . ($studentBatch->id ?: uniqid('', true))
-                : self::makeUniqueKey($studentBatch->student_id, $studentBatch->batch_id, $studentBatch->subject_id);
-        });
-
-        static::deleting(function (self $studentBatch) {
-            if (! $studentBatch->isForceDeleting()) {
-                $studentBatch->unique_key = 'deleted:' . $studentBatch->id;
-                $studentBatch->saveQuietly();
-            }
+            $studentBatch->unique_key = self::makeUniqueKey(
+                $studentBatch->student_id,
+                $studentBatch->batch_id,
+                $studentBatch->subject_id
+            );
         });
     }
 

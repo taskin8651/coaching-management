@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InventoryItem extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = ['branch_id', 'name', 'category', 'unit', 'opening_stock', 'current_stock', 'low_stock_level', 'unit_cost', 'status'];
     protected $casts = ['unit_cost' => 'decimal:2'];

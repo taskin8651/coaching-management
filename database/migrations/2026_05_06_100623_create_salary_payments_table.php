@@ -49,7 +49,6 @@ class CreateSalaryPaymentsTable extends Migration
             $table->longText('remarks')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
             $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();

@@ -5,13 +5,12 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Staff extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia;
 
     public $table = 'staff';
 
@@ -19,7 +18,6 @@ class Staff extends Model implements HasMedia
         'joining_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $fillable = [
@@ -37,7 +35,6 @@ class Staff extends Model implements HasMedia
         'status',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $appends = [

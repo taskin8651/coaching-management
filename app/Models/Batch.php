@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Batch extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'batches';
 
@@ -18,7 +17,6 @@ class Batch extends Model
         'end_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $fillable = [
@@ -35,7 +33,6 @@ class Batch extends Model
         'status',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     public function branch()

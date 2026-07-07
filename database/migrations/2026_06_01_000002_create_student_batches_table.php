@@ -17,12 +17,11 @@ return new class extends Migration
             $table->date('end_date')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
-            $table->softDeletes();
 
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
             $table->foreign('batch_id')->references('id')->on('batches')->cascadeOnDelete();
             $table->foreign('subject_id')->references('id')->on('subjects')->nullOnDelete();
-            $table->unique(['student_id', 'batch_id', 'subject_id', 'deleted_at'], 'student_batch_unique');
+            $table->unique(['student_id', 'batch_id', 'subject_id'], 'student_batch_unique');
         });
     }
 

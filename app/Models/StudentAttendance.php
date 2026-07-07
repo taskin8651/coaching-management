@@ -5,11 +5,10 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentAttendance extends Model
 {
-    use SoftDeletes, HasFactory;
+    use HasFactory;
 
     public $table = 'student_attendances';
 
@@ -17,7 +16,6 @@ class StudentAttendance extends Model
         'attendance_date',
         'created_at',
         'updated_at',
-        'deleted_at',
     ];
 
     protected $fillable = [
@@ -43,16 +41,12 @@ class StudentAttendance extends Model
                 ? $attendance->attendance_date->format('Y-m-d')
                 : $attendance->attendance_date;
 
-            $attendance->unique_key = $attendance->deleted_at
-                ? 'deleted:' . ($attendance->id ?: uniqid('', true))
-                : self::makeUniqueKey($attendance->student_id, $attendance->batch_id, $attendance->subject_id, $date);
-        });
-
-        static::deleting(function (self $attendance) {
-            if (! $attendance->isForceDeleting()) {
-                $attendance->unique_key = 'deleted:' . $attendance->id;
-                $attendance->saveQuietly();
-            }
+            $attendance->unique_key = self::makeUniqueKey(
+                $attendance->student_id,
+                $attendance->batch_id,
+                $attendance->subject_id,
+                $date
+            );
         });
     }
 
