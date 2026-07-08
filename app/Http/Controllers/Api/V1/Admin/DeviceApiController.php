@@ -164,6 +164,12 @@ class DeviceApiController extends Controller
                     $attendance->update([
                         'actual_in_time' => $txnTime->format('H:i:s'),
                     ]);
+
+                    app(\App\Services\WhatsappService::class)
+                        ->sendStudentBiometricCheckIn(
+                            $student,
+                            $txnTime
+                        );
                 }
 
             } else {
@@ -171,6 +177,7 @@ class DeviceApiController extends Controller
                 $attendance->update([
                     'actual_out_time' => $txnTime->format('H:i:s'),
                 ]);
+
             }
 
             $deviceLog->update([
