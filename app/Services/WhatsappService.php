@@ -185,8 +185,12 @@ class WhatsappService
 
     private function studentGuardianNumber(Student $student): ?string
     {
-        return $student->guardian_whatsapp
+        return $student->notification_phone
+            ?: $student->guardian_whatsapp
             ?: $student->guardian_phone
+            ?: $student->father_phone
+            ?: $student->mother_phone
+            ?: $student->student_personal_phone
             ?: $student->phone
             ?: $student->alternate_phone;
     }

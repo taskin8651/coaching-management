@@ -40,17 +40,17 @@
                 @include('admin.partials.profile-user-select')
 
                 <div class="field-group">
-                    <label class="field-label" for="account_name">Account Name</label>
+                    <label class="field-label" for="account_name">Teacher Name</label>
                     <div class="input-icon-wrap"><i class="fas fa-user icon"></i><input type="text" name="account_name" id="account_name" value="{{ old('account_name') }}" placeholder="Teacher name" class="field-input {{ $errors->has('account_name') ? 'error' : '' }}"></div>
                     @if($errors->has('account_name')) <p class="field-error">{{ $errors->first('account_name') }}</p> @endif
                 </div>
                 <div class="field-group">
-                    <label class="field-label" for="account_email">Account Email</label>
+                    <label class="field-label" for="account_email">Teacher Email</label>
                     <div class="input-icon-wrap"><i class="fas fa-envelope icon"></i><input type="email" name="account_email" id="account_email" value="{{ old('account_email') }}" placeholder="teacher@example.com" class="field-input {{ $errors->has('account_email') ? 'error' : '' }}"></div>
                     @if($errors->has('account_email')) <p class="field-error">{{ $errors->first('account_email') }}</p> @endif
                 </div>
                 <div class="field-group">
-                    <label class="field-label" for="account_password">Account Password</label>
+                    <label class="field-label" for="account_password">Teacher Password</label>
                     <div class="input-icon-wrap"><i class="fas fa-lock icon"></i><input type="password" name="account_password" id="account_password" placeholder="Minimum 8 characters" class="field-input {{ $errors->has('account_password') ? 'error' : '' }}"></div>
                     @if($errors->has('account_password')) <p class="field-error">{{ $errors->first('account_password') }}</p> @endif
                     <p class="field-hint">A User account is created automatically using these details.</p>

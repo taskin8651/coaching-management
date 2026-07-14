@@ -120,6 +120,7 @@ class StudentsController extends Controller
         abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
+        $data['phone'] = $this->notificationPhone($data);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -240,6 +241,7 @@ class StudentsController extends Controller
         $this->checkStudentAccess($student);
 
         $data = $request->validated();
+        $data['phone'] = $this->notificationPhone($data);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -420,5 +422,17 @@ class StudentsController extends Controller
             ->roles()
             ->where('title', 'Teacher')
             ->exists();
+    }
+
+    private function notificationPhone(array $data): ?string
+    {
+        return $data['notification_phone']
+            ?? $data['guardian_phone']
+            ?? $data['guardian_whatsapp']
+            ?? $data['father_phone']
+            ?? $data['mother_phone']
+            ?? $data['student_personal_phone']
+            ?? $data['phone']
+            ?? null;
     }
 }

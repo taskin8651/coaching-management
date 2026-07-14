@@ -52,7 +52,7 @@
                 @include('admin.partials.profile-user-select', ['selectedUserId' => $teacher->user_id])
 
                 <div class="field-group">
-                    <label class="field-label" for="account_name">Account Name <span class="req">*</span></label>
+                    <label class="field-label" for="account_name">Teacher Name <span class="req">*</span></label>
                     <div class="input-icon-wrap">
                         <i class="fas fa-user icon"></i>
                         <input type="text" name="account_name" id="account_name" value="{{ old('account_name', $teacher->user->name ?? '') }}" placeholder="Teacher name" class="field-input {{ $errors->has('account_name') ? 'error' : '' }}">
@@ -61,7 +61,7 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="account_email">Account Email <span class="req">*</span></label>
+                    <label class="field-label" for="account_email">Teacher Email <span class="req">*</span></label>
                     <div class="input-icon-wrap">
                         <i class="fas fa-envelope icon"></i>
                         <input type="email" name="account_email" id="account_email" value="{{ old('account_email', $teacher->user->email ?? '') }}" placeholder="teacher@example.com" class="field-input {{ $errors->has('account_email') ? 'error' : '' }}">

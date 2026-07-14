@@ -78,10 +78,20 @@ class StoreStudentRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'father_phone' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
             'mother_name' => [
                 'nullable',
                 'string',
                 'max:255',
+            ],
+            'mother_phone' => [
+                'nullable',
+                'string',
+                'max:20',
             ],
             'guardian_name' => [
                 'nullable',
@@ -94,6 +104,16 @@ class StoreStudentRequest extends FormRequest
                 'max:20',
             ],
             'guardian_whatsapp' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'notification_phone' => [
+                'required',
+                'string',
+                'max:20',
+            ],
+            'student_personal_phone' => [
                 'nullable',
                 'string',
                 'max:20',

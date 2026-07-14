@@ -40,19 +40,19 @@
                 @include('admin.partials.profile-user-select')
 
                 <div class="field-group">
-                    <label class="field-label" for="account_name">Account Name</label>
+                    <label class="field-label" for="account_name">Student Name</label>
                     <div class="input-icon-wrap"><i class="fas fa-user icon"></i><input type="text" name="account_name" id="account_name" value="{{ old('account_name') }}" placeholder="Student name" class="field-input {{ $errors->has('account_name') ? 'error' : '' }}"></div>
                     @if($errors->has('account_name')) <p class="field-error">{{ $errors->first('account_name') }}</p> @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="account_email">Account Email</label>
+                    <label class="field-label" for="account_email">Student Email</label>
                     <div class="input-icon-wrap"><i class="fas fa-envelope icon"></i><input type="email" name="account_email" id="account_email" value="{{ old('account_email') }}" placeholder="student@example.com" class="field-input {{ $errors->has('account_email') ? 'error' : '' }}"></div>
                     @if($errors->has('account_email')) <p class="field-error">{{ $errors->first('account_email') }}</p> @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="account_password">Account Password</label>
+                    <label class="field-label" for="account_password">Student Password</label>
                     <div class="input-icon-wrap"><i class="fas fa-lock icon"></i><input type="password" name="account_password" id="account_password" placeholder="Minimum 8 characters" class="field-input {{ $errors->has('account_password') ? 'error' : '' }}"></div>
                     @if($errors->has('account_password')) <p class="field-error">{{ $errors->first('account_password') }}</p> @endif
                     <p class="field-hint">A User account is created automatically using these details.</p>
@@ -92,49 +92,51 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="phone">
-                        Phone
+                    <label class="field-label" for="notification_phone">
+                        Notification Number <span class="req">*</span>
                     </label>
 
                     <div class="input-icon-wrap">
-                        <i class="fas fa-phone icon"></i>
+                        <i class="fab fa-whatsapp icon"></i>
 
                         <input type="text"
-                               name="phone"
-                               id="phone"
-                               value="{{ old('phone') }}"
-                               placeholder="Enter phone number"
-                               class="field-input {{ $errors->has('phone') ? 'error' : '' }}">
+                               name="notification_phone"
+                               id="notification_phone"
+                               value="{{ old('notification_phone') }}"
+                               placeholder="WhatsApp notification number"
+                               class="field-input {{ $errors->has('notification_phone') ? 'error' : '' }}">
                     </div>
 
-                    @if($errors->has('phone'))
+                    @if($errors->has('notification_phone'))
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('phone') }}
+                            {{ $errors->first('notification_phone') }}
                         </p>
+                    @else
+                        <p class="field-hint">WhatsApp message isi number par jayega.</p>
                     @endif
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="alternate_phone">
-                        Alternate Phone
+                    <label class="field-label" for="student_personal_phone">
+                        Student Personal Number (Optional)
                     </label>
 
                     <div class="input-icon-wrap">
-                        <i class="fas fa-phone-alt icon"></i>
+                        <i class="fas fa-mobile-alt icon"></i>
 
                         <input type="text"
-                               name="alternate_phone"
-                               id="alternate_phone"
-                               value="{{ old('alternate_phone') }}"
-                               placeholder="Enter alternate phone"
-                               class="field-input {{ $errors->has('alternate_phone') ? 'error' : '' }}">
+                               name="student_personal_phone"
+                               id="student_personal_phone"
+                               value="{{ old('student_personal_phone') }}"
+                               placeholder="Student personal mobile"
+                               class="field-input {{ $errors->has('student_personal_phone') ? 'error' : '' }}">
                     </div>
 
-                    @if($errors->has('alternate_phone'))
+                    @if($errors->has('student_personal_phone'))
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('alternate_phone') }}
+                            {{ $errors->first('student_personal_phone') }}
                         </p>
                     @endif
                 </div>
@@ -378,6 +380,30 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label" for="father_phone">
+                        Father's Number
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-phone icon"></i>
+
+                        <input type="text"
+                               name="father_phone"
+                               id="father_phone"
+                               value="{{ old('father_phone') }}"
+                               placeholder="Enter father's number"
+                               class="field-input {{ $errors->has('father_phone') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('father_phone'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('father_phone') }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="field-group">
                     <label class="field-label" for="mother_name">
                         Mother Name
                     </label>
@@ -397,6 +423,54 @@
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
                             {{ $errors->first('mother_name') }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="mother_phone">
+                        Mother's Number
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-phone icon"></i>
+
+                        <input type="text"
+                               name="mother_phone"
+                               id="mother_phone"
+                               value="{{ old('mother_phone') }}"
+                               placeholder="Enter mother's number"
+                               class="field-input {{ $errors->has('mother_phone') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('mother_phone'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('mother_phone') }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="guardian_phone">
+                        Guardian Number (Optional)
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-user-shield icon"></i>
+
+                        <input type="text"
+                               name="guardian_phone"
+                               id="guardian_phone"
+                               value="{{ old('guardian_phone') }}"
+                               placeholder="Enter guardian number"
+                               class="field-input {{ $errors->has('guardian_phone') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('guardian_phone'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('guardian_phone') }}
                         </p>
                     @endif
                 </div>

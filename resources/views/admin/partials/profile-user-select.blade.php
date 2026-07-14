@@ -55,6 +55,8 @@ document.addEventListener('DOMContentLoaded', function () {
         setValue('account_name', user.name);
         setValue('account_email', user.email);
         setValue('phone', user.phone);
+        setValue('notification_phone', user.phone);
+        setValue('student_personal_phone', user.phone);
         setValue('branch_id', user.branch_id);
         setValue('biometric_id', user.biometric_id);
 
