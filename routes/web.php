@@ -78,6 +78,7 @@ Route::get('salary-payments/{salary_payment}/slip', 'SalaryPaymentsController@sl
 Route::resource('salary-payments', 'SalaryPaymentsController');
 
 // Student Batch Assignments
+Route::get('student-batches/matrix', 'StudentBatchesController@matrix')->name('student-batches.matrix');
 Route::resource('student-batches', 'StudentBatchesController')->except(['show']);
 
 // Student Attendance

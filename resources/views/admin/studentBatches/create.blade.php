@@ -1,332 +1,362 @@
 @extends('layouts.admin')
 
-@section('page-title', 'Assign Student Batch')
+@section('page-title', 'Assign Student Subjects')
+
+@section('styles')
+<style>
+:root{
+    --primary:#2563eb;
+    --primary-dark:#1d4ed8;
+    --secondary:#0f172a;
+    --success:#10b981;
+    --border:#e2e8f0;
+    --bg:#f8fafc;
+    --text:#1e293b;
+    --muted:#64748b;
+    --white:#fff;
+    --shadow:0 15px 40px rgba(15,23,42,.08);
+    --shadow-hover:0 25px 50px rgba(15,23,42,.12);
+    --radius:18px;
+    --transition:.3s ease;
+}
+
+.assignment-toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:18px;
+    padding:22px;
+    background:linear-gradient(135deg,#ffffff,#f8fbff);
+    border:1px solid var(--border);
+    border-radius:22px;
+    box-shadow:var(--shadow);
+    margin-bottom:22px;
+}
+
+.assignment-toolbar .field-group{
+    margin:0;
+    min-width:280px;
+}
+
+.assignment-toolbar .field-input{
+    border-radius:14px;
+    border:1px solid var(--border);
+    min-height:48px;
+    transition:.25s;
+}
+
+.assignment-toolbar .field-input:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 .2rem rgba(37,99,235,.15);
+}
+
+.matrix-stats{
+    display:flex;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+.matrix-stat{
+    min-width:120px;
+    text-align:center;
+    padding:18px;
+    border-radius:18px;
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:#fff;
+    font-weight:700;
+    box-shadow:0 10px 25px rgba(37,99,235,.25);
+    transition:.25s;
+}
+
+.matrix-stat:hover{
+    transform:translateY(-4px);
+    box-shadow:0 18px 35px rgba(37,99,235,.35);
+}
+
+.matrix-card{
+    background:#fff;
+    border-radius:22px;
+    overflow:hidden;
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+}
+
+.matrix-loader{
+    display:none;
+    padding:60px;
+    text-align:center;
+    color:var(--muted);
+    font-weight:700;
+    font-size:16px;
+}
+
+.matrix-loader.active{
+    display:block;
+}
+
+.matrix-scroll{
+    max-height:72vh;
+    overflow:auto;
+    background:#fff;
+}
+
+.matrix-scroll::-webkit-scrollbar{
+    width:10px;
+    height:10px;
+}
+
+.matrix-scroll::-webkit-scrollbar-thumb{
+    background:#cbd5e1;
+    border-radius:20px;
+}
+
+.matrix-scroll::-webkit-scrollbar-thumb:hover{
+    background:#94a3b8;
+}
+
+.assignment-matrix{
+    margin:0;
+    min-width:1000px;
+    border-collapse:separate;
+    border-spacing:0;
+    background:#fff;
+}
+
+.assignment-matrix th,
+.assignment-matrix td{
+    padding:15px 14px!important;
+    border:1px solid #edf2f7!important;
+    vertical-align:middle;
+}
+
+.assignment-matrix thead th{
+    position:sticky;
+    top:0;
+    z-index:30;
+    background:linear-gradient(135deg,#1e3a8a,#2563eb);
+    color:#fff;
+    text-align:center;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.3px;
+    white-space:nowrap;
+}
+
+.assignment-matrix thead th:first-child{
+    border-top-left-radius:18px;
+}
+
+.assignment-matrix thead th:last-child{
+    border-top-right-radius:18px;
+}
+
+.assignment-matrix tbody tr:nth-child(even){
+    background:#fbfdff;
+}
+
+.assignment-matrix tbody tr:hover td{
+    background:#eef5ff;
+    transition:.2s;
+}
+
+.assignment-matrix tbody tr{
+    transition:.25s;
+}
+
+.assignment-matrix .student-col{
+    position:sticky;
+    left:0;
+    z-index:20;
+    background:#fff;
+    min-width:260px;
+    box-shadow:10px 0 25px rgba(0,0,0,.04);
+}
+
+.assignment-matrix tbody tr:nth-child(even) .student-col{
+    background:#fbfdff;
+}
+
+.assignment-matrix thead .student-col{
+    background:linear-gradient(135deg,#0f172a,#1e3a8a);
+    color:#fff;
+    z-index:40;
+}
+
+.student-name{
+    font-size:15px;
+    font-weight:700;
+    color:#0f172a;
+    margin-bottom:3px;
+}
+
+.student-code{
+    font-size:12px;
+    color:#64748b;
+}
+
+.subject-head{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+    min-width:120px;
+}
+
+.subject-head span{
+    font-weight:700;
+    font-size:13px;
+}
+
+.subject-head small{
+    font-size:11px;
+    color:#dbeafe;
+}
+
+.matrix-check{
+    width:20px;
+    height:20px;
+    cursor:pointer;
+    accent-color:#2563eb;
+    transform:scale(1.05);
+    transition:.2s;
+}
+
+.matrix-check:hover{
+    transform:scale(1.25);
+}
+
+.assignment-matrix td{
+    text-align:center;
+}
+
+.assignment-matrix td.student-col{
+    text-align:left;
+}
+
+.empty-matrix{
+    padding:0px 20px;
+    text-align:center;
+    color:#64748b;
+    font-size:16px;
+}
+
+.empty-matrix i{
+    font-size:50px;
+    color:#94a3b8;
+    margin-bottom:15px;
+}
+
+.pagination-wrap{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+    padding:18px 22px;
+    border-top:1px solid var(--border);
+    background:#fff;
+}
+
+.page-info{
+    font-size:14px;
+    font-weight:600;
+    color:#475569;
+}
+
+.pagination-wrap .btn{
+    border-radius:12px;
+    padding:9px 18px;
+    font-weight:700;
+}
+
+.pagination-wrap .btn-primary{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    border:none;
+}
+
+.pagination-wrap .btn-primary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 25px rgba(37,99,235,.25);
+}
+
+.assignment-matrix input[type=checkbox]{
+    cursor:pointer;
+}
+
+.assignment-matrix td:hover{
+    background:#eaf3ff;
+}
+
+@media(max-width:992px){
+
+.assignment-toolbar{
+    flex-direction:column;
+    align-items:stretch;
+}
+
+.assignment-toolbar .field-group{
+    width:100%;
+    min-width:100%;
+}
+
+.matrix-stat{
+    flex:1;
+}
+
+.assignment-matrix{
+    min-width:900px;
+}
+
+}
+
+@media(max-width:768px){
+
+.matrix-scroll{
+    max-height:65vh;
+}
+
+.student-col{
+    min-width:200px!important;
+}
+
+.subject-head{
+    min-width:90px;
+}
+
+.assignment-matrix th,
+.assignment-matrix td{
+    padding:10px!important;
+}
+
+}
+</style>
+@endsection
 
 @section('content')
-
 <div class="admin-page-head">
     <div>
-        <a href="{{ route('admin.student-batches.index') }}" class="admin-back-link">
-            ← {{ trans('global.back_to_list') }}
-        </a>
-
-        <h2 class="admin-page-title">Assign Student Batch</h2>
-
-        <p class="admin-page-subtitle">
-            Assign student to batch, subject and active study period
-        </p>
+        <a href="{{ route('admin.student-batches.index') }}" class="admin-back-link">← {{ trans('global.back_to_list') }}</a>
+        <h2 class="admin-page-title">Assign Student Subjects</h2>
+        <p class="admin-page-subtitle">Batch select karke Excel-style matrix me students ko subjects assign karein.</p>
     </div>
 </div>
 
-<form method="POST" action="{{ route('admin.student-batches.store') }}">
+<form method="POST" action="{{ route('admin.student-batches.store') }}" id="assignmentForm">
     @csrf
 
-    <div class="admin-form-grid">
+    @include('admin.studentBatches.matrix', [
+        'selectedBatchId' => old('batch_id'),
+        'selectedStatus' => old('status', 'active'),
+        'oldAssignments' => old('assignments', []),
+    ])
 
-        <div class="form-card">
-            <div class="form-card-header">
-                <div class="form-card-icon">
-                    <i class="fas fa-user-graduate"></i>
-                </div>
-
-                <div>
-                    <p class="form-card-title">Student Assignment</p>
-                    <p class="form-card-subtitle">Select student, batch and subject mapping</p>
-                </div>
-            </div>
-
-            <div class="form-card-body">
-
-                <div class="field-group">
-                    <label class="field-label">
-                        Students <span class="req">*</span>
-                    </label>
-
-                    <div class="checkbox-grid">
-                        @foreach($students as $id => $name)
-                            @if($id)
-                                <label class="role-checkbox-item {{ in_array($id, old('student_ids', [])) ? 'checked' : '' }}">
-                                    <input type="checkbox"
-                                           name="student_ids[]"
-                                           value="{{ $id }}"
-                                           class="role-checkbox"
-                                           {{ in_array($id, old('student_ids', [])) ? 'checked' : '' }}>
-
-                                    <div class="check-icon"></div>
-                                    <span class="checkbox-text">{{ $name }}</span>
-                                </label>
-                            @endif
-                        @endforeach
-                    </div>
-
-                    @if($errors->has('student_ids'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('student_ids') }}
-                        </p>
-                    @elseif($errors->has('student_ids.*'))
-                        <p class="field-error">{{ $errors->first('student_ids.*') }}</p>
-                    @else
-                        <p class="field-hint">Hold Ctrl/Command to select multiple students.</p>
-                    @endif
-                </div>
-
-                <div class="field-group">
-                    <label class="field-label" for="batch_id">
-                        Batch <span class="req">*</span>
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-users icon"></i>
-
-                        <select name="batch_id"
-                                id="batch_id"
-                                required
-                                class="field-input {{ $errors->has('batch_id') ? 'error' : '' }}">
-                            <option value="">Select Batch</option>
-
-                            @foreach($batches as $id => $name)
-                                <option value="{{ $id }}" {{ old('batch_id') == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    @if($errors->has('batch_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('batch_id') }}
-                        </p>
-                    @endif
-                </div>
-
-                <div class="field-group">
-                    <label class="field-label">
-                        Subjects
-                    </label>
-
-                    <div id="subjectCheckboxGrid" class="checkbox-grid">
-                        <div class="form-info-box">
-                            <p><i class="fas fa-info-circle"></i> Batch select karne ke baad subjects yahan show honge.</p>
-                        </div>
-                    </div>
-
-                    @if($errors->has('subject_ids'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('subject_ids') }}
-                        </p>
-                    @elseif($errors->has('subject_ids.*'))
-                        <p class="field-error">{{ $errors->first('subject_ids.*') }}</p>
-                    @else
-                        <p class="field-hint">
-                            <i class="fas fa-info-circle"></i>
-                            Batch select karne ke baad sirf us batch ke linked subjects show honge. Hold Ctrl/Command to select multiple.
-                        </p>
-                    @endif
-                </div>
-
-                <div class="form-info-box">
-                    <p>
-                        <i class="fas fa-lightbulb"></i>
-                        Ek student ko multiple batches me assign kar sakte ho, jaise 9-10 aur 10-11 dono batch.
-                    </p>
-                </div>
-
-            </div>
-        </div>
-
-        <div class="form-card">
-            <div class="form-card-header">
-                <div class="form-card-icon">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-
-                <div>
-                    <p class="form-card-title">Batch Duration</p>
-                    <p class="form-card-subtitle">Set start date, end date and assignment status</p>
-                </div>
-            </div>
-
-            <div class="form-card-body">
-
-                <div class="field-group">
-                    <label class="field-label" for="start_date">
-                        Start Date
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-calendar-day icon"></i>
-
-                        <input type="date"
-                               name="start_date"
-                               id="start_date"
-                               value="{{ old('start_date') }}"
-                               class="field-input {{ $errors->has('start_date') ? 'error' : '' }}">
-                    </div>
-
-                    @if($errors->has('start_date'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('start_date') }}
-                        </p>
-                    @else
-                        <p class="field-hint">
-                            <i class="fas fa-info-circle"></i>
-                            Leave blank if assignment starts immediately
-                        </p>
-                    @endif
-                </div>
-
-                <div class="field-group">
-                    <label class="field-label" for="end_date">
-                        End Date
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-calendar-check icon"></i>
-
-                        <input type="date"
-                               name="end_date"
-                               id="end_date"
-                               value="{{ old('end_date') }}"
-                               class="field-input {{ $errors->has('end_date') ? 'error' : '' }}">
-                    </div>
-
-                    @if($errors->has('end_date'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('end_date') }}
-                        </p>
-                    @else
-                        <p class="field-hint">
-                            <i class="fas fa-clock"></i>
-                            Leave blank if batch is currently active
-                        </p>
-                    @endif
-                </div>
-
-                <div class="field-group">
-                    <label class="field-label" for="status">
-                        Status
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-toggle-on icon"></i>
-
-                        <select name="status"
-                                id="status"
-                                class="field-input {{ $errors->has('status') ? 'error' : '' }}">
-                            <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>
-                                Active
-                            </option>
-
-                            <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>
-                                Inactive
-                            </option>
-                        </select>
-                    </div>
-
-                    @if($errors->has('status'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('status') }}
-                        </p>
-                    @endif
-                </div>
-
-                <div class="form-info-box">
-                    <p>
-                        <i class="fas fa-info-circle"></i>
-                        Active status hone par student selected batch ke attendance, homework aur timetable me include hoga.
-                    </p>
-                </div>
-
-            </div>
-        </div>
-
-    </div>
-
-    <div class="form-actions">
+    <div class="form-actions mt-4">
         <button type="submit" class="btn-primary">
-            <i class="fas fa-check"></i>
-            {{ trans('global.save') }}
+            <i class="fas fa-save"></i>
+            Save Assignments
         </button>
-
-        <a href="{{ route('admin.student-batches.index') }}" class="btn-ghost">
-            {{ trans('global.cancel') }}
-        </a>
+        <a href="{{ route('admin.student-batches.index') }}" class="btn-ghost">{{ trans('global.cancel') }}</a>
     </div>
-
 </form>
-
-@endsection
-
-@section('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const batchSubjects = @json($batchSubjects);
-    const oldSubjects = @json(old('subject_ids', []));
-    const batchSelect = document.getElementById('batch_id');
-    const subjectWrapper = document.getElementById('subjectCheckboxGrid');
-
-    function renderSubjects() {
-        const selectedBatch = batchSelect.value;
-        const subjects = batchSubjects[selectedBatch] || [];
-        subjectWrapper.innerHTML = '';
-
-        subjects.forEach(function (subject) {
-            const label = document.createElement('label');
-            label.className = 'role-checkbox-item';
-
-            const input = document.createElement('input');
-            input.type = 'checkbox';
-            input.name = 'subject_ids[]';
-            input.value = subject.id;
-            input.className = 'role-checkbox';
-
-            if (oldSubjects.map(String).includes(String(subject.id))) {
-                input.checked = true;
-                label.classList.add('checked');
-            }
-
-            const icon = document.createElement('div');
-            icon.className = 'check-icon';
-
-            const text = document.createElement('span');
-            text.className = 'checkbox-text';
-            text.textContent = subject.name;
-
-            label.appendChild(input);
-            label.appendChild(icon);
-            label.appendChild(text);
-            subjectWrapper.appendChild(label);
-        });
-
-        if (! subjects.length) {
-            subjectWrapper.innerHTML = '<div class="form-info-box"><p><i class="fas fa-info-circle"></i> No subjects linked with selected batch.</p></div>';
-        }
-    }
-
-    batchSelect.addEventListener('change', function () {
-        oldSubjects.splice(0, oldSubjects.length);
-        renderSubjects();
-    });
-
-    document.addEventListener('change', function (event) {
-        if (! event.target.classList.contains('role-checkbox')) {
-            return;
-        }
-
-        const label = event.target.closest('.role-checkbox-item');
-
-        if (label) {
-            label.classList.toggle('checked', event.target.checked);
-        }
-    });
-
-    renderSubjects();
-});
-</script>
 @endsection
