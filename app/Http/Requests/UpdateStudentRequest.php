@@ -64,6 +64,14 @@ class UpdateStudentRequest extends FormRequest
                 'integer',
                 'exists:batches,id',
             ],
+            'batch_ids' => [
+                'nullable',
+                'array',
+            ],
+            'batch_ids.*' => [
+                'integer',
+                'exists:batches,id',
+            ],
             'student_code' => [
                 'nullable',
                 'string',

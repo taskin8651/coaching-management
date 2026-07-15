@@ -1,32 +1,181 @@
 @php
-    $selectedBatchId = $selectedBatchId ?? '';
+    $selectedBatchIds = collect($selectedBatchIds ?? [])->map(fn ($id) => (string) $id)->all();
     $selectedStatus = $selectedStatus ?? 'active';
     $oldAssignments = $oldAssignments ?? [];
 @endphp
 
-<div class="page-card p-4">
-    <div class="assignment-toolbar">
-        <div class="d-flex flex-wrap gap-3 align-items-end">
-            <div class="field-group">
-                <label class="field-label" for="batch_id">Batch <span class="req">*</span></label>
-                <div class="input-icon-wrap">
-                    <i class="fas fa-users icon"></i>
-                    <select name="batch_id"
-                            id="batch_id"
-                            required
-                            class="field-input {{ $errors->has('batch_id') ? 'error' : '' }}">
-                        @foreach($batches as $id => $name)
-                            <option value="{{ $id }}" {{ (string) $selectedBatchId === (string) $id ? 'selected' : '' }}>
-                                {{ $name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                @if($errors->has('batch_id'))
-                    <p class="field-error">{{ $errors->first('batch_id') }}</p>
-                @endif
+@section('styles')
+<style>
+.matrix-loader{display:none;padding:48px;text-align:center;color:#64748B;font-weight:600;font-size:14px}
+.matrix-loader.active{display:block}
+.matrix-loader i{color:var(--accent);margin-right:8px}
+
+.empty-matrix{padding:48px 20px;text-align:center;color:#64748B;font-size:14px}
+.empty-matrix i{font-size:38px;color:#CBD5E1;margin-bottom:12px;display:block}
+
+.matrix-scroll{max-height:70vh;overflow:auto;background:#fff;border-top:1px solid #F1F5F9}
+.matrix-scroll::-webkit-scrollbar{width:9px;height:9px}
+.matrix-scroll::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:20px}
+.matrix-scroll::-webkit-scrollbar-thumb:hover{background:#94A3B8}
+
+.assignment-matrix{margin:0;min-width:960px;border-collapse:separate;border-spacing:0;background:#fff}
+
+.assignment-matrix th,
+.assignment-matrix td{
+    padding:12px 14px!important;
+    border:1px solid #EEF2F7!important;
+    vertical-align:middle;
+}
+
+.assignment-matrix thead th{
+    position:sticky;
+    z-index:30;
+    background:var(--accent);
+    color:#fff;
+    text-align:center;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.02em;
+    white-space:nowrap;
+}
+
+.assignment-matrix thead tr:first-child th{
+    top:0;
+    background:var(--accent-dark);
+}
+
+.assignment-matrix thead tr:last-child th{
+    top:41px;
+}
+
+.assignment-matrix tbody tr:nth-child(even){background:#FAFBFF}
+.assignment-matrix tbody tr:hover td{background:#F1F6FC}
+
+.assignment-matrix .student-col{
+    position:sticky;
+    left:0;
+    z-index:20;
+    background:#fff;
+    min-width:240px;
+    text-align:left;
+    box-shadow:6px 0 16px rgba(15,23,42,.04);
+}
+
+.assignment-matrix tbody tr:nth-child(even) .student-col{background:#FAFBFF}
+
+.assignment-matrix thead .student-col{
+    background:var(--accent-dark);
+    color:#fff;
+    z-index:40;
+}
+
+.student-name{font-size:13.5px;font-weight:700;color:#0F172A;margin-bottom:2px}
+.student-code{font-size:11.5px;color:#94A3B8}
+
+.subject-head{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    min-width:110px;
+}
+
+.subject-head span{font-weight:700;font-size:12.5px}
+
+.matrix-check{
+    width:18px;
+    height:18px;
+    cursor:pointer;
+    accent-color:var(--accent);
+}
+
+.assignment-matrix thead .matrix-check{accent-color:#fff}
+
+.assignment-matrix td{text-align:center}
+.assignment-matrix td.student-col{text-align:left}
+.assignment-matrix td.cell-disabled{color:#CBD5E1;font-weight:700}
+
+.pagination-wrap{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:14px 18px;
+    border-top:1px solid #E2E8F0;
+    background:#fff;
+}
+
+.page-info{font-size:13px;font-weight:600;color:#475569}
+
+.pagination-wrap .btn{border-radius:9px;font-weight:700}
+
+@media(max-width:992px){
+    .assignment-matrix{min-width:820px}
+}
+
+@media(max-width:768px){
+    .matrix-scroll{max-height:62vh}
+    .student-col{min-width:190px!important}
+    .subject-head{min-width:88px}
+    .assignment-matrix th,.assignment-matrix td{padding:9px!important}
+}
+</style>
+@endsection
+
+<div class="form-card">
+    <div class="form-card-header">
+        <div class="form-card-icon">
+            <i class="fas fa-layer-group"></i>
+        </div>
+
+        <div>
+            <p class="form-card-title">Select Batches</p>
+            <p class="form-card-subtitle">Choose one or more batches to build the assignment matrix</p>
+        </div>
+    </div>
+
+    <div class="form-card-body">
+        <div class="field-group">
+            <label class="field-label">
+                Batches <span class="req">*</span>
+            </label>
+
+            <div class="checkbox-grid" id="batch-checkbox-grid">
+                @forelse($batches as $id => $name)
+                    @if($id !== '')
+                        <label class="role-checkbox-item {{ in_array((string) $id, $selectedBatchIds, true) ? 'checked' : '' }}">
+                            <input type="checkbox"
+                                   name="batch_ids[]"
+                                   value="{{ $id }}"
+                                   class="role-checkbox batch-checkbox"
+                                   {{ in_array((string) $id, $selectedBatchIds, true) ? 'checked' : '' }}>
+
+                            <div class="check-icon"></div>
+                            <span class="checkbox-text">{{ $name }}</span>
+                        </label>
+                    @endif
+                @empty
+                    <div class="form-info-box">
+                        <p><i class="fas fa-info-circle"></i> No batches available.</p>
+                    </div>
+                @endforelse
             </div>
 
+            @if($errors->has('batch_ids'))
+                <p class="field-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ $errors->first('batch_ids') }}
+                </p>
+            @else
+                <p class="field-error d-none" id="batchSelectError">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Please select at least one batch.
+                </p>
+                <p class="field-hint">Select multiple batches to assign subjects across all of them together.</p>
+            @endif
+        </div>
+
+        <div class="admin-form-grid">
             <div class="field-group">
                 <label class="field-label" for="status">Status</label>
                 <div class="input-icon-wrap">
@@ -55,54 +204,74 @@
             </div>
         </div>
 
-        <div class="matrix-stats">
-            <div class="matrix-stat">Students: <span id="studentTotal">0</span></div>
-            <div class="matrix-stat">Subjects: <span id="subjectTotal">0</span></div>
+        <div class="stats-grid mb-0">
+            <div class="stat-card">
+                <p class="stat-label">Batches</p>
+                <p class="stat-value" id="batchTotal">0</p>
+            </div>
+
+            <div class="stat-card">
+                <p class="stat-label">Students</p>
+                <p class="stat-value" id="studentTotal">0</p>
+            </div>
+
+            <div class="stat-card">
+                <p class="stat-label">Subjects</p>
+                <p class="stat-value" id="subjectTotal">0</p>
+            </div>
         </div>
     </div>
-
-    @if($errors->has('assignments') || $errors->has('assignments.*') || $errors->has('assignments.*.*'))
-        <div class="alert-error mb-3">
-            <i class="fas fa-exclamation-circle"></i>
-            {{ $errors->first('assignments') ?: $errors->first('assignments.*') ?: $errors->first('assignments.*.*') }}
-        </div>
-    @endif
-
-    <div class="matrix-card">
-        <div id="matrixLoader" class="matrix-loader">
-            <i class="fas fa-spinner fa-spin"></i>
-            Loading students and subjects...
-        </div>
-
-        <div id="matrixEmpty" class="empty-matrix">
-           
-        </div>
-
-        <div id="matrixTableWrap" class="matrix-scroll d-none">
-            <table class="table table-bordered table-hover assignment-matrix">
-                <thead id="matrixHead"></thead>
-                <tbody id="matrixBody"></tbody>
-            </table>
-        </div>
-
-        <div id="matrixPagination" class="pagination-wrap d-none">
-            <button type="button" class="btn btn-sm btn-outline-primary" id="prevPage">
-                <i class="fas fa-chevron-left"></i> Prev
-            </button>
-            <span class="page-info" id="pageInfo">Page 1</span>
-            <button type="button" class="btn btn-sm btn-outline-primary" id="nextPage">
-                Next <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-    </div>
-
-    <div id="assignmentHiddenInputs"></div>
 </div>
+
+@if($errors->has('assignments') || $errors->has('assignments.*') || $errors->has('assignments.*.*') || $errors->has('assignments.*.*.*'))
+    <div class="alert-error mt-4">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ $errors->first('assignments') ?: ($errors->first('assignments.*') ?: ($errors->first('assignments.*.*') ?: $errors->first('assignments.*.*.*'))) }}
+    </div>
+@endif
+
+<div class="page-card mt-4">
+    <div class="page-card-header">
+        <div>
+            <p class="page-card-title">Assignment Matrix</p>
+            <p class="page-card-note">Tick a subject to assign it to a student for that batch</p>
+        </div>
+    </div>
+
+    <div id="matrixLoader" class="matrix-loader">
+        <i class="fas fa-spinner fa-spin"></i>
+        Loading students and subjects...
+    </div>
+
+    <div id="matrixEmpty" class="empty-matrix">
+
+    </div>
+
+    <div id="matrixTableWrap" class="matrix-scroll d-none">
+        <table class="table table-bordered table-hover assignment-matrix">
+            <thead id="matrixHead"></thead>
+            <tbody id="matrixBody"></tbody>
+        </table>
+    </div>
+
+    <div id="matrixPagination" class="pagination-wrap d-none">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="prevPage">
+            <i class="fas fa-chevron-left"></i> Prev
+        </button>
+        <span class="page-info" id="pageInfo">Page 1</span>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="nextPage">
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</div>
+
+<div id="assignmentHiddenInputs"></div>
 
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const batchSelect = document.getElementById('batch_id');
+    const batchGrid = document.getElementById('batch-checkbox-grid');
+    const batchSelectError = document.getElementById('batchSelectError');
     const searchInput = document.getElementById('studentSearch');
     const loader = document.getElementById('matrixLoader');
     const empty = document.getElementById('matrixEmpty');
@@ -113,6 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
     const pageInfo = document.getElementById('pageInfo');
+    const batchTotal = document.getElementById('batchTotal');
     const studentTotal = document.getElementById('studentTotal');
     const subjectTotal = document.getElementById('subjectTotal');
     const hiddenInputs = document.getElementById('assignmentHiddenInputs');
@@ -120,17 +290,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const matrixUrl = @json(route('admin.student-batches.matrix'));
     const oldAssignments = @json($oldAssignments);
 
+    let batches = [];
     let students = [];
-    let subjects = [];
+    let columns = [];
+    let eligibleSets = {};
     let assignmentState = {};
     let currentPage = 1;
     const perPage = 25;
 
+    function selectedBatchIds() {
+        return Array.from(batchGrid.querySelectorAll('input.batch-checkbox:checked')).map(input => input.value);
+    }
+
     function normalizeAssignments(raw) {
         const normalized = {};
 
-        Object.entries(raw || {}).forEach(([studentId, subjectIds]) => {
-            normalized[String(studentId)] = new Set((subjectIds || []).map(String));
+        Object.entries(raw || {}).forEach(([studentId, byBatch]) => {
+            normalized[String(studentId)] = {};
+
+            Object.entries(byBatch || {}).forEach(([batchId, subjectIds]) => {
+                normalized[String(studentId)][String(batchId)] = new Set((subjectIds || []).map(String));
+            });
         });
 
         return normalized;
@@ -170,39 +350,58 @@ document.addEventListener('DOMContentLoaded', function () {
         currentPage = Math.min(Math.max(currentPage, 1), totalPages());
     }
 
-    function isChecked(studentId, subjectId) {
-        return assignmentState[String(studentId)]?.has(String(subjectId)) || false;
+    function isEligible(studentId, batchId) {
+        return eligibleSets[String(batchId)]?.has(String(studentId)) || false;
     }
 
-    function setChecked(studentId, subjectId, checked) {
+    function isChecked(studentId, batchId, subjectId) {
+        return assignmentState[String(studentId)]?.[String(batchId)]?.has(String(subjectId)) || false;
+    }
+
+    function setChecked(studentId, batchId, subjectId, checked) {
         const sId = String(studentId);
+        const bId = String(batchId);
         const subId = String(subjectId);
 
         if (!assignmentState[sId]) {
-            assignmentState[sId] = new Set();
+            assignmentState[sId] = {};
+        }
+
+        if (!assignmentState[sId][bId]) {
+            assignmentState[sId][bId] = new Set();
         }
 
         if (checked) {
-            assignmentState[sId].add(subId);
+            assignmentState[sId][bId].add(subId);
         } else {
-            assignmentState[sId].delete(subId);
+            assignmentState[sId][bId].delete(subId);
         }
     }
 
     function renderHeader() {
-        const tr = document.createElement('tr');
+        const batchRow = document.createElement('tr');
         const studentTh = document.createElement('th');
         studentTh.className = 'student-col';
         studentTh.textContent = 'Student';
-        tr.appendChild(studentTh);
+        studentTh.rowSpan = 2;
+        batchRow.appendChild(studentTh);
 
-        subjects.forEach(subject => {
+        batches.forEach(batch => {
+            const th = document.createElement('th');
+            th.colSpan = Math.max(batch.subjects.length, 1);
+            th.textContent = batch.name;
+            batchRow.appendChild(th);
+        });
+
+        const subjectRow = document.createElement('tr');
+
+        columns.forEach(column => {
             const th = document.createElement('th');
             const wrap = document.createElement('div');
             wrap.className = 'subject-head';
 
             const title = document.createElement('span');
-            title.textContent = subject.name;
+            title.textContent = column.subjectName;
 
             const label = document.createElement('label');
             label.className = 'd-flex align-items-center gap-1 mb-0';
@@ -210,22 +409,23 @@ document.addEventListener('DOMContentLoaded', function () {
             const input = document.createElement('input');
             input.type = 'checkbox';
             input.className = 'matrix-check select-all-subject';
-            input.dataset.subjectId = subject.id;
-            input.checked = students.length > 0 && students.every(student => isChecked(student.id, subject.id));
+            input.dataset.batchId = column.batchId;
+            input.dataset.subjectId = column.subjectId;
 
-            const small = document.createElement('small');
-            small.textContent = '';
+            const eligibleStudents = students.filter(student => isEligible(student.id, column.batchId));
+            input.checked = eligibleStudents.length > 0 && eligibleStudents.every(student => isChecked(student.id, column.batchId, column.subjectId));
+            input.disabled = eligibleStudents.length === 0;
 
             label.appendChild(input);
-            label.appendChild(small);
             wrap.appendChild(title);
             wrap.appendChild(label);
             th.appendChild(wrap);
-            tr.appendChild(th);
+            subjectRow.appendChild(th);
         });
 
         head.innerHTML = '';
-        head.appendChild(tr);
+        head.appendChild(batchRow);
+        head.appendChild(subjectRow);
     }
 
     function renderBody() {
@@ -246,16 +446,23 @@ document.addEventListener('DOMContentLoaded', function () {
             nameTd.appendChild(code);
             tr.appendChild(nameTd);
 
-            subjects.forEach(subject => {
+            columns.forEach(column => {
                 const td = document.createElement('td');
-                td.className = 'text-center';
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'matrix-check assignment-checkbox';
-                checkbox.dataset.studentId = student.id;
-                checkbox.dataset.subjectId = subject.id;
-                checkbox.checked = isChecked(student.id, subject.id);
-                td.appendChild(checkbox);
+
+                if (isEligible(student.id, column.batchId)) {
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'matrix-check assignment-checkbox';
+                    checkbox.dataset.studentId = student.id;
+                    checkbox.dataset.batchId = column.batchId;
+                    checkbox.dataset.subjectId = column.subjectId;
+                    checkbox.checked = isChecked(student.id, column.batchId, column.subjectId);
+                    td.appendChild(checkbox);
+                } else {
+                    td.classList.add('cell-disabled');
+                    td.textContent = '—';
+                }
+
                 tr.appendChild(td);
             });
 
@@ -273,14 +480,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderMatrix() {
+        batchTotal.textContent = batches.length;
         studentTotal.textContent = students.length;
-        subjectTotal.textContent = subjects.length;
+        subjectTotal.textContent = columns.length;
 
-        if (!students.length || !subjects.length) {
+        if (!students.length || !columns.length) {
             tableWrap.classList.add('d-none');
             pagination.classList.add('d-none');
             empty.classList.remove('d-none');
-            empty.innerHTML = '<i class="fas fa-info-circle fa-2x mb-2"></i><p class="mb-0">Selected batch ke liye students ya subjects nahi mile.</p>';
+            empty.innerHTML = '<i class="fas fa-info-circle"></i><p class="mb-0">Selected batches ke liye students ya subjects nahi mile.</p>';
             return;
         }
 
@@ -292,16 +500,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function loadMatrix() {
-        const batchId = batchSelect.value;
+        const batchIds = selectedBatchIds();
 
+        batches = [];
         students = [];
-        subjects = [];
+        columns = [];
+        eligibleSets = {};
         assignmentState = {};
         currentPage = 1;
+        batchTotal.textContent = '0';
         studentTotal.textContent = '0';
         subjectTotal.textContent = '0';
 
-        if (!batchId) {
+        if (!batchIds.length) {
             tableWrap.classList.add('d-none');
             pagination.classList.add('d-none');
             empty.classList.remove('d-none');
@@ -312,7 +523,8 @@ document.addEventListener('DOMContentLoaded', function () {
         setLoading(true);
 
         try {
-            const response = await fetch(`${matrixUrl}?batch_id=${encodeURIComponent(batchId)}`, {
+            const params = batchIds.map(id => `batch_ids[]=${encodeURIComponent(id)}`).join('&');
+            const response = await fetch(`${matrixUrl}?${params}`, {
                 headers: {'X-Requested-With': 'XMLHttpRequest'},
             });
 
@@ -321,14 +533,28 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const data = await response.json();
+            batches = data.batches || [];
             students = data.students || [];
-            subjects = data.subjects || [];
+
+            batches.forEach(batch => {
+                eligibleSets[String(batch.id)] = new Set((batch.student_ids || []).map(String));
+
+                (batch.subjects || []).forEach(subject => {
+                    columns.push({
+                        batchId: batch.id,
+                        batchName: batch.name,
+                        subjectId: subject.id,
+                        subjectName: subject.name,
+                    });
+                });
+            });
+
             assignmentState = Object.keys(oldAssignments || {}).length
                 ? normalizeAssignments(oldAssignments)
                 : normalizeAssignments(data.assignments || {});
         } catch (error) {
             empty.classList.remove('d-none');
-            empty.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p class="mb-0">Matrix load nahi ho paya. Please batch dobara select karein.</p>';
+            empty.innerHTML = '<i class="fas fa-exclamation-triangle"></i><p class="mb-0">Matrix load nahi ho paya. Please batches dobara select karein.</p>';
         } finally {
             setLoading(false);
             renderMatrix();
@@ -338,19 +564,37 @@ document.addEventListener('DOMContentLoaded', function () {
     body.addEventListener('change', function (event) {
         if (!event.target.classList.contains('assignment-checkbox')) return;
 
-        setChecked(event.target.dataset.studentId, event.target.dataset.subjectId, event.target.checked);
+        setChecked(event.target.dataset.studentId, event.target.dataset.batchId, event.target.dataset.subjectId, event.target.checked);
         renderHeader();
     });
 
     head.addEventListener('change', function (event) {
         if (!event.target.classList.contains('select-all-subject')) return;
 
+        const batchId = event.target.dataset.batchId;
         const subjectId = event.target.dataset.subjectId;
         const checked = event.target.checked;
 
-        students.forEach(student => setChecked(student.id, subjectId, checked));
+        students.forEach(student => {
+            if (isEligible(student.id, batchId)) {
+                setChecked(student.id, batchId, subjectId, checked);
+            }
+        });
+
         renderBody();
         renderHeader();
+    });
+
+    batchGrid.addEventListener('change', function (event) {
+        if (!event.target.classList.contains('batch-checkbox')) return;
+
+        event.target.closest('.role-checkbox-item')?.classList.toggle('checked', event.target.checked);
+
+        if (event.target.checked) {
+            batchSelectError.classList.add('d-none');
+        }
+
+        loadMatrix();
     });
 
     searchInput.addEventListener('input', function () {
@@ -373,18 +617,25 @@ document.addEventListener('DOMContentLoaded', function () {
         renderPagination();
     });
 
-    batchSelect.addEventListener('change', loadMatrix);
+    form.addEventListener('submit', function (event) {
+        if (!selectedBatchIds().length) {
+            event.preventDefault();
+            batchSelectError.classList.remove('d-none');
+            batchGrid.scrollIntoView({behavior: 'smooth', block: 'center'});
+            return;
+        }
 
-    form.addEventListener('submit', function () {
         hiddenInputs.innerHTML = '';
 
-        Object.entries(assignmentState).forEach(([studentId, subjectSet]) => {
-            subjectSet.forEach(subjectId => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = `assignments[${studentId}][]`;
-                input.value = subjectId;
-                hiddenInputs.appendChild(input);
+        Object.entries(assignmentState).forEach(([studentId, byBatch]) => {
+            Object.entries(byBatch).forEach(([batchId, subjectSet]) => {
+                subjectSet.forEach(subjectId => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = `assignments[${studentId}][${batchId}][]`;
+                    input.value = subjectId;
+                    hiddenInputs.appendChild(input);
+                });
             });
         });
     });

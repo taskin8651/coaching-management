@@ -262,31 +262,34 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="batch_id">
-                        Batch
+                    <label class="field-label" for="batch_ids">
+                        Batches
                     </label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-users icon"></i>
 
-                        <select name="batch_id"
-                                id="batch_id"
-                                class="field-input {{ $errors->has('batch_id') ? 'error' : '' }}">
+                        <select name="batch_ids[]"
+                                id="batch_ids"
+                                multiple
+                                class="field-input {{ $errors->has('batch_ids') ? 'error' : '' }}">
                             @foreach($batches as $id => $batch)
-                                <option value="{{ $id }}" {{ old('batch_id') == $id ? 'selected' : '' }}>
-                                    {{ $batch }}
-                                </option>
+                                @if($id !== '')
+                                    <option value="{{ $id }}" {{ collect(old('batch_ids', []))->contains($id) ? 'selected' : '' }}>
+                                        {{ $batch }}
+                                    </option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
 
-                    @if($errors->has('batch_id'))
+                    @if($errors->has('batch_ids') || $errors->has('batch_ids.*'))
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('batch_id') }}
+                            {{ $errors->first('batch_ids') ?: $errors->first('batch_ids.*') }}
                         </p>
                     @else
-                        <p class="field-hint">Student will be assigned to selected batch.</p>
+                        <p class="field-hint">Hold Ctrl (Cmd on Mac) to select multiple batches.</p>
                     @endif
                 </div>
 

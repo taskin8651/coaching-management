@@ -45,48 +45,63 @@ class StudentBatchesController extends Controller
         abort_if(Gate::denies('student_batch_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validate([
-            'batch_id' => ['required', 'integer', 'exists:batches,id'],
+            'batch_ids' => ['required', 'array', 'min:1'],
+            'batch_ids.*' => ['integer', 'exists:batches,id'],
         ]);
 
-        $batch = $this->authorizedBatchQuery()
+        $batchIds = array_values(array_unique($data['batch_ids']));
+
+        $batches = $this->authorizedBatchQuery()
             ->with(['subjects' => fn ($query) => $query->where('status', 'active')->orderBy('name')])
-            ->findOrFail($data['batch_id']);
+            ->whereIn('id', $batchIds)
+            ->get();
 
-        $students = $this->eligibleStudentsForBatch($batch)
-            ->with(['user:id,name,email'])
-            ->orderBy('student_code')
-            ->orderBy('id')
-            ->get(['id', 'user_id', 'branch_id', 'course_id', 'batch_id', 'student_code', 'phone']);
+        abort_if($batches->count() !== count($batchIds), Response::HTTP_FORBIDDEN, 'Invalid batch selected.');
 
-        $studentIds = $students->pluck('id');
-        $subjectIds = $batch->subjects->pluck('id');
+        $studentIdsByBatch = [];
+        $allStudents = collect();
+
+        foreach ($batches as $batch) {
+            $eligible = $this->eligibleStudentsForBatch($batch)
+                ->with(['user:id,name,email'])
+                ->get(['id', 'user_id', 'branch_id', 'course_id', 'batch_id', 'student_code', 'phone']);
+
+            $studentIdsByBatch[$batch->id] = $eligible->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $allStudents = $allStudents->merge($eligible);
+        }
+
+        $allStudents = $allStudents->unique('id')->sortBy([['student_code', 'asc'], ['id', 'asc']])->values();
+        $allStudentIds = $allStudents->pluck('id');
+        $allSubjectIds = $batches->flatMap(fn ($batch) => $batch->subjects->pluck('id'))->unique()->values();
 
         $assignments = StudentBatch::query()
-            ->where('batch_id', $batch->id)
-            ->whereIn('student_id', $studentIds)
-            ->whereIn('subject_id', $subjectIds)
+            ->whereIn('batch_id', $batchIds)
+            ->whereIn('student_id', $allStudentIds)
+            ->whereIn('subject_id', $allSubjectIds)
             ->where('status', 'active')
-            ->get(['student_id', 'subject_id'])
+            ->get(['student_id', 'batch_id', 'subject_id'])
             ->groupBy('student_id')
-            ->map(fn ($rows) => $rows->pluck('subject_id')->map(fn ($id) => (int) $id)->values())
+            ->map(fn ($rows) => $rows->groupBy('batch_id')
+                ->map(fn ($r) => $r->pluck('subject_id')->map(fn ($id) => (int) $id)->values()))
             ->toArray();
 
         return response()->json([
-            'batch' => [
+            'batches' => $batches->map(fn ($batch) => [
                 'id' => $batch->id,
                 'name' => $batch->name,
                 'branch_id' => $batch->branch_id,
                 'course_id' => $batch->course_id,
-            ],
-            'students' => $students->map(fn ($student) => [
+                'student_ids' => $studentIdsByBatch[$batch->id],
+                'subjects' => $batch->subjects->map(fn ($subject) => [
+                    'id' => $subject->id,
+                    'name' => $subject->name,
+                ])->values(),
+            ])->values(),
+            'students' => $allStudents->map(fn ($student) => [
                 'id' => $student->id,
                 'name' => $student->user->name ?? $student->student_code ?? 'Student #'.$student->id,
                 'code' => $student->student_code,
                 'phone' => $student->phone,
-            ])->values(),
-            'subjects' => $batch->subjects->map(fn ($subject) => [
-                'id' => $subject->id,
-                'name' => $subject->name,
             ])->values(),
             'assignments' => $assignments,
         ]);
@@ -147,28 +162,60 @@ class StudentBatchesController extends Controller
     private function validatedMatrix(Request $request): array
     {
         return $request->validate([
-            'batch_id' => ['required', 'exists:batches,id'],
+            'batch_ids' => ['required', 'array', 'min:1'],
+            'batch_ids.*' => ['integer', 'exists:batches,id'],
             'assignments' => ['nullable', 'array'],
             'assignments.*' => ['nullable', 'array'],
-            'assignments.*.*' => ['integer', 'exists:subjects,id'],
+            'assignments.*.*' => ['nullable', 'array'],
+            'assignments.*.*.*' => ['integer', 'exists:subjects,id'],
             'status' => ['required', 'in:active,inactive'],
         ]);
     }
 
     private function syncMatrixAssignments(array $data): array
     {
-        $batch = $this->authorizedBatchQuery()
-            ->with('subjects:id')
-            ->findOrFail($data['batch_id']);
+        $batchIds = array_values(array_unique($data['batch_ids']));
 
+        $batches = $this->authorizedBatchQuery()
+            ->with('subjects:id')
+            ->whereIn('id', $batchIds)
+            ->get();
+
+        abort_if($batches->count() !== count($batchIds), Response::HTTP_FORBIDDEN, 'Invalid batch selected.');
+
+        $created = 0;
+        $deleted = 0;
+
+        DB::transaction(function () use ($batches, $data, &$created, &$deleted) {
+            foreach ($batches as $batch) {
+                $result = $this->syncBatchAssignments($batch, $data);
+                $created += $result['created'];
+                $deleted += $result['deleted'];
+            }
+        });
+
+        return compact('created', 'deleted');
+    }
+
+    private function syncBatchAssignments(Batch $batch, array $data): array
+    {
         $students = $this->eligibleStudentsForBatch($batch)->get(['id']);
         $eligibleStudentIds = $students->pluck('id')->map(fn ($id) => (int) $id)->values();
         $eligibleStudentSet = $eligibleStudentIds->flip();
         $batchSubjectIds = $batch->subjects->pluck('id')->map(fn ($id) => (int) $id)->values();
         $batchSubjectSet = $batchSubjectIds->flip();
-        $requested = collect($data['assignments'] ?? []);
+
+        $requested = collect($data['assignments'] ?? [])->map(function ($byBatch) use ($batch) {
+            $byBatch = collect($byBatch);
+
+            return $byBatch->get((string) $batch->id, $byBatch->get($batch->id, []));
+        });
 
         foreach ($requested as $studentId => $subjectIds) {
+            if (empty($subjectIds)) {
+                continue;
+            }
+
             abort_if(! $eligibleStudentSet->has((int) $studentId), Response::HTTP_FORBIDDEN, 'Invalid student selected.');
 
             foreach ((array) $subjectIds as $subjectId) {
@@ -176,62 +223,60 @@ class StudentBatchesController extends Controller
             }
         }
 
+        $existingRows = StudentBatch::where('batch_id', $batch->id)
+            ->whereIn('student_id', $eligibleStudentIds)
+            ->whereIn('subject_id', $batchSubjectIds)
+            ->get(['id', 'student_id', 'subject_id', 'unique_key']);
+
+        $existingKeys = $existingRows
+            ->mapWithKeys(fn ($row) => [StudentBatch::makeUniqueKey($row->student_id, $batch->id, $row->subject_id) => $row])
+            ->all();
+
+        $desiredKeys = [];
+
+        foreach ($eligibleStudentIds as $studentId) {
+            $subjectIds = collect($requested->get((string) $studentId, $requested->get((int) $studentId, [])))
+                ->map(fn ($id) => (int) $id)
+                ->intersect($batchSubjectIds)
+                ->unique()
+                ->values();
+
+            foreach ($subjectIds as $subjectId) {
+                $key = StudentBatch::makeUniqueKey($studentId, $batch->id, $subjectId);
+                $desiredKeys[$key] = [
+                    'student_id' => $studentId,
+                    'batch_id' => $batch->id,
+                    'subject_id' => $subjectId,
+                    'status' => $data['status'],
+                ];
+            }
+        }
+
+        $deleteIds = [];
+
+        foreach ($existingKeys as $key => $row) {
+            if (! isset($desiredKeys[$key])) {
+                $deleteIds[] = $row->id;
+            }
+        }
+
         $created = 0;
         $deleted = 0;
 
-        DB::transaction(function () use ($batch, $eligibleStudentIds, $batchSubjectIds, $requested, $data, &$created, &$deleted) {
-            $existingRows = StudentBatch::where('batch_id', $batch->id)
-                ->whereIn('student_id', $eligibleStudentIds)
-                ->whereIn('subject_id', $batchSubjectIds)
-                ->get(['id', 'student_id', 'subject_id', 'unique_key']);
+        if ($deleteIds) {
+            $deleted = count($deleteIds);
+            StudentBatch::whereIn('id', $deleteIds)->delete();
+        }
 
-            $existingKeys = $existingRows
-                ->mapWithKeys(fn ($row) => [StudentBatch::makeUniqueKey($row->student_id, $row->batch_id ?? $batch->id, $row->subject_id) => $row])
-                ->all();
-
-            $desiredKeys = [];
-
-            foreach ($eligibleStudentIds as $studentId) {
-                $subjectIds = collect($requested->get((string) $studentId, $requested->get((int) $studentId, [])))
-                    ->map(fn ($id) => (int) $id)
-                    ->intersect($batchSubjectIds)
-                    ->unique()
-                    ->values();
-
-                foreach ($subjectIds as $subjectId) {
-                    $key = StudentBatch::makeUniqueKey($studentId, $batch->id, $subjectId);
-                    $desiredKeys[$key] = [
-                        'student_id' => $studentId,
-                        'batch_id' => $batch->id,
-                        'subject_id' => $subjectId,
-                        'status' => $data['status'],
-                    ];
-                }
+        foreach ($desiredKeys as $key => $row) {
+            if (isset($existingKeys[$key])) {
+                StudentBatch::where('id', $existingKeys[$key]->id)->update(['status' => $data['status']]);
+                continue;
             }
 
-            $deleteIds = [];
-
-            foreach ($existingKeys as $key => $row) {
-                if (! isset($desiredKeys[$key])) {
-                    $deleteIds[] = $row->id;
-                }
-            }
-
-            if ($deleteIds) {
-                $deleted = count($deleteIds);
-                StudentBatch::whereIn('id', $deleteIds)->delete();
-            }
-
-            foreach ($desiredKeys as $key => $row) {
-                if (isset($existingKeys[$key])) {
-                    StudentBatch::where('id', $existingKeys[$key]->id)->update(['status' => $data['status']]);
-                    continue;
-                }
-
-                StudentBatch::create($row);
-                $created++;
-            }
-        });
+            StudentBatch::create($row);
+            $created++;
+        }
 
         return compact('created', 'deleted');
     }
