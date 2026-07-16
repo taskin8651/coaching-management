@@ -2,6 +2,14 @@
 
 Route::redirect('/', '/login');
 Route::get('/home', function () {
+    if (auth()->check() && auth()->user()->studentProfile()->exists()) {
+        if (session('status')) {
+            return redirect()->route('admin.my-portal.index')->with('status', session('status'));
+        }
+
+        return redirect()->route('admin.my-portal.index');
+    }
+
     if (session('status')) {
         return redirect()->route('admin.home')->with('status', session('status'));
     }

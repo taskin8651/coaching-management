@@ -20,6 +20,99 @@
     @endcan
 </div>
 
+<div class="attendance-filters page-card p-4 mb-4">
+
+    <div class="field-group">
+        <label class="field-label" for="batch_id">Batch</label>
+        <select name="batch_id" id="batch_id" class="field-input">
+            @foreach($batches as $id => $name)
+                <option value="{{ $id }}">{{ $name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="field-group">
+        <label class="field-label" for="subject_id">Subject</label>
+        <select name="subject_id" id="subject_id" class="field-input">
+            @foreach($subjects as $id => $name)
+                <option value="{{ $id }}">{{ $name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="field-group">
+        <label class="field-label" for="status">Status</label>
+        <select name="status" id="status" class="field-input">
+            <option value="">All Status</option>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+        </select>
+    </div>
+
+    <div class="field-group">
+        <label class="field-label" for="date_from">From</label>
+        <input type="date" name="date_from" id="date_from" class="field-input">
+    </div>
+
+    <div class="field-group">
+        <label class="field-label" for="date_to">To</label>
+        <input type="date" name="date_to" id="date_to" class="field-input">
+    </div>
+
+    <div class="field-group">
+        <button type="submit" class="btn-primary w-100">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+    </div>
+
+    <div class="field-group">
+        <a href="{{ route('admin.student-attendances.index') }}" class="btn-ghost w-100">
+            Reset
+        </a>
+    </div>
+
+</div>
+
+<style>
+    .attendance-filters{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:16px;
+    align-items:end;
+}
+
+.attendance-filters .field-group{
+    margin:0;
+}
+
+.field-label{
+    display:block;
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:600;
+}
+
+.field-input{
+    width:100%;
+    height:46px;
+}
+
+.attendance-filters .btn-primary,
+.btn-ghost{
+    height:46px;
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+@media (max-width:768px){
+    .attendance-filters{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+
 <div class="stats-grid">
     <div class="stat-card">
         <p class="stat-label">Total Records</p>

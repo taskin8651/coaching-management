@@ -16,9 +16,17 @@ class StudentAttendancesController extends Controller
 {
     use AppliesErpScope;
 
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('student_attendance_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $filters = $request->validate([
+            'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
+            'subject_id' => ['nullable', 'integer', 'exists:subjects,id'],
+            'status' => ['nullable', 'in:present,absent,late,half_day,leave'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+        ]);
 
         $attendances = StudentAttendance::with(['student.user', 'batch', 'subject']);
         $scope = $this->erpScope();
@@ -31,9 +39,17 @@ class StudentAttendancesController extends Controller
         } elseif (! $scope['is_admin']) {
             $attendances->whereHas('student', fn ($q) => $this->scopeStudentQuery($q));
         }
+
+        $attendances
+            ->when(! empty($filters['batch_id']), fn ($q) => $q->where('batch_id', $filters['batch_id']))
+            ->when(! empty($filters['subject_id']), fn ($q) => $q->where('subject_id', $filters['subject_id']))
+            ->when(! empty($filters['status']), fn ($q) => $q->where('status', $filters['status']))
+            ->when(! empty($filters['date_from']), fn ($q) => $q->whereDate('attendance_date', '>=', $filters['date_from']))
+            ->when(! empty($filters['date_to']), fn ($q) => $q->whereDate('attendance_date', '<=', $filters['date_to']));
+
         $attendances = $attendances->latest()->get();
 
-        return view('admin.studentAttendances.index', compact('attendances'));
+        return view('admin.studentAttendances.index', compact('attendances', 'filters') + $this->filterOptions());
     }
 
     public function create()
@@ -66,6 +82,14 @@ class StudentAttendancesController extends Controller
             'students' => $this->scopeStudentQuery(Student::with('user'))->get()->mapWithKeys(fn ($student) => [$student->id => $student->user->name ?? $student->student_code ?? ('Student #' . $student->id)])->prepend(trans('global.pleaseSelect'), ''),
             'batches' => $this->scopeBatchQuery(Batch::query())->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), ''),
             'subjects' => $this->scopeBranchQuery(Subject::query())->pluck('name', 'id')->prepend('Optional', ''),
+        ];
+    }
+
+    private function filterOptions(): array
+    {
+        return [
+            'batches' => $this->scopeBatchQuery(Batch::query())->pluck('name', 'id')->prepend('All Batches', ''),
+            'subjects' => $this->scopeBranchQuery(Subject::query())->pluck('name', 'id')->prepend('All Subjects', ''),
         ];
     }
 

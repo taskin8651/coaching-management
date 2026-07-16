@@ -16,20 +16,37 @@ class StaffAttendancesController extends Controller
 {
     use AppliesErpScope;
 
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('staff_attendance_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $scope = $this->erpScope();
+
+        $filters = $request->validate([
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'status' => ['nullable', 'in:present,absent,late,half_day,leave'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+        ]);
+
         $attendances = StaffAttendance::with(['user', 'staff.user', 'branch'])
             ->whereNotNull('staff_id')
             ->when($scope['is_staff'] && $scope['staff_id'], fn ($query) => $query->where('staff_id', $scope['staff_id']))
             ->when(! $scope['is_admin'] && ! $scope['is_staff'], fn ($query) => $this->scopeBranchQuery($query))
+            ->when($scope['is_admin'] && ! empty($filters['branch_id']), fn ($q) => $q->where('branch_id', $filters['branch_id']))
+            ->when(! empty($filters['status']), fn ($q) => $q->where('status', $filters['status']))
+            ->when(! empty($filters['date_from']), fn ($q) => $q->whereDate('attendance_date', '>=', $filters['date_from']))
+            ->when(! empty($filters['date_to']), fn ($q) => $q->whereDate('attendance_date', '<=', $filters['date_to']))
             ->latest('attendance_date')
             ->latest('id')
             ->get();
 
-        return view('admin.staffAttendances.index', compact('attendances'));
+        return view('admin.staffAttendances.index', compact('attendances', 'filters') + [
+            'branches' => Branch::query()
+                ->when(! $scope['is_admin'], fn ($q) => $q->where('id', $scope['branch_id']))
+                ->pluck('name', 'id')
+                ->prepend('All Branches', ''),
+        ]);
     }
 
     public function create()
