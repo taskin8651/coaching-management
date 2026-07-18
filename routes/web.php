@@ -130,7 +130,7 @@ Route::get('timetable-substitutions/free-teachers', 'TimetableSubstitutionsContr
 Route::resource('timetable-substitutions', 'TimetableSubstitutionsController')
     ->parameters(['timetable-substitutions' => 'timetableSubstitution']);
 Route::post('timetables/{timetable}/substitute', 'TimetablesController@substitute')->name('timetables.substitute');
-Route::resource('timetables', 'TimetablesController')->except(['show', 'destroy']);
+Route::resource('timetables', 'TimetablesController')->except(['show']);
 
 // Homework
 Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show']);

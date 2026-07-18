@@ -139,6 +139,17 @@ class TimetablesController extends Controller
             ->with('message', 'Timetable updated successfully.');
     }
 
+    public function destroy(Timetable $timetable)
+    {
+        abort_if(Gate::denies('timetable_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->assertBranchAccess($timetable);
+
+        $timetable->delete();
+
+        return back()->with('message', 'Timetable deleted successfully.');
+    }
+
     public function substitute(Request $request, Timetable $timetable, WhatsappService $whatsapp)
     {
         abort_if(Gate::denies('timetable_substitute'), Response::HTTP_FORBIDDEN, '403 Forbidden');

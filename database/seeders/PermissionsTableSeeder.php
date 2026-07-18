@@ -181,6 +181,7 @@ class PermissionsTableSeeder extends Seeder
             'timetable_access',
             'timetable_create',
             'timetable_edit',
+            'timetable_delete',
             'timetable_substitute',
 
             'homework_access',
