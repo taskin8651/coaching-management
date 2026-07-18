@@ -175,6 +175,20 @@ class ExamsController extends Controller
         if ($this->isStudent()) {
             $authStudent = Student::where('user_id', auth()->id())->first();
             $authStudent ? $students->where('id', $authStudent->id) : $students->whereRaw('1 = 0');
+
+            // Student ko sirf apna hi result dikhe, poori class ka result report nahi.
+            $exam->setRelation(
+                'results',
+                $authStudent ? $exam->results->where('student_id', $authStudent->id)->values() : $exam->results->take(0)
+            );
+        }
+
+        if ($this->isParent()) {
+            $parentStudentIds = Student::where('guardian_user_id', auth()->id())->pluck('id');
+            $parentStudentIds->isNotEmpty() ? $students->whereIn('id', $parentStudentIds) : $students->whereRaw('1 = 0');
+
+            // Parent ko sirf apne bacchon ka result dikhe.
+            $exam->setRelation('results', $exam->results->whereIn('student_id', $parentStudentIds)->values());
         }
 
         if ($this->isTeacher()) {
@@ -517,5 +531,10 @@ class ExamsController extends Controller
     private function isStudent(): bool
     {
         return auth()->user()->roles()->where('title', 'Student')->exists();
+    }
+
+    private function isParent(): bool
+    {
+        return auth()->user()->roles()->where('title', 'Parent')->exists();
     }
 }

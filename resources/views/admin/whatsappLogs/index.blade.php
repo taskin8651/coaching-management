@@ -63,7 +63,7 @@
                 @foreach($logs as $log)
                     <tr data-entry-id="{{ $log->id }}">
                         <td>
-                            <span class="id-text">#{{ $log->id }}</span>
+                            <span class="id-text">#{{ $loop->iteration }}</span>
                         </td>
 
                         <td>

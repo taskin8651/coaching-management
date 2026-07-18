@@ -74,7 +74,7 @@
                         <td></td>
 
                         <td>
-                            <span class="id-text">#{{ $feeStructure->id }}</span>
+                            <span class="id-text">#{{ $loop->iteration }}</span>
                         </td>
 
                         <td>

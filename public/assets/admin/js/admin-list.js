@@ -37,7 +37,10 @@ function initAdminDataTable(selector, options = {}) {
 
     $(selector + ':not(.ajaxTable)').DataTable({
         buttons: dtButtons,
-        order: options.order || [[1, 'desc']],
+        // "ID" column is now a display-only row counter (text like "#82"), not a real sortable
+        // number, so letting DataTables re-sort it client-side does a lexicographic (string) sort
+        // and scrambles the order. Rows already arrive latest-first from the server, so keep that.
+        order: options.order || [],
         pageLength: options.pageLength || 25,
         scrollX: true,
         language: {

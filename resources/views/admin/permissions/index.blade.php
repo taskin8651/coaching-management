@@ -69,7 +69,7 @@
                         <td></td>
 
                         <td>
-                            <span class="id-text">#{{ $permission->id }}</span>
+                            <span class="id-text">#{{ $loop->iteration }}</span>
                         </td>
 
                         <td style="color:#475569;">

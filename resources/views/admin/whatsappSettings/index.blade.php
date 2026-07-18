@@ -69,7 +69,7 @@
                 @foreach($settings as $setting)
                     <tr data-entry-id="{{ $setting->id }}">
                         <td>
-                            <span class="id-text">#{{ $setting->id }}</span>
+                            <span class="id-text">#{{ $loop->iteration }}</span>
                         </td>
 
                         <td>
