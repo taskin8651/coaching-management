@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreNoticeRequest;
 use App\Http\Requests\UpdateNoticeRequest;
@@ -21,6 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class NoticesController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('notice_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -159,6 +161,8 @@ class NoticesController extends Controller
 
         $noticeTypes = $this->noticeTypes();
         $targetAudiences = $this->targetAudiences();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
 
         return view('admin.notices.create', compact(
             'branches',
@@ -166,7 +170,9 @@ class NoticesController extends Controller
             'batches',
             'users',
             'noticeTypes',
-            'targetAudiences'
+            'targetAudiences',
+            'batchesByBranch',
+            'coursesByBatch'
         ));
     }
 
@@ -269,6 +275,8 @@ class NoticesController extends Controller
 
         $noticeTypes = $this->noticeTypes();
         $targetAudiences = $this->targetAudiences();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
 
         $notice->load(['branch', 'course', 'batch', 'createdBy']);
 
@@ -279,7 +287,9 @@ class NoticesController extends Controller
             'batches',
             'users',
             'noticeTypes',
-            'targetAudiences'
+            'targetAudiences',
+            'batchesByBranch',
+            'coursesByBatch'
         ));
     }
 

@@ -76,6 +76,6 @@ class HomeworksController extends Controller
 
         return view('admin.homeworks.show', compact('homework'));
     }
-    private function formData(): array { return ['batches'=>$this->scopeBatchQuery(Batch::query())->pluck('name','id')->prepend(trans('global.pleaseSelect'),''),'subjects'=>$this->scopeBranchQuery(Subject::query())->pluck('name','id')->prepend('Optional',''),'teachers'=>$this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn($t)=>[$t->id=>$t->user->name ?? 'Teacher #'.$t->id])->prepend('Optional','')]; }
+    private function formData(): array { return ['batches'=>$this->scopeBatchQuery(Batch::query())->pluck('name','id')->prepend(trans('global.pleaseSelect'),''),'subjects'=>$this->scopeBranchQuery(Subject::query())->pluck('name','id')->prepend('Optional',''),'teachers'=>$this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn($t)=>[$t->id=>$t->user->name ?? 'Teacher #'.$t->id])->prepend('Optional',''),'subjectsByBatch'=>$this->subjectsByBatch()]; }
     private function validated(Request $request): array { return $request->validate(['branch_id'=>['nullable','exists:branches,id'],'batch_id'=>['required','exists:batches,id'],'subject_id'=>['nullable','exists:subjects,id'],'teacher_id'=>['nullable','exists:teachers,id'],'title'=>['required','string','max:255'],'details'=>['nullable','string'],'homework_date'=>['nullable','date'],'due_date'=>['nullable','date'],'status'=>['required','in:active,closed']]); }
 }

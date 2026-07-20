@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAdmissionRequest;
 use App\Http\Requests\UpdateAdmissionRequest;
@@ -22,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AdmissionsController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('admission_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -115,6 +117,8 @@ class AdmissionsController extends Controller
 
         $statuses = $this->statuses();
         $sources = $this->sources();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
 
         return view('admin.admissions.create', compact(
             'branches',
@@ -123,7 +127,9 @@ class AdmissionsController extends Controller
             'batches',
             'enquiries',
             'statuses',
-            'sources'
+            'sources',
+            'batchesByBranch',
+            'coursesByBatch'
         ));
     }
 
@@ -256,6 +262,8 @@ class AdmissionsController extends Controller
 
         $statuses = $this->statuses();
         $sources = $this->sources();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
 
         $admission->load([
             'student.user',
@@ -274,7 +282,9 @@ class AdmissionsController extends Controller
             'batches',
             'enquiries',
             'statuses',
-            'sources'
+            'sources',
+            'batchesByBranch',
+            'coursesByBatch'
         ));
     }
 

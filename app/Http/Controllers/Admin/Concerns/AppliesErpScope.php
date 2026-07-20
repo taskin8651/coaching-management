@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin\Concerns;
 
 use App\Models\Batch;
 use App\Models\Branch;
+use App\Models\Course;
 use App\Models\Staff;
 use App\Models\Student;
+use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use Illuminate\Database\Eloquent\Builder;
@@ -144,5 +146,145 @@ trait AppliesErpScope
         }
 
         abort_if(! $scope['branch_id'] || $model->{$column} != $scope['branch_id'], 403, '403 Forbidden');
+    }
+
+    /**
+     * Courses grouped by branch_id, for client-side cascading Branch -> Course selects.
+     * Shape: { branch_id: [{id, name}, ...] }
+     */
+    protected function coursesByBranch(): array
+    {
+        return $this->scopeBranchQuery(Course::where('status', 'active'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id'])
+            ->groupBy(fn ($course) => $course->branch_id ?: 'none')
+            ->map(fn ($courses) => $courses->map(fn ($course) => [
+                'id' => $course->id,
+                'name' => $course->name,
+            ])->values())
+            ->toArray();
+    }
+
+    /**
+     * Batches grouped by branch_id then course_id, for client-side cascading
+     * Branch -> Course -> Batch selects.
+     * Shape: { branch_id: { course_id_or_'all': [{id, name, course_id}, ...] } }
+     */
+    protected function batchesByBranchCourse(): array
+    {
+        return $this->scopeBatchQuery(Batch::where('status', 'active'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id', 'course_id'])
+            ->groupBy(fn ($batch) => $batch->branch_id ?: 'none')
+            ->map(function ($branchBatches) {
+                return $branchBatches
+                    ->groupBy(fn ($batch) => $batch->course_id ?: 'all')
+                    ->map(fn ($batches) => $batches->map(fn ($batch) => [
+                        'id' => $batch->id,
+                        'name' => $batch->name,
+                        'course_id' => $batch->course_id,
+                    ])->values())
+                    ->toArray();
+            })
+            ->toArray();
+    }
+
+    /**
+     * Batches grouped by branch_id only (no course nesting), for forms that filter a batch
+     * multi-select purely off a Branch select (e.g. a teacher's repeatable assignment rows).
+     * Shape: { branch_id: [{id, name}, ...] }
+     */
+    protected function batchesByBranch(): array
+    {
+        return $this->scopeBatchQuery(Batch::where('status', 'active'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id'])
+            ->groupBy(fn ($batch) => $batch->branch_id ?: 'none')
+            ->map(fn ($batches) => $batches->map(fn ($batch) => [
+                'id' => $batch->id,
+                'name' => $batch->name,
+            ])->values())
+            ->toArray();
+    }
+
+    /**
+     * Subjects grouped by branch_id only (no course nesting) — see batchesByBranch() above.
+     * Shape: { branch_id: [{id, name}, ...] }
+     */
+    protected function subjectsByBranch(): array
+    {
+        return $this->scopeBranchQuery(Subject::where('status', 'active'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id'])
+            ->groupBy(fn ($subject) => $subject->branch_id ?: 'none')
+            ->map(fn ($subjects) => $subjects->map(fn ($subject) => [
+                'id' => $subject->id,
+                'name' => $subject->name,
+            ])->values())
+            ->toArray();
+    }
+
+    /**
+     * The course a batch belongs to, for client-side cascading Batch -> Course selects
+     * (each batch has exactly one course, so the list is 0 or 1 items).
+     * Shape: { batch_id: [{id, name}] }
+     */
+    protected function coursesByBatch(): array
+    {
+        return $this->scopeBatchQuery(Batch::where('status', 'active'))
+            ->with(['course' => fn ($query) => $query->where('status', 'active')])
+            ->get(['id', 'course_id'])
+            ->mapWithKeys(fn ($batch) => [
+                $batch->id => $batch->course
+                    ? [['id' => $batch->course->id, 'name' => $batch->course->name]]
+                    : [],
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Subjects available per batch (via that batch's branch + course), for client-side cascading
+     * Batch -> Subject selects on forms that only expose a single Batch select (no separate
+     * Branch/Course selects to cascade from).
+     * Shape: { batch_id: [{id, name, course_id}, ...] }
+     */
+    protected function subjectsByBatch(): array
+    {
+        $batches = $this->scopeBatchQuery(Batch::where('status', 'active'))->get(['id', 'branch_id', 'course_id']);
+        $subjectsByBranchCourse = $this->subjectsByBranchCourse();
+
+        return $batches->mapWithKeys(function ($batch) use ($subjectsByBranchCourse) {
+            $branchBucket = $subjectsByBranchCourse[$batch->branch_id] ?? [];
+            $common = $branchBucket['all'] ?? [];
+            $specific = $batch->course_id ? ($branchBucket[$batch->course_id] ?? []) : [];
+
+            $merged = collect($common)->merge($specific)->unique('id')->values()->all();
+
+            return [$batch->id => $merged];
+        })->toArray();
+    }
+
+    /**
+     * Subjects grouped by branch_id then course_id, for client-side cascading
+     * Branch -> Course -> Subject selects.
+     * Shape: { branch_id: { course_id_or_'all': [{id, name, course_id}, ...] } }
+     */
+    protected function subjectsByBranchCourse(): array
+    {
+        return $this->scopeBranchQuery(Subject::where('status', 'active'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id', 'course_id'])
+            ->groupBy(fn ($subject) => $subject->branch_id ?: 'none')
+            ->map(function ($branchSubjects) {
+                return $branchSubjects
+                    ->groupBy(fn ($subject) => $subject->course_id ?: 'all')
+                    ->map(fn ($subjects) => $subjects->map(fn ($subject) => [
+                        'id' => $subject->id,
+                        'name' => $subject->name,
+                        'course_id' => $subject->course_id,
+                    ])->values())
+                    ->toArray();
+            })
+            ->toArray();
     }
 }

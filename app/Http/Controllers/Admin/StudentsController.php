@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Concerns\SyncsProfileUser;
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
@@ -23,6 +24,7 @@ use Symfony\Component\HttpFoundation\Response;
 class StudentsController extends Controller
 {
     use SyncsProfileUser;
+    use AppliesErpScope;
 
     public function index()
     {
@@ -113,7 +115,10 @@ class StudentsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.students.create', compact('users', 'userDetails', 'guardians', 'branches', 'courses', 'batches'));
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+
+        return view('admin.students.create', compact('users', 'userDetails', 'guardians', 'branches', 'courses', 'batches', 'coursesByBranch', 'batchesByBranchCourse'));
     }
 
     public function store(StoreStudentRequest $request)
@@ -247,7 +252,10 @@ class StudentsController extends Controller
             $selectedBatchIds = [$student->batch_id];
         }
 
-        return view('admin.students.edit', compact('student', 'users', 'userDetails', 'guardians', 'branches', 'courses', 'batches', 'selectedBatchIds'));
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+
+        return view('admin.students.edit', compact('student', 'users', 'userDetails', 'guardians', 'branches', 'courses', 'batches', 'selectedBatchIds', 'coursesByBranch', 'batchesByBranchCourse'));
     }
 
     public function update(UpdateStudentRequest $request, Student $student)

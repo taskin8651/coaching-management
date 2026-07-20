@@ -262,25 +262,14 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="batch_ids">
+                    <label class="field-label">
                         Batches
                     </label>
 
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-users icon"></i>
-
-                        <select name="batch_ids[]"
-                                id="batch_ids"
-                                multiple
-                                class="field-input {{ $errors->has('batch_ids') ? 'error' : '' }}">
-                            @foreach($batches as $id => $batch)
-                                @if($id !== '')
-                                    <option value="{{ $id }}" {{ collect(old('batch_ids', []))->contains($id) ? 'selected' : '' }}>
-                                        {{ $batch }}
-                                    </option>
-                                @endif
-                            @endforeach
-                        </select>
+                    <div class="checkbox-grid" id="batch_ids">
+                        <div class="form-info-box">
+                            <p><i class="fas fa-info-circle"></i> Select a branch and course to see available batches.</p>
+                        </div>
                     </div>
 
                     @if($errors->has('batch_ids') || $errors->has('batch_ids.*'))
@@ -289,7 +278,7 @@
                             {{ $errors->first('batch_ids') ?: $errors->first('batch_ids.*') }}
                         </p>
                     @else
-                        <p class="field-hint">Hold Ctrl (Cmd on Mac) to select multiple batches.</p>
+                        <p class="field-hint">Student ko in sabhi selected batches me assign kiya jayega.</p>
                     @endif
                 </div>
 
@@ -636,4 +625,28 @@
 
 </form>
 
+@endsection
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const batchGrid = document.getElementById('batch_ids');
+    const coursesByBranch = @json($coursesByBranch);
+    const batchesByBranchCourse = @json($batchesByBranchCourse);
+
+    cascadeByParent(courseSelect, branchSelect, coursesByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('course_id')),
+    });
+
+    cascadeCheckboxGrid(batchGrid, branchSelect, courseSelect, batchesByBranchCourse, {
+        name: 'batch_ids[]',
+        keepValue: @json(old('batch_ids', [])),
+        emptyHtml: '<div class="form-info-box"><p><i class="fas fa-info-circle"></i> No active batches found for selected branch/course.</p></div>',
+    });
+});
+</script>
 @endsection

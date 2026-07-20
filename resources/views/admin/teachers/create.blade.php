@@ -274,40 +274,7 @@
 
             <div class="form-card-body">
 
-                <div id="assignmentRows">
-                    <div class="assignment-row">
-                        <div class="field-group mb-0">
-                            <label class="field-label">Course</label>
-                            <select name="course_ids[]" class="field-input">
-                                @foreach($courses as $id => $course)
-                                    <option value="{{ $id }}">{{ $course }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="field-group mb-0">
-                            <label class="field-label">Subject</label>
-                            <select name="subject_ids[]" class="field-input">
-                                @foreach($subjects as $id => $subject)
-                                    <option value="{{ $id }}">{{ $subject }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="field-group mb-0">
-                            <label class="field-label">Batch</label>
-                            <select name="batch_ids[]" class="field-input">
-                                @foreach($batches as $id => $batch)
-                                    <option value="{{ $id }}">{{ $batch }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <button type="button" class="assignment-remove" onclick="removeAssignmentRow(this)">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
+                <div id="assignmentRows"></div>
 
                 <div class="form-info-box mt-3">
                     <p>
@@ -416,37 +383,70 @@
 }
 </style>
 
+@php
+    // Each old() entry is index-aligned across the three arrays (row 0's course/subject/batch, row 1's, ...).
+    $initialAssignments = old('course_ids')
+        ? collect(old('course_ids'))->map(fn ($courseId, $index) => [
+            'course_id' => $courseId,
+            'subject_id' => old('subject_ids')[$index] ?? null,
+            'batch_id' => old('batch_ids')[$index] ?? null,
+        ])->values()
+        : collect();
+@endphp
+
 <script>
-const teacherCourseOptions = `{!! collect($courses)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
-const teacherSubjectOptions = `{!! collect($subjects)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
-const teacherBatchOptions = `{!! collect($batches)->map(fn($name, $id) => '<option value="'.$id.'">'.e($name).'</option>')->implode('') !!}`;
+const coursesByBranch = @json($coursesByBranch);
+const subjectsByBranch = @json($subjectsByBranch);
+const batchesByBranch = @json($batchesByBranch);
+const initialAssignments = @json($initialAssignments);
 
-function addAssignmentRow() {
-    const wrapper = document.getElementById('assignmentRows');
+function filteredList(map, branchId) {
+    return (branchId && map[branchId]) ? map[branchId] : [];
+}
 
+function fillSelect(select, items, selectedId) {
+    if (!select) return;
+
+    const currentValue = (selectedId !== undefined && selectedId !== null && selectedId !== '')
+        ? String(selectedId)
+        : (select.value || '');
+
+    select.innerHTML = '';
+
+    items.forEach(function (item) {
+        const option = new Option(item.name, item.id);
+        option.selected = String(item.id) === currentValue;
+        select.appendChild(option);
+    });
+}
+
+function populateRow(row, assignment) {
+    const branchId = document.getElementById('branch_id').value;
+    assignment = assignment || {};
+
+    fillSelect(row.querySelector('.assignment-course'), filteredList(coursesByBranch, branchId), assignment.course_id);
+    fillSelect(row.querySelector('.assignment-subject'), filteredList(subjectsByBranch, branchId), assignment.subject_id);
+    fillSelect(row.querySelector('.assignment-batch'), filteredList(batchesByBranch, branchId), assignment.batch_id);
+}
+
+function buildRow(assignment) {
     const row = document.createElement('div');
     row.className = 'assignment-row';
 
     row.innerHTML = `
         <div class="field-group mb-0">
             <label class="field-label">Course</label>
-            <select name="course_ids[]" class="field-input">
-                ${teacherCourseOptions}
-            </select>
+            <select name="course_ids[]" class="field-input assignment-course"></select>
         </div>
 
         <div class="field-group mb-0">
             <label class="field-label">Subject</label>
-            <select name="subject_ids[]" class="field-input">
-                ${teacherSubjectOptions}
-            </select>
+            <select name="subject_ids[]" class="field-input assignment-subject"></select>
         </div>
 
         <div class="field-group mb-0">
             <label class="field-label">Batch</label>
-            <select name="batch_ids[]" class="field-input">
-                ${teacherBatchOptions}
-            </select>
+            <select name="batch_ids[]" class="field-input assignment-batch"></select>
         </div>
 
         <button type="button" class="assignment-remove" onclick="removeAssignmentRow(this)">
@@ -454,7 +454,13 @@ function addAssignmentRow() {
         </button>
     `;
 
-    wrapper.appendChild(row);
+    populateRow(row, assignment);
+
+    return row;
+}
+
+function addAssignmentRow() {
+    document.getElementById('assignmentRows').appendChild(buildRow());
 }
 
 function removeAssignmentRow(button) {
@@ -468,5 +474,22 @@ function removeAssignmentRow(button) {
 
     button.closest('.assignment-row').remove();
 }
+
+function refreshAllRows() {
+    document.querySelectorAll('#assignmentRows .assignment-row').forEach(function (row) {
+        populateRow(row, {});
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const wrapper = document.getElementById('assignmentRows');
+    const rows = initialAssignments.length ? initialAssignments : [{}];
+
+    rows.forEach(function (assignment) {
+        wrapper.appendChild(buildRow(assignment));
+    });
+
+    document.getElementById('branch_id').addEventListener('change', refreshAllRows);
+});
 </script>
 @endsection

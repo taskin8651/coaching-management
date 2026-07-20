@@ -232,6 +232,10 @@ class TimetablesController extends Controller
                     $t->id => $t->user->name ?? 'Teacher #' . $t->id
                 ])
                 ->prepend('Optional', ''),
+
+            'batchesByBranch' => $this->batchesByBranch(),
+            'coursesByBatch' => $this->coursesByBatch(),
+            'subjectsByBatch' => $this->subjectsByBatch(),
         ];
     }
 

@@ -175,24 +175,24 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="course_id">Course</label>
-
-                    <select name="course_id" id="course_id" class="field-input">
-                        @foreach($courses as $id => $course)
-                            <option value="{{ $id }}" {{ old('course_id', $studyMaterial->course_id) == $id ? 'selected' : '' }}>
-                                {{ $course }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="field-group">
                     <label class="field-label" for="batch_id">Batch</label>
 
                     <select name="batch_id" id="batch_id" class="field-input">
                         @foreach($batches as $id => $batch)
                             <option value="{{ $id }}" {{ old('batch_id', $studyMaterial->batch_id) == $id ? 'selected' : '' }}>
                                 {{ $batch }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="course_id">Course</label>
+
+                    <select name="course_id" id="course_id" class="field-input">
+                        @foreach($courses as $id => $course)
+                            <option value="{{ $id }}" {{ old('course_id', $studyMaterial->course_id) == $id ? 'selected' : '' }}>
+                                {{ $course }}
                             </option>
                         @endforeach
                     </select>
@@ -325,4 +325,35 @@
 
 </form>
 
+@endsection
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect = document.getElementById('batch_id');
+    const subjectSelect = document.getElementById('subject_id');
+    const batchesByBranch = @json($batchesByBranch);
+    const coursesByBatch = @json($coursesByBatch);
+    const subjectsByBatch = @json($subjectsByBatch);
+    const placeholder = @json(trans('global.pleaseSelect'));
+
+    cascadeByParent(batchSelect, branchSelect, batchesByBranch, {
+        placeholder,
+        keepValue: @json(old('batch_id', $studyMaterial->batch_id)),
+    });
+
+    cascadeByParent(courseSelect, batchSelect, coursesByBatch, {
+        placeholder,
+        keepValue: @json(old('course_id', $studyMaterial->course_id)),
+    });
+
+    cascadeByParent(subjectSelect, batchSelect, subjectsByBatch, {
+        placeholder,
+        keepValue: @json(old('subject_id', $studyMaterial->subject_id)),
+    });
+});
+</script>
 @endsection

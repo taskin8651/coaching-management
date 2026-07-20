@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Concerns\SyncsProfileUser;
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTeacherRequest;
 use App\Http\Requests\UpdateTeacherRequest;
@@ -22,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TeachersController extends Controller
 {
+    use AppliesErpScope;
     use SyncsProfileUser;
 
     public function index()
@@ -112,13 +114,20 @@ class TeachersController extends Controller
             ->pluck('name', 'id')
             ->prepend('Select Batch', '');
 
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranch = $this->batchesByBranch();
+        $subjectsByBranch = $this->subjectsByBranch();
+
         return view('admin.teachers.create', compact(
             'users',
             'userDetails',
             'branches',
             'courses',
             'subjects',
-            'batches'
+            'batches',
+            'coursesByBranch',
+            'batchesByBranch',
+            'subjectsByBranch'
         ));
     }
 
@@ -237,6 +246,9 @@ class TeachersController extends Controller
         $teacher->load(['user', 'branch', 'assignments']);
 
         $assignments = $teacher->assignments->values();
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranch = $this->batchesByBranch();
+        $subjectsByBranch = $this->subjectsByBranch();
 
         return view('admin.teachers.edit', compact(
             'teacher',
@@ -246,7 +258,10 @@ class TeachersController extends Controller
             'courses',
             'subjects',
             'batches',
-            'assignments'
+            'assignments',
+            'coursesByBranch',
+            'batchesByBranch',
+            'subjectsByBranch'
         ));
     }
 

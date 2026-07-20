@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreExamRequest;
 use App\Http\Requests\StoreExamResultRequest;
@@ -24,6 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ExamsController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('exam_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -113,8 +115,11 @@ class ExamsController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $examTypes = $this->examTypes();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
+        $subjectsByBatch = $this->subjectsByBatch();
 
-        return view('admin.exams.create', compact('branches', 'courses', 'batches', 'subjects', 'examTypes'));
+        return view('admin.exams.create', compact('branches', 'courses', 'batches', 'subjects', 'examTypes', 'batchesByBranch', 'coursesByBatch', 'subjectsByBatch'));
     }
 
     public function store(StoreExamRequest $request, WhatsappService $whatsapp)
@@ -238,10 +243,13 @@ class ExamsController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $examTypes = $this->examTypes();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
+        $subjectsByBatch = $this->subjectsByBatch();
 
         $exam->load(['branch', 'course', 'batch', 'subject']);
 
-        return view('admin.exams.edit', compact('exam', 'branches', 'courses', 'batches', 'subjects', 'examTypes'));
+        return view('admin.exams.edit', compact('exam', 'branches', 'courses', 'batches', 'subjects', 'examTypes', 'batchesByBranch', 'coursesByBatch', 'subjectsByBatch'));
     }
 
     public function update(UpdateExamRequest $request, Exam $exam)

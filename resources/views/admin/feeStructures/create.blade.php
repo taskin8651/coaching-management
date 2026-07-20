@@ -48,7 +48,7 @@
 
                 <div class="field-group">
                     <label class="field-label">Branch <span class="req">*</span></label>
-                    <select name="branch_id" required class="field-input">
+                    <select name="branch_id" id="branch_id" required class="field-input">
                         @foreach($branches as $id => $branch)
                             <option value="{{ $id }}" {{ old('branch_id') == $id ? 'selected' : '' }}>
                                 {{ $branch }}
@@ -59,7 +59,7 @@
 
                 <div class="field-group">
                     <label class="field-label">Course <span class="req">*</span></label>
-                    <select name="course_id" required class="field-input">
+                    <select name="course_id" id="course_id" required class="field-input">
                         @foreach($courses as $id => $course)
                             <option value="{{ $id }}" {{ old('course_id') == $id ? 'selected' : '' }}>
                                 {{ $course }}
@@ -70,7 +70,7 @@
 
                 <div class="field-group">
                     <label class="field-label">Batch</label>
-                    <select name="batch_id" class="field-input">
+                    <select name="batch_id" id="batch_id" class="field-input">
                         @foreach($batches as $id => $batch)
                             <option value="{{ $id }}" {{ old('batch_id') == $id ? 'selected' : '' }}>
                                 {{ $batch }}
@@ -191,6 +191,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.fee-calc').forEach(input => {
         input.addEventListener('input', calculateTotalFee);
+    });
+
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect = document.getElementById('batch_id');
+    const coursesByBranch = @json($coursesByBranch);
+    const batchesByBranchCourse = @json($batchesByBranchCourse);
+
+    cascadeByParent(courseSelect, branchSelect, coursesByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('course_id')),
+    });
+
+    cascadeByBranchCourse(batchSelect, branchSelect, courseSelect, batchesByBranchCourse, {
+        placeholder: 'All Batches / Optional',
+        keepValue: @json(old('batch_id')),
     });
 });
 </script>

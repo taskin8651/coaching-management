@@ -101,6 +101,7 @@ class ExtraClassesController extends Controller
             'teachers' => $this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn ($teacher) => [$teacher->id => $teacher->user->name ?? ('Teacher #' . $teacher->id)])->prepend(trans('global.pleaseSelect'), ''),
             'batches' => $this->scopeBatchQuery(Batch::query())->pluck('name', 'id')->prepend('Optional', ''),
             'subjects' => $this->scopeBranchQuery(Subject::query())->pluck('name', 'id')->prepend('Optional', ''),
+            'subjectsByBatch' => $this->subjectsByBatch(),
         ];
     }
 

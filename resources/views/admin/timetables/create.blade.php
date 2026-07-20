@@ -59,27 +59,6 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="course_id">Course</label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-book icon"></i>
-
-                        <select name="course_id" id="course_id" class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $id => $name)
-                                <option value="{{ $id }}" {{ old('course_id') == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    @if($errors->has('course_id'))
-                        <p class="field-error"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('course_id') }}</p>
-                    @endif
-                </div>
-
-                <div class="field-group">
                     <label class="field-label" for="batch_id">
                         Batch <span class="req">*</span>
                     </label>
@@ -99,6 +78,27 @@
 
                     @if($errors->has('batch_id'))
                         <p class="field-error"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('batch_id') }}</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="course_id">Course</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-book icon"></i>
+
+                        <select name="course_id" id="course_id" class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
+                            <option value="">Select Course</option>
+                            @foreach($courses as $id => $name)
+                                <option value="{{ $id }}" {{ old('course_id') == $id ? 'selected' : '' }}>
+                                    {{ $name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if($errors->has('course_id'))
+                        <p class="field-error"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('course_id') }}</p>
                     @endif
                 </div>
 
@@ -299,4 +299,34 @@
 
 </form>
 
+@endsection
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect = document.getElementById('batch_id');
+    const subjectSelect = document.getElementById('subject_id');
+    const batchesByBranch = @json($batchesByBranch);
+    const coursesByBatch = @json($coursesByBatch);
+    const subjectsByBatch = @json($subjectsByBatch);
+
+    cascadeByParent(batchSelect, branchSelect, batchesByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('batch_id')),
+    });
+
+    cascadeByParent(courseSelect, batchSelect, coursesByBatch, {
+        placeholder: 'Optional',
+        keepValue: @json(old('course_id')),
+    });
+
+    cascadeByParent(subjectSelect, batchSelect, subjectsByBatch, {
+        placeholder: 'Optional',
+        keepValue: @json(old('subject_id')),
+    });
+});
+</script>
 @endsection

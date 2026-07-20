@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFeePaymentRequest;
 use App\Http\Requests\UpdateFeePaymentRequest;
@@ -22,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class FeePaymentsController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('fee_payment_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -126,6 +128,9 @@ class FeePaymentsController extends Controller
     ->get()
     ->keyBy('id');
 
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
+
         return view('admin.feePayments.create', compact(
             'branches',
             'students',
@@ -134,7 +139,9 @@ class FeePaymentsController extends Controller
             'feeStructures',
             'users',
             'paymentModes',
-            'feeStructureData'
+            'feeStructureData',
+            'batchesByBranch',
+            'coursesByBatch'
 
         ));
     }
@@ -245,6 +252,8 @@ class FeePaymentsController extends Controller
         $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $paymentModes = $this->paymentModes();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
 
         $feePayment->load([
             'branch',
@@ -263,7 +272,9 @@ class FeePaymentsController extends Controller
             'batches',
             'feeStructures',
             'users',
-            'paymentModes'
+            'paymentModes',
+            'batchesByBranch',
+            'coursesByBatch'
         ));
     }
 

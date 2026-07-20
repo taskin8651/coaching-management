@@ -82,6 +82,7 @@ class StudentAttendancesController extends Controller
             'students' => $this->scopeStudentQuery(Student::with('user'))->get()->mapWithKeys(fn ($student) => [$student->id => $student->user->name ?? $student->student_code ?? ('Student #' . $student->id)])->prepend(trans('global.pleaseSelect'), ''),
             'batches' => $this->scopeBatchQuery(Batch::query())->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), ''),
             'subjects' => $this->scopeBranchQuery(Subject::query())->pluck('name', 'id')->prepend('Optional', ''),
+            'subjectsByBatch' => $this->subjectsByBatch(),
         ];
     }
 

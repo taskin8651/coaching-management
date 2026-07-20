@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEnquiryFollowUpRequest;
 use App\Http\Requests\StoreEnquiryRequest;
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnquiriesController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('enquiry_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -105,8 +107,9 @@ class EnquiriesController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $sources = $this->sources();
+        $coursesByBranch = $this->coursesByBranch();
 
-        return view('admin.enquiries.create', compact('branches', 'courses', 'users', 'sources'));
+        return view('admin.enquiries.create', compact('branches', 'courses', 'users', 'sources', 'coursesByBranch'));
     }
 
     public function store(StoreEnquiryRequest $request)
@@ -211,10 +214,11 @@ class EnquiriesController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $sources = $this->sources();
+        $coursesByBranch = $this->coursesByBranch();
 
         $enquiry->load(['branch', 'course', 'assignedTo']);
 
-        return view('admin.enquiries.edit', compact('enquiry', 'branches', 'courses', 'users', 'sources'));
+        return view('admin.enquiries.edit', compact('enquiry', 'branches', 'courses', 'users', 'sources', 'coursesByBranch'));
     }
 
     public function update(UpdateEnquiryRequest $request, Enquiry $enquiry)
