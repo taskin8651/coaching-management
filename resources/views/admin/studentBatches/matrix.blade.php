@@ -2,7 +2,12 @@
     $selectedBatchIds = collect($selectedBatchIds ?? [])->map(fn ($id) => (string) $id)->all();
     $selectedStatus = $selectedStatus ?? 'active';
     $oldAssignments = $oldAssignments ?? [];
+    $managedStudentId = $managedStudentId ?? null;
 @endphp
+
+@if($managedStudentId)
+    <input type="hidden" name="only_student_id" value="{{ $managedStudentId }}">
+@endif
 
 @section('styles')
 <style>
@@ -289,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('assignmentForm');
     const matrixUrl = @json(route('admin.student-batches.matrix'));
     const oldAssignments = @json($oldAssignments);
+    const managedStudentId = @json($managedStudentId);
 
     let batches = [];
     let students = [];
@@ -523,7 +529,12 @@ document.addEventListener('DOMContentLoaded', function () {
         setLoading(true);
 
         try {
-            const params = batchIds.map(id => `batch_ids[]=${encodeURIComponent(id)}`).join('&');
+            let params = batchIds.map(id => `batch_ids[]=${encodeURIComponent(id)}`).join('&');
+
+            if (managedStudentId) {
+                params += `&student_id=${encodeURIComponent(managedStudentId)}`;
+            }
+
             const response = await fetch(`${matrixUrl}?${params}`, {
                 headers: {'X-Requested-With': 'XMLHttpRequest'},
             });

@@ -47,6 +47,7 @@ class StudentBatchesController extends Controller
         $data = $request->validate([
             'batch_ids' => ['required', 'array', 'min:1'],
             'batch_ids.*' => ['integer', 'exists:batches,id'],
+            'student_id' => ['nullable', 'integer', 'exists:students,id'],
         ]);
 
         $batchIds = array_values(array_unique($data['batch_ids']));
@@ -68,6 +69,33 @@ class StudentBatchesController extends Controller
 
             $studentIdsByBatch[$batch->id] = $eligible->pluck('id')->map(fn ($id) => (int) $id)->all();
             $allStudents = $allStudents->merge($eligible);
+        }
+
+        if (! empty($data['student_id'])) {
+            // "Manage" from the index screen edits one student at a time — scope the matrix
+            // down to just them instead of showing every other student eligible for the batch.
+            $onlyStudentId = (int) $data['student_id'];
+
+            abort_if(
+                ! $this->scopeStudentQuery(Student::query())->where('id', $onlyStudentId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                '403 Forbidden'
+            );
+
+            if (! $allStudents->contains('id', $onlyStudentId)) {
+                $managedStudent = Student::with(['user:id,name,email'])
+                    ->find($onlyStudentId, ['id', 'user_id', 'branch_id', 'course_id', 'batch_id', 'student_code', 'phone']);
+
+                if ($managedStudent) {
+                    $allStudents->push($managedStudent);
+                }
+            }
+
+            $allStudents = $allStudents->where('id', $onlyStudentId)->values();
+
+            foreach ($studentIdsByBatch as $batchId => $ids) {
+                $studentIdsByBatch[$batchId] = in_array($onlyStudentId, $ids, true) ? [$onlyStudentId] : [];
+            }
         }
 
         $allStudents = $allStudents->unique('id')->sortBy([['student_code', 'asc'], ['id', 'asc']])->values();
@@ -124,7 +152,10 @@ class StudentBatchesController extends Controller
         abort_if(Gate::denies('student_batch_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $this->assertStudentBatchAccess($studentBatch);
 
-        return view('admin.studentBatches.edit', $this->formData() + compact('studentBatch'));
+        $studentBatch->load('student.user');
+        $managedStudentId = $studentBatch->student_id;
+
+        return view('admin.studentBatches.edit', $this->formData() + compact('studentBatch', 'managedStudentId'));
     }
 
     public function update(Request $request, StudentBatch $studentBatch, WhatsappService $whatsapp)
@@ -169,6 +200,7 @@ class StudentBatchesController extends Controller
             'assignments.*.*' => ['nullable', 'array'],
             'assignments.*.*.*' => ['integer', 'exists:subjects,id'],
             'status' => ['required', 'in:active,inactive'],
+            'only_student_id' => ['nullable', 'integer', 'exists:students,id'],
         ]);
     }
 
@@ -188,7 +220,7 @@ class StudentBatchesController extends Controller
 
         DB::transaction(function () use ($batches, $data, &$created, &$deleted) {
             foreach ($batches as $batch) {
-                $result = $this->syncBatchAssignments($batch, $data);
+                $result = $this->syncBatchAssignments($batch, $data, $data['only_student_id'] ?? null);
                 $created += $result['created'];
                 $deleted += $result['deleted'];
             }
@@ -197,10 +229,17 @@ class StudentBatchesController extends Controller
         return compact('created', 'deleted');
     }
 
-    private function syncBatchAssignments(Batch $batch, array $data): array
+    private function syncBatchAssignments(Batch $batch, array $data, ?int $onlyStudentId = null): array
     {
         $students = $this->eligibleStudentsForBatch($batch)->get(['id']);
         $eligibleStudentIds = $students->pluck('id')->map(fn ($id) => (int) $id)->values();
+
+        if ($onlyStudentId !== null) {
+            // "Manage" edits one student at a time — only touch that student's assignments for
+            // this batch, so the rest of the batch's roster is left completely untouched.
+            $eligibleStudentIds = $eligibleStudentIds->filter(fn ($id) => $id === $onlyStudentId)->values();
+        }
+
         $eligibleStudentSet = $eligibleStudentIds->flip();
         $batchSubjectIds = $batch->subjects->pluck('id')->map(fn ($id) => (int) $id)->values();
         $batchSubjectSet = $batchSubjectIds->flip();
