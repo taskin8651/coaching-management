@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudyMaterialRequest;
 use App\Http\Requests\UpdateStudyMaterialRequest;
@@ -23,6 +24,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class StudyMaterialsController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('study_material_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -114,6 +116,9 @@ class StudyMaterialsController extends Controller
         $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $materialTypes = $this->materialTypes();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
+        $subjectsByBatch = $this->subjectsByBatch();
 
         return view('admin.studyMaterials.create', compact(
             'branches',
@@ -121,7 +126,10 @@ class StudyMaterialsController extends Controller
             'batches',
             'subjects',
             'users',
-            'materialTypes'
+            'materialTypes',
+            'batchesByBranch',
+            'coursesByBatch',
+            'subjectsByBatch'
         ));
     }
 
@@ -221,6 +229,9 @@ class StudyMaterialsController extends Controller
         $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $materialTypes = $this->materialTypes();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
+        $subjectsByBatch = $this->subjectsByBatch();
 
         $studyMaterial->load(['branch', 'course', 'batch', 'subject', 'uploadedBy']);
 
@@ -231,7 +242,10 @@ class StudyMaterialsController extends Controller
             'batches',
             'subjects',
             'users',
-            'materialTypes'
+            'materialTypes',
+            'batchesByBranch',
+            'coursesByBatch',
+            'subjectsByBatch'
         ));
     }
 

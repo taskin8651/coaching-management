@@ -2,6 +2,14 @@
 
 Route::redirect('/', '/login');
 Route::get('/home', function () {
+    if (auth()->check() && auth()->user()->studentProfile()->exists()) {
+        if (session('status')) {
+            return redirect()->route('admin.my-portal.index')->with('status', session('status'));
+        }
+
+        return redirect()->route('admin.my-portal.index');
+    }
+
     if (session('status')) {
         return redirect()->route('admin.home')->with('status', session('status'));
     }
@@ -78,6 +86,7 @@ Route::get('salary-payments/{salary_payment}/slip', 'SalaryPaymentsController@sl
 Route::resource('salary-payments', 'SalaryPaymentsController');
 
 // Student Batch Assignments
+Route::get('student-batches/matrix', 'StudentBatchesController@matrix')->name('student-batches.matrix');
 Route::resource('student-batches', 'StudentBatchesController')->except(['show']);
 
 // Student Attendance
@@ -121,7 +130,7 @@ Route::get('timetable-substitutions/free-teachers', 'TimetableSubstitutionsContr
 Route::resource('timetable-substitutions', 'TimetableSubstitutionsController')
     ->parameters(['timetable-substitutions' => 'timetableSubstitution']);
 Route::post('timetables/{timetable}/substitute', 'TimetablesController@substitute')->name('timetables.substitute');
-Route::resource('timetables', 'TimetablesController')->except(['show', 'destroy']);
+Route::resource('timetables', 'TimetablesController')->except(['show']);
 
 // Homework
 Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show']);

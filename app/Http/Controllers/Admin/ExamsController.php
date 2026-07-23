@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreExamRequest;
 use App\Http\Requests\StoreExamResultRequest;
@@ -24,6 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ExamsController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('exam_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -113,8 +115,11 @@ class ExamsController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $examTypes = $this->examTypes();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
+        $subjectsByBatch = $this->subjectsByBatch();
 
-        return view('admin.exams.create', compact('branches', 'courses', 'batches', 'subjects', 'examTypes'));
+        return view('admin.exams.create', compact('branches', 'courses', 'batches', 'subjects', 'examTypes', 'batchesByBranch', 'coursesByBatch', 'subjectsByBatch'));
     }
 
     public function store(StoreExamRequest $request, WhatsappService $whatsapp)
@@ -175,6 +180,20 @@ class ExamsController extends Controller
         if ($this->isStudent()) {
             $authStudent = Student::where('user_id', auth()->id())->first();
             $authStudent ? $students->where('id', $authStudent->id) : $students->whereRaw('1 = 0');
+
+            // Student ko sirf apna hi result dikhe, poori class ka result report nahi.
+            $exam->setRelation(
+                'results',
+                $authStudent ? $exam->results->where('student_id', $authStudent->id)->values() : $exam->results->take(0)
+            );
+        }
+
+        if ($this->isParent()) {
+            $parentStudentIds = Student::where('guardian_user_id', auth()->id())->pluck('id');
+            $parentStudentIds->isNotEmpty() ? $students->whereIn('id', $parentStudentIds) : $students->whereRaw('1 = 0');
+
+            // Parent ko sirf apne bacchon ka result dikhe.
+            $exam->setRelation('results', $exam->results->whereIn('student_id', $parentStudentIds)->values());
         }
 
         if ($this->isTeacher()) {
@@ -224,10 +243,13 @@ class ExamsController extends Controller
             ->prepend(trans('global.pleaseSelect'), '');
 
         $examTypes = $this->examTypes();
+        $batchesByBranch = $this->batchesByBranch();
+        $coursesByBatch = $this->coursesByBatch();
+        $subjectsByBatch = $this->subjectsByBatch();
 
         $exam->load(['branch', 'course', 'batch', 'subject']);
 
-        return view('admin.exams.edit', compact('exam', 'branches', 'courses', 'batches', 'subjects', 'examTypes'));
+        return view('admin.exams.edit', compact('exam', 'branches', 'courses', 'batches', 'subjects', 'examTypes', 'batchesByBranch', 'coursesByBatch', 'subjectsByBatch'));
     }
 
     public function update(UpdateExamRequest $request, Exam $exam)
@@ -517,5 +539,10 @@ class ExamsController extends Controller
     private function isStudent(): bool
     {
         return auth()->user()->roles()->where('title', 'Student')->exists();
+    }
+
+    private function isParent(): bool
+    {
+        return auth()->user()->roles()->where('title', 'Parent')->exists();
     }
 }

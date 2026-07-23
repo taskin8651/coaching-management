@@ -4,11 +4,15 @@
 
 @section('content')
 
+@php
+    $grouped = $studentBatches->groupBy('student_id');
+@endphp
+
 <div class="admin-page-head">
     <div>
         <h2 class="admin-page-title">Student Batches</h2>
         <p class="admin-page-subtitle">
-            Multiple active batch and subject assignments per student
+            Har student ke saare batch aur subject assignments ek hi row me
         </p>
     </div>
 
@@ -21,6 +25,11 @@
 </div>
 
 <div class="stats-grid">
+    <div class="stat-card">
+        <p class="stat-label">Students</p>
+        <p class="stat-value">{{ $grouped->count() }}</p>
+    </div>
+
     <div class="stat-card">
         <p class="stat-label">Total Assignments</p>
         <p class="stat-value">{{ $studentBatches->count() }}</p>
@@ -35,20 +44,15 @@
         <p class="stat-label">Inactive</p>
         <p class="stat-value">{{ $studentBatches->where('status', 'inactive')->count() }}</p>
     </div>
-
-    <div class="stat-card">
-        <p class="stat-label">Completed</p>
-        <p class="stat-value">{{ $studentBatches->where('status', 'completed')->count() }}</p>
-    </div>
 </div>
 
 <div class="page-card">
     <div class="page-card-header">
-        <p class="page-card-title">All Student Batch Assignments</p>
+        <p class="page-card-title">All Students</p>
 
         <span class="page-card-note">
             <i class="fas fa-users"></i>
-            Manage student multiple batch mapping
+            Ek student = ek row, saare batch/subject ek jagah
         </span>
     </div>
 
@@ -56,112 +60,76 @@
         <table class="min-w-full datatable datatable-StudentBatches">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Student</th>
-                    <th>Batch</th>
-                    <th>Subject</th>
-                    <th>Dates</th>
+                    <th>Batches &amp; Subjects</th>
                     <th>Status</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
             </thead>
 
             <tbody>
-                @foreach($studentBatches as $item)
-                    <tr data-entry-id="{{ $item->id }}">
-                        <td>
-                            <span class="id-text">#{{ $item->id }}</span>
-                        </td>
+                @foreach($grouped as $studentId => $rows)
+                    @php
+                        $first = $rows->first();
+                        $name = $first->student->user->name ?? $first->student->student_code ?? 'Student';
+                        $colors = ['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
+                        $color = $colors[$loop->index % count($colors)];
+                        $activeCount = $rows->where('status', 'active')->count();
+                        $inactiveCount = $rows->count() - $activeCount;
+                        $manageRowId = $first->id;
+                    @endphp
 
+                    <tr data-entry-id="{{ $studentId }}">
                         <td>
                             <div class="inline-flex-center">
-                                @php
-                                    $name = $item->student->user->name ?? $item->student->student_code ?? 'Student';
-                                    $colors = ['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
-                                    $color = $colors[$loop->index % count($colors)];
-                                @endphp
-
                                 <div class="avatar-circle" style="background: {{ $color }};">
                                     {{ strtoupper(substr($name, 0, 1)) }}
                                 </div>
 
                                 <div>
                                     <p class="table-main-text">{{ $name }}</p>
-                                    <p class="table-sub-text">{{ $item->student->student_code ?? 'Student' }}</p>
+                                    <p class="table-sub-text">{{ $first->student->student_code ?? 'Student #'.$studentId }}</p>
                                 </div>
                             </div>
                         </td>
 
                         <td>
-                            <p class="table-main-text">{{ $item->batch->name ?? '-' }}</p>
-                            <p class="table-sub-text">Batch</p>
+                            <div class="tag-wrap">
+                                @foreach($rows->groupBy('batch_id') as $batchId => $batchRows)
+                                    @php
+                                        $subjectNames = $batchRows->pluck('subject.name')->filter()->values();
+                                        $subjectLabel = $subjectNames->count() === 1 ? 'subject' : 'subjects';
+                                    @endphp
+
+                                    <span class="role-tag" title="{{ $subjectNames->implode(', ') ?: 'No subject linked' }}">
+                                        {{ $batchRows->first()->batch->name ?? '-' }}
+                                        @if($subjectNames->count())
+                                            <span style="opacity:.7;margin-left:4px;">· {{ $subjectNames->count() }} {{ $subjectLabel }}</span>
+                                        @endif
+                                    </span>
+                                @endforeach
+                            </div>
                         </td>
 
                         <td>
-                            @if($item->subject)
-                                <p class="table-main-text">{{ $item->subject->name ?? '-' }}</p>
-                                <p class="table-sub-text">Subject</p>
-                            @else
-                                <span style="font-size:12px;color:#94A3B8;">—</span>
-                            @endif
-                        </td>
+                            <div class="d-flex flex-wrap gap-1">
+                                @if($activeCount)
+                                    <span class="status-pill success">{{ $activeCount }} Active</span>
+                                @endif
 
-                        <td>
-                            <p class="table-main-text">
-                                {{ $item->start_date ? \Carbon\Carbon::parse($item->start_date)->format('d M Y') : '-' }}
-                            </p>
-
-                            <p class="table-sub-text">
-                                To:
-                                {{ $item->end_date ? \Carbon\Carbon::parse($item->end_date)->format('d M Y') : 'Active' }}
-                            </p>
-                        </td>
-
-                        <td>
-                            @if($item->status === 'active')
-                                <span class="status-pill success">Active</span>
-                            @elseif($item->status === 'completed')
-                                <span class="status-pill success">Completed</span>
-                            @elseif($item->status === 'inactive')
-                                <span class="status-pill warning">Inactive</span>
-                            @elseif($item->status === 'cancelled')
-                                <span class="status-pill" style="background:#FEE2E2;color:#991B1B;">Cancelled</span>
-                            @else
-                                <span class="status-pill" style="background:#F1F5F9;color:#475569;">
-                                    {{ ucfirst($item->status ?? '-') }}
-                                </span>
-                            @endif
+                                @if($inactiveCount)
+                                    <span class="status-pill warning">{{ $inactiveCount }} Inactive</span>
+                                @endif
+                            </div>
                         </td>
 
                         <td>
                             <div class="action-row">
-                                @can('student_batch_show')
-                                    <a class="btn-outline" href="{{ route('admin.student-batches.show', $item->id) }}">
-                                        <i class="fas fa-eye"></i>
-                                        View
-                                    </a>
-                                @endcan
-
                                 @can('student_batch_edit')
-                                    <a class="btn-outline btn-outline-edit" href="{{ route('admin.student-batches.edit', $item->id) }}">
+                                    <a class="btn-outline btn-outline-edit" href="{{ route('admin.student-batches.edit', $manageRowId) }}">
                                         <i class="fas fa-pencil-alt"></i>
-                                        Edit
+                                        Manage
                                     </a>
-                                @endcan
-
-                                @can('student_batch_delete')
-                                    <form method="POST"
-                                          action="{{ route('admin.student-batches.destroy', $item->id) }}"
-                                          style="display:inline;"
-                                          onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="submit" class="btn-outline btn-outline-danger">
-                                            <i class="fas fa-trash-alt"></i>
-                                            Delete
-                                        </button>
-                                    </form>
                                 @endcan
                             </div>
                         </td>
@@ -179,8 +147,9 @@
 <script>
 $(function () {
     initAdminDataTable('.datatable-StudentBatches', {
-        searchPlaceholder: 'Search student batches...',
-        infoText: 'Showing _START_–_END_ of _TOTAL_ student batch assignments'
+        searchPlaceholder: 'Search students...',
+        infoText: 'Showing _START_–_END_ of _TOTAL_ students',
+        order: [[0, 'asc']]
     });
 });
 </script>

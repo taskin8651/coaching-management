@@ -140,7 +140,7 @@ table.dataTable tbody tr:last-child td { border-bottom: none !important; }
                     <td></td>
 
                     <td>
-                        <span style="font-size:12px; font-weight:700; color:#94A3B8;">#{{ $auditLog->id }}</span>
+                        <span style="font-size:12px; font-weight:700; color:#94A3B8;">#{{ $loop->iteration }}</span>
                     </td>
 
                     <td>

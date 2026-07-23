@@ -76,7 +76,7 @@
                         <td></td>
 
                         <td>
-                            <span class="id-text">#{{ $payment->id }}</span>
+                            <span class="id-text">#{{ $loop->iteration }}</span>
                         </td>
 
                         <td>

@@ -55,7 +55,27 @@ class HomeworksController extends Controller
         }
         return redirect()->route('admin.homeworks.index')->with('message', 'Homework assigned successfully.');
     }
-    public function show(Homework $homework) { abort_if(Gate::denies('homework_show'), Response::HTTP_FORBIDDEN, '403 Forbidden'); $this->assertBranchAccess($homework); $homework->load(['submissions.student.user','batch','subject']); return view('admin.homeworks.show', compact('homework')); }
-    private function formData(): array { return ['batches'=>$this->scopeBatchQuery(Batch::query())->pluck('name','id')->prepend(trans('global.pleaseSelect'),''),'subjects'=>$this->scopeBranchQuery(Subject::query())->pluck('name','id')->prepend('Optional',''),'teachers'=>$this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn($t)=>[$t->id=>$t->user->name ?? 'Teacher #'.$t->id])->prepend('Optional','')]; }
+    public function show(Homework $homework)
+    {
+        abort_if(Gate::denies('homework_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $this->assertBranchAccess($homework);
+        $homework->load(['submissions.student.user', 'batch', 'subject']);
+
+        $scope = $this->erpScope();
+
+        if ($scope['is_student']) {
+            // Student ko sirf apni hi submission dikhe, poori batch ki nahi.
+            $homework->setRelation(
+                'submissions',
+                $scope['student_id'] ? $homework->submissions->where('student_id', $scope['student_id'])->values() : $homework->submissions->take(0)
+            );
+        } elseif ($scope['is_parent']) {
+            // Parent ko sirf apne bacchon ki submissions dikhein.
+            $homework->setRelation('submissions', $homework->submissions->whereIn('student_id', $scope['parent_student_ids'])->values());
+        }
+
+        return view('admin.homeworks.show', compact('homework'));
+    }
+    private function formData(): array { return ['batches'=>$this->scopeBatchQuery(Batch::query())->pluck('name','id')->prepend(trans('global.pleaseSelect'),''),'subjects'=>$this->scopeBranchQuery(Subject::query())->pluck('name','id')->prepend('Optional',''),'teachers'=>$this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn($t)=>[$t->id=>$t->user->name ?? 'Teacher #'.$t->id])->prepend('Optional',''),'subjectsByBatch'=>$this->subjectsByBatch()]; }
     private function validated(Request $request): array { return $request->validate(['branch_id'=>['nullable','exists:branches,id'],'batch_id'=>['required','exists:batches,id'],'subject_id'=>['nullable','exists:subjects,id'],'teacher_id'=>['nullable','exists:teachers,id'],'title'=>['required','string','max:255'],'details'=>['nullable','string'],'homework_date'=>['nullable','date'],'due_date'=>['nullable','date'],'status'=>['required','in:active,closed']]); }
 }

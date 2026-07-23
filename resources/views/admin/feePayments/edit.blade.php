@@ -90,26 +90,6 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="course_id">Course</label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-book icon"></i>
-
-                        <select name="course_id" id="course_id" class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
-                            @foreach($courses as $id => $course)
-                                <option value="{{ $id }}" {{ old('course_id', $feePayment->course_id) == $id ? 'selected' : '' }}>
-                                    {{ $course }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    @if($errors->has('course_id'))
-                        <p class="field-error"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('course_id') }}</p>
-                    @endif
-                </div>
-
-                <div class="field-group">
                     <label class="field-label" for="batch_id">Batch</label>
 
                     <div class="input-icon-wrap">
@@ -126,6 +106,26 @@
 
                     @if($errors->has('batch_id'))
                         <p class="field-error"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('batch_id') }}</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="course_id">Course</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-book icon"></i>
+
+                        <select name="course_id" id="course_id" class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
+                            @foreach($courses as $id => $course)
+                                <option value="{{ $id }}" {{ old('course_id', $feePayment->course_id) == $id ? 'selected' : '' }}>
+                                    {{ $course }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if($errors->has('course_id'))
+                        <p class="field-error"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('course_id') }}</p>
                     @endif
                 </div>
 
@@ -384,6 +384,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (el) {
             el.addEventListener('input', updateFeePreview);
         }
+    });
+
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect = document.getElementById('batch_id');
+    const batchesByBranch = @json($batchesByBranch);
+    const coursesByBatch = @json($coursesByBatch);
+
+    cascadeByParent(batchSelect, branchSelect, batchesByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('batch_id', $feePayment->batch_id)),
+    });
+
+    cascadeByParent(courseSelect, batchSelect, coursesByBatch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('course_id', $feePayment->course_id)),
     });
 
     updateFeePreview();

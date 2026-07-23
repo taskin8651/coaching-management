@@ -72,7 +72,7 @@
         <table class="min-w-full datatable datatable-Timetables">
             <thead>
                 <tr>
-                    <th>Batch</th>
+                    <th>Course</th>
                     <th>Subject</th>
                     <th>Teacher</th>
                     <th>Day / Date</th>
@@ -80,6 +80,7 @@
                     <th>Room</th>
                     <th>Status</th>
                     <th style="text-align:right;">Substitute</th>
+                    <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
             </thead>
 
@@ -87,8 +88,8 @@
                 @foreach($timetables as $item)
                     <tr>
                         <td>
-                            <p class="table-main-text">{{ $item->batch->name ?? '-' }}</p>
-                            <p class="table-sub-text">Batch</p>
+                            <p class="table-main-text">{{ $item->course->name ?? '-' }}</p>
+                            <p class="table-sub-text">course</p>
                         </td>
 
                         <td>
@@ -192,6 +193,32 @@
         </div>
     @endcan
 </td>
+
+                        <td>
+                            <div class="action-row">
+                                @can('timetable_edit')
+                                    <a class="btn-outline btn-outline-edit" href="{{ route('admin.timetables.edit', $item->id) }}">
+                                        <i class="fas fa-pencil-alt"></i>
+                                        Edit
+                                    </a>
+                                @endcan
+
+                                @can('timetable_delete')
+                                    <form method="POST"
+                                          action="{{ route('admin.timetables.destroy', $item->id) }}"
+                                          style="display:inline;"
+                                          onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit" class="btn-outline btn-outline-danger">
+                                            <i class="fas fa-trash-alt"></i>
+                                            Delete
+                                        </button>
+                                    </form>
+                                @endcan
+                            </div>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
@@ -338,7 +365,7 @@
                                         <td>
                                             @if($class)
                                                 <div class="class-box">
-                                                    <strong>{{ $class->batch->name ?? '' }}</strong>
+                                                    <strong>{{ $class->course->name ?? '' }}</strong>
 
                                                     @if($class->subject)
                                                         <span>{{ $class->subject->name }}</span>

@@ -416,6 +416,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    const batchSelect = document.getElementById('batch_id');
+    const subjectSelect = document.getElementById('subject_id');
+    const subjectsByBatch = @json($subjectsByBatch);
+
+    cascadeByParent(subjectSelect, batchSelect, subjectsByBatch, {
+        placeholder: 'Optional',
+        keepValue: @json(old('subject_id')),
+    });
+
     updateAttendancePreview();
 });
 </script>

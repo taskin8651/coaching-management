@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
+use App\Models\Branch;
 use App\Models\StaffAttendance;
 use App\Models\Teacher;
 use Carbon\Carbon;
@@ -16,17 +17,37 @@ class TeacherAttendancesController extends Controller
 {
     use AppliesErpScope;
 
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('teacher_attendance_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $scope = $this->erpScope();
+
+        $filters = $request->validate([
+            'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'status' => ['nullable', 'in:present,absent,late,half_day,leave'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+        ]);
+
         $attendances = StaffAttendance::with(['teacher.user', 'branch', 'batch'])
             ->whereNotNull('teacher_id')
             ->when($scope['is_teacher'] && $scope['teacher_id'], fn ($query) => $query->where('teacher_id', $scope['teacher_id']))
             ->when(! $scope['is_admin'] && ! $scope['is_teacher'], fn ($query) => $this->scopeBranchQuery($query))
+            ->when(! empty($filters['batch_id']), fn ($q) => $q->where('batch_id', $filters['batch_id']))
+            ->when($scope['is_admin'] && ! empty($filters['branch_id']), fn ($q) => $q->where('branch_id', $filters['branch_id']))
+            ->when(! empty($filters['status']), fn ($q) => $q->where('status', $filters['status']))
+            ->when(! empty($filters['date_from']), fn ($q) => $q->whereDate('attendance_date', '>=', $filters['date_from']))
+            ->when(! empty($filters['date_to']), fn ($q) => $q->whereDate('attendance_date', '<=', $filters['date_to']))
             ->latest('attendance_date')->latest('id')->get();
 
-        return view('admin.teacherAttendances.index', compact('attendances'));
+        return view('admin.teacherAttendances.index', compact('attendances', 'filters') + [
+            'batches' => $this->scopeBatchQuery(Batch::query())->pluck('name', 'id')->prepend('All Batches', ''),
+            'branches' => Branch::query()
+                ->when(! $scope['is_admin'], fn ($q) => $q->where('id', $scope['branch_id']))
+                ->pluck('name', 'id')
+                ->prepend('All Branches', ''),
+        ]);
     }
 
     public function create()

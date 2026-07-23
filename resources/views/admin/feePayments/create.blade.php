@@ -125,34 +125,6 @@
                     @endif
                 </div>
 
-                {{-- COURSE --}}
-                <div class="field-group">
-                    <label class="field-label" for="course_id">
-                        Course
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-book icon"></i>
-
-                        <select name="course_id"
-                                id="course_id"
-                                class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
-                            @foreach($courses as $id => $course)
-                                <option value="{{ $id }}" {{ old('course_id') == $id ? 'selected' : '' }}>
-                                    {{ $course }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    @if($errors->has('course_id'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('course_id') }}
-                        </p>
-                    @endif
-                </div>
-
                 {{-- BATCH --}}
                 <div class="field-group">
                     <label class="field-label" for="batch_id">
@@ -177,6 +149,34 @@
                         <p class="field-error">
                             <i class="fas fa-exclamation-circle"></i>
                             {{ $errors->first('batch_id') }}
+                        </p>
+                    @endif
+                </div>
+
+                {{-- COURSE --}}
+                <div class="field-group">
+                    <label class="field-label" for="course_id">
+                        Course
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-book icon"></i>
+
+                        <select name="course_id"
+                                id="course_id"
+                                class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
+                            @foreach($courses as $id => $course)
+                                <option value="{{ $id }}" {{ old('course_id') == $id ? 'selected' : '' }}>
+                                    {{ $course }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if($errors->has('course_id'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('course_id') }}
                         </p>
                     @endif
                 </div>
@@ -505,16 +505,20 @@ function applyFeeStructure() {
     const batch = document.getElementById('batch_id');
     const total = document.getElementById('total_fee');
 
+    // Branch/batch/course cascade off each other (see cascadeByParent calls below), so each
+    // value has to be set THEN change-dispatched before the next one can find its option.
     if (branch && data.branch_id) {
         branch.value = data.branch_id;
-    }
-
-    if (course && data.course_id) {
-        course.value = data.course_id;
+        branch.dispatchEvent(new Event('change'));
     }
 
     if (batch && data.batch_id) {
         batch.value = data.batch_id;
+        batch.dispatchEvent(new Event('change'));
+    }
+
+    if (course && data.course_id) {
+        course.value = data.course_id;
     }
 
     if (total && data.total_fee) {
@@ -531,6 +535,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (el) {
             el.addEventListener('input', updateFeePreview);
         }
+    });
+
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect = document.getElementById('batch_id');
+    const batchesByBranch = @json($batchesByBranch);
+    const coursesByBatch = @json($coursesByBatch);
+
+    cascadeByParent(batchSelect, branchSelect, batchesByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('batch_id')),
+    });
+
+    cascadeByParent(courseSelect, batchSelect, coursesByBatch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('course_id')),
     });
 
     const feeStructureSelect = document.getElementById('fee_structure_id');

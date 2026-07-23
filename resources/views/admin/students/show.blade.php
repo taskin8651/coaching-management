@@ -177,13 +177,13 @@
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">Phone</span>
-                    <span class="detail-value">{{ $student->phone ?? '-' }}</span>
+                    <span class="detail-label">Notification Number</span>
+                    <span class="detail-value">{{ $student->notification_phone ?: $student->phone ?: '-' }}</span>
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">Alternate Phone</span>
-                    <span class="detail-value">{{ $student->alternate_phone ?? '-' }}</span>
+                    <span class="detail-label">Student Personal Number</span>
+                    <span class="detail-value">{{ $student->student_personal_phone ?? '-' }}</span>
                 </div>
 
                 <div class="detail-row">
@@ -265,8 +265,23 @@
                 </div>
 
                 <div class="detail-row">
+                    <span class="detail-label">Father's Number</span>
+                    <span class="detail-value">{{ $student->father_phone ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
                     <span class="detail-label">Mother Name</span>
                     <span class="detail-value">{{ $student->mother_name ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Mother's Number</span>
+                    <span class="detail-value">{{ $student->mother_phone ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Guardian Number</span>
+                    <span class="detail-value">{{ $student->guardian_phone ?? '-' }}</span>
                 </div>
 
                 <div class="detail-row">

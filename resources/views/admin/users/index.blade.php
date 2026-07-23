@@ -72,7 +72,7 @@
                         <td></td>
 
                         <td>
-                            <span class="id-text">#{{ $user->id }}</span>
+                            <span class="id-text">#{{ $loop->iteration }}</span>
                         </td>
 
                         <td>

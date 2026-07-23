@@ -428,3 +428,19 @@
 </form>
 
 @endsection
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const coursesByBranch = @json($coursesByBranch);
+
+    cascadeByParent(courseSelect, branchSelect, coursesByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('course_id', $enquiry->course_id)),
+    });
+});
+</script>
+@endsection

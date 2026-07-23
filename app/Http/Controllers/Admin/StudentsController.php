@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Concerns\SyncsProfileUser;
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
@@ -11,6 +12,7 @@ use App\Models\Branch;
 use App\Models\Course;
 use App\Models\Staff;
 use App\Models\Student;
+use App\Models\StudentBatch;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
@@ -22,6 +24,7 @@ use Symfony\Component\HttpFoundation\Response;
 class StudentsController extends Controller
 {
     use SyncsProfileUser;
+    use AppliesErpScope;
 
     public function index()
     {
@@ -112,7 +115,10 @@ class StudentsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.students.create', compact('users', 'userDetails', 'guardians', 'branches', 'courses', 'batches'));
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+
+        return view('admin.students.create', compact('users', 'userDetails', 'guardians', 'branches', 'courses', 'batches', 'coursesByBranch', 'batchesByBranchCourse'));
     }
 
     public function store(StoreStudentRequest $request)
@@ -120,6 +126,10 @@ class StudentsController extends Controller
         abort_if($this->isStudent() || $this->isTeacher(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $request->validated();
+        $data['phone'] = $this->notificationPhone($data);
+
+        $batchIds = array_values(array_unique(array_filter($data['batch_ids'] ?? [])));
+        unset($data['batch_ids']);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -136,20 +146,26 @@ class StudentsController extends Controller
                 abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
             }
 
-            if (! empty($data['batch_id'])) {
-                $batch = Batch::where('id', $data['batch_id'])
+            if (! empty($batchIds)) {
+                $validBatchCount = Batch::whereIn('id', $batchIds)
                     ->where('branch_id', $branchId)
-                    ->first();
+                    ->count();
 
-                abort_if(! $batch, Response::HTTP_FORBIDDEN, 'Invalid batch for your branch.');
+                abort_if($validBatchCount !== count($batchIds), Response::HTTP_FORBIDDEN, 'Invalid batch for your branch.');
             }
         }
 
-        $student = DB::transaction(function () use ($data) {
+        $data['batch_id'] = $batchIds[0] ?? null;
+
+        $student = DB::transaction(function () use ($data, $batchIds) {
             $user = $this->syncProfileUser($data, 'Student');
             $data['user_id'] = $user->id;
 
-            return Student::create($this->profileData($data));
+            $student = Student::create($this->profileData($data));
+
+            $this->syncStudentBatches($student, $batchIds);
+
+            return $student;
         });
 
         if ($request->hasFile('photo')) {
@@ -228,9 +244,18 @@ class StudentsController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $student->load(['user', 'branch', 'course', 'batch']);
+        $student->load(['user', 'branch', 'course', 'batch', 'batches']);
 
-        return view('admin.students.edit', compact('student', 'users', 'userDetails', 'guardians', 'branches', 'courses', 'batches'));
+        $selectedBatchIds = $student->batches->pluck('id')->toArray();
+
+        if (empty($selectedBatchIds) && $student->batch_id) {
+            $selectedBatchIds = [$student->batch_id];
+        }
+
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+
+        return view('admin.students.edit', compact('student', 'users', 'userDetails', 'guardians', 'branches', 'courses', 'batches', 'selectedBatchIds', 'coursesByBranch', 'batchesByBranchCourse'));
     }
 
     public function update(UpdateStudentRequest $request, Student $student)
@@ -240,6 +265,10 @@ class StudentsController extends Controller
         $this->checkStudentAccess($student);
 
         $data = $request->validated();
+        $data['phone'] = $this->notificationPhone($data);
+
+        $batchIds = array_values(array_unique(array_filter($data['batch_ids'] ?? [])));
+        unset($data['batch_ids']);
 
         if (! auth()->user()->is_admin) {
             $branchId = $this->getUserBranchId();
@@ -256,22 +285,26 @@ class StudentsController extends Controller
                 abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
             }
 
-            if (! empty($data['batch_id'])) {
-                $batch = Batch::where('id', $data['batch_id'])
+            if (! empty($batchIds)) {
+                $validBatchCount = Batch::whereIn('id', $batchIds)
                     ->where('branch_id', $branchId)
-                    ->first();
+                    ->count();
 
-                abort_if(! $batch, Response::HTTP_FORBIDDEN, 'Invalid batch for your branch.');
+                abort_if($validBatchCount !== count($batchIds), Response::HTTP_FORBIDDEN, 'Invalid batch for your branch.');
             }
         }
 
-        DB::transaction(function () use ($student, $data) {
+        $data['batch_id'] = $batchIds[0] ?? null;
+
+        DB::transaction(function () use ($student, $data, $batchIds) {
             $data['user_id'] = $data['user_id'] ?? $student->user_id;
 
             $user = $this->syncProfileUser($data, 'Student');
             $data['user_id'] = $user->id;
 
             $student->update($this->profileData($data));
+
+            $this->syncStudentBatches($student, $batchIds);
         });
 
         if ($request->hasFile('photo')) {
@@ -406,6 +439,35 @@ class StudentsController extends Controller
             ->values();
     }
 
+    private function syncStudentBatches(Student $student, array $batchIds): void
+    {
+        $batchIds = array_map('intval', $batchIds);
+
+        $existingBatchIds = StudentBatch::where('student_id', $student->id)
+            ->whereNull('subject_id')
+            ->pluck('batch_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $toDelete = array_diff($existingBatchIds, $batchIds);
+        $toCreate = array_diff($batchIds, $existingBatchIds);
+
+        if (! empty($toDelete)) {
+            StudentBatch::where('student_id', $student->id)
+                ->whereNull('subject_id')
+                ->whereIn('batch_id', $toDelete)
+                ->delete();
+        }
+
+        foreach ($toCreate as $batchId) {
+            StudentBatch::create([
+                'student_id' => $student->id,
+                'batch_id' => $batchId,
+                'status' => 'active',
+            ]);
+        }
+    }
+
     private function isStudent(): bool
     {
         return auth()->user()
@@ -420,5 +482,17 @@ class StudentsController extends Controller
             ->roles()
             ->where('title', 'Teacher')
             ->exists();
+    }
+
+    private function notificationPhone(array $data): ?string
+    {
+        return $data['notification_phone']
+            ?? $data['guardian_phone']
+            ?? $data['guardian_whatsapp']
+            ?? $data['father_phone']
+            ?? $data['mother_phone']
+            ?? $data['student_personal_phone']
+            ?? $data['phone']
+            ?? null;
     }
 }

@@ -40,51 +40,109 @@ class StudentBatchesController extends Controller
         return view('admin.studentBatches.create', $this->formData());
     }
 
+    public function matrix(Request $request)
+    {
+        abort_if(Gate::denies('student_batch_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'batch_ids' => ['required', 'array', 'min:1'],
+            'batch_ids.*' => ['integer', 'exists:batches,id'],
+            'student_id' => ['nullable', 'integer', 'exists:students,id'],
+        ]);
+
+        $batchIds = array_values(array_unique($data['batch_ids']));
+
+        $batches = $this->authorizedBatchQuery()
+            ->with(['subjects' => fn ($query) => $query->where('status', 'active')->orderBy('name')])
+            ->whereIn('id', $batchIds)
+            ->get();
+
+        abort_if($batches->count() !== count($batchIds), Response::HTTP_FORBIDDEN, 'Invalid batch selected.');
+
+        $studentIdsByBatch = [];
+        $allStudents = collect();
+
+        foreach ($batches as $batch) {
+            $eligible = $this->eligibleStudentsForBatch($batch)
+                ->with(['user:id,name,email'])
+                ->get(['id', 'user_id', 'branch_id', 'course_id', 'batch_id', 'student_code', 'phone']);
+
+            $studentIdsByBatch[$batch->id] = $eligible->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $allStudents = $allStudents->merge($eligible);
+        }
+
+        if (! empty($data['student_id'])) {
+            // "Manage" from the index screen edits one student at a time — scope the matrix
+            // down to just them instead of showing every other student eligible for the batch.
+            $onlyStudentId = (int) $data['student_id'];
+
+            abort_if(
+                ! $this->scopeStudentQuery(Student::query())->where('id', $onlyStudentId)->exists(),
+                Response::HTTP_FORBIDDEN,
+                '403 Forbidden'
+            );
+
+            if (! $allStudents->contains('id', $onlyStudentId)) {
+                $managedStudent = Student::with(['user:id,name,email'])
+                    ->find($onlyStudentId, ['id', 'user_id', 'branch_id', 'course_id', 'batch_id', 'student_code', 'phone']);
+
+                if ($managedStudent) {
+                    $allStudents->push($managedStudent);
+                }
+            }
+
+            $allStudents = $allStudents->where('id', $onlyStudentId)->values();
+
+            foreach ($studentIdsByBatch as $batchId => $ids) {
+                $studentIdsByBatch[$batchId] = in_array($onlyStudentId, $ids, true) ? [$onlyStudentId] : [];
+            }
+        }
+
+        $allStudents = $allStudents->unique('id')->sortBy([['student_code', 'asc'], ['id', 'asc']])->values();
+        $allStudentIds = $allStudents->pluck('id');
+        $allSubjectIds = $batches->flatMap(fn ($batch) => $batch->subjects->pluck('id'))->unique()->values();
+
+        $assignments = StudentBatch::query()
+            ->whereIn('batch_id', $batchIds)
+            ->whereIn('student_id', $allStudentIds)
+            ->whereIn('subject_id', $allSubjectIds)
+            ->where('status', 'active')
+            ->get(['student_id', 'batch_id', 'subject_id'])
+            ->groupBy('student_id')
+            ->map(fn ($rows) => $rows->groupBy('batch_id')
+                ->map(fn ($r) => $r->pluck('subject_id')->map(fn ($id) => (int) $id)->values()))
+            ->toArray();
+
+        return response()->json([
+            'batches' => $batches->map(fn ($batch) => [
+                'id' => $batch->id,
+                'name' => $batch->name,
+                'branch_id' => $batch->branch_id,
+                'course_id' => $batch->course_id,
+                'student_ids' => $studentIdsByBatch[$batch->id],
+                'subjects' => $batch->subjects->map(fn ($subject) => [
+                    'id' => $subject->id,
+                    'name' => $subject->name,
+                ])->values(),
+            ])->values(),
+            'students' => $allStudents->map(fn ($student) => [
+                'id' => $student->id,
+                'name' => $student->user->name ?? $student->student_code ?? 'Student #'.$student->id,
+                'code' => $student->student_code,
+                'phone' => $student->phone,
+            ])->values(),
+            'assignments' => $assignments,
+        ]);
+    }
+
     public function store(Request $request, WhatsappService $whatsapp)
     {
         abort_if(Gate::denies('student_batch_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $data = $this->validatedForStore($request);
-        $this->validateBulkStudentBatchAccess($data);
+        $data = $this->validatedMatrix($request);
+        $result = $this->syncMatrixAssignments($data);
 
-        $created = 0;
-        $skipped = 0;
-
-        DB::transaction(function () use ($data, $whatsapp, &$created, &$skipped) {
-            foreach ($data['student_ids'] as $studentId) {
-                foreach ($this->subjectIdsForCreate($data) as $subjectId) {
-                    $row = [
-                        'student_id' => $studentId,
-                        'batch_id' => $data['batch_id'],
-                        'subject_id' => $subjectId ?: null,
-                        'start_date' => $data['start_date'] ?? null,
-                        'end_date' => $data['end_date'] ?? null,
-                        'status' => $data['status'],
-                    ];
-
-                    if ($this->duplicateAssignmentExists($row)) {
-                        $skipped++;
-                        continue;
-                    }
-
-                    $studentBatch = StudentBatch::create($row);
-                    $studentBatch->load(['student', 'batch', 'subject']);
-
-                    $whatsapp->sendStudentGuardianMessage(
-                        $studentBatch->student,
-                        'batch_changed',
-                        'Batch assigned/changed: ' . ($studentBatch->batch->name ?? '-') . ($studentBatch->subject ? ' for ' . $studentBatch->subject->name : '')
-                    );
-
-                    $created++;
-                }
-            }
-        });
-
-        $message = $created . ' student batch assignment(s) saved successfully.';
-        if ($skipped) {
-            $message .= ' ' . $skipped . ' duplicate assignment(s) skipped.';
-        }
+        $message = "Student subject assignments saved. {$result['created']} added, {$result['deleted']} removed.";
 
         return redirect()->route('admin.student-batches.index')->with('message', $message);
     }
@@ -94,7 +152,10 @@ class StudentBatchesController extends Controller
         abort_if(Gate::denies('student_batch_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $this->assertStudentBatchAccess($studentBatch);
 
-        return view('admin.studentBatches.edit', $this->formData() + compact('studentBatch'));
+        $studentBatch->load('student.user');
+        $managedStudentId = $studentBatch->student_id;
+
+        return view('admin.studentBatches.edit', $this->formData() + compact('studentBatch', 'managedStudentId'));
     }
 
     public function update(Request $request, StudentBatch $studentBatch, WhatsappService $whatsapp)
@@ -102,64 +163,10 @@ class StudentBatchesController extends Controller
         abort_if(Gate::denies('student_batch_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $this->assertStudentBatchAccess($studentBatch);
 
-        $data = $this->validatedForUpdate($request);
-        $this->validateUpdateStudentBatchAccess($data);
+        $data = $this->validatedMatrix($request);
+        $result = $this->syncMatrixAssignments($data);
 
-        $subjectIds = $this->subjectIdsForCreate($data);
-        $firstSubjectId = array_shift($subjectIds);
-
-        $primaryData = [
-            'student_id' => $data['student_id'],
-            'batch_id' => $data['batch_id'],
-            'subject_id' => $firstSubjectId ?: null,
-            'start_date' => $data['start_date'] ?? null,
-            'end_date' => $data['end_date'] ?? null,
-            'status' => $data['status'],
-        ];
-
-        $this->assertNoDuplicateAssignment($primaryData, $studentBatch->id);
-
-        $created = 0;
-        $skipped = 0;
-
-        DB::transaction(function () use ($studentBatch, $primaryData, $subjectIds, $data, &$created, &$skipped) {
-            $studentBatch->update($primaryData);
-
-            foreach ($subjectIds as $subjectId) {
-                $row = [
-                    'student_id' => $data['student_id'],
-                    'batch_id' => $data['batch_id'],
-                    'subject_id' => $subjectId ?: null,
-                    'start_date' => $data['start_date'] ?? null,
-                    'end_date' => $data['end_date'] ?? null,
-                    'status' => $data['status'],
-                ];
-
-                if ($this->duplicateAssignmentExists($row)) {
-                    $skipped++;
-                    continue;
-                }
-
-                StudentBatch::create($row);
-                $created++;
-            }
-        });
-
-        $studentBatch->load(['student', 'batch', 'subject']);
-
-        $whatsapp->sendStudentGuardianMessage(
-            $studentBatch->student,
-            'batch_changed',
-            'Batch assignment updated: ' . ($studentBatch->batch->name ?? '-') . ($studentBatch->subject ? ' for ' . $studentBatch->subject->name : '')
-        );
-
-        $message = 'Student batch updated successfully.';
-        if ($created) {
-            $message .= ' ' . $created . ' additional subject assignment(s) added.';
-        }
-        if ($skipped) {
-            $message .= ' ' . $skipped . ' duplicate assignment(s) skipped.';
-        }
+        $message = "Student subject assignments updated. {$result['created']} added, {$result['deleted']} removed.";
 
         return redirect()->route('admin.student-batches.index')->with('message', $message);
     }
@@ -177,125 +184,156 @@ class StudentBatchesController extends Controller
     private function formData(): array
     {
         $batches = $this->scopeBatchQuery(Batch::with(['branch', 'subjects']))->get();
-        $batchSubjects = $batches->mapWithKeys(function ($batch) {
-            return [
-                $batch->id => $batch->subjects
-                    ->map(fn ($subject) => ['id' => $subject->id, 'name' => $subject->name])
-                    ->values(),
-            ];
-        });
 
         return [
-            'students' => $this->scopeStudentQuery(Student::with('user'))->get()->mapWithKeys(fn ($student) => [$student->id => $student->user->name ?? $student->student_code ?? ('Student #' . $student->id)])->prepend(trans('global.pleaseSelect'), ''),
             'batches' => $batches->mapWithKeys(fn ($batch) => [$batch->id => $batch->name . ' - ' . ($batch->branch->name ?? '-')])->prepend(trans('global.pleaseSelect'), ''),
-            'subjects' => $this->scopeBranchQuery(Subject::query())->pluck('name', 'id')->prepend('Optional', ''),
-            'batchSubjects' => $batchSubjects,
         ];
     }
 
-    private function validatedForStore(Request $request): array
+    private function validatedMatrix(Request $request): array
     {
         return $request->validate([
-            'student_ids' => ['required', 'array', 'min:1'],
-            'student_ids.*' => ['integer', 'exists:students,id'],
-            'batch_id' => ['required', 'exists:batches,id'],
-            'subject_ids' => ['nullable', 'array'],
-            'subject_ids.*' => ['integer', 'exists:subjects,id'],
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'batch_ids' => ['required', 'array', 'min:1'],
+            'batch_ids.*' => ['integer', 'exists:batches,id'],
+            'assignments' => ['nullable', 'array'],
+            'assignments.*' => ['nullable', 'array'],
+            'assignments.*.*' => ['nullable', 'array'],
+            'assignments.*.*.*' => ['integer', 'exists:subjects,id'],
             'status' => ['required', 'in:active,inactive'],
+            'only_student_id' => ['nullable', 'integer', 'exists:students,id'],
         ]);
     }
 
-    private function validatedForUpdate(Request $request): array
+    private function syncMatrixAssignments(array $data): array
     {
-        return $request->validate([
-            'student_id' => ['required', 'exists:students,id'],
-            'batch_id' => ['required', 'exists:batches,id'],
-            'subject_ids' => ['nullable', 'array'],
-            'subject_ids.*' => ['integer', 'exists:subjects,id'],
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'status' => ['required', 'in:active,inactive'],
-        ]);
+        $batchIds = array_values(array_unique($data['batch_ids']));
+
+        $batches = $this->authorizedBatchQuery()
+            ->with('subjects:id')
+            ->whereIn('id', $batchIds)
+            ->get();
+
+        abort_if($batches->count() !== count($batchIds), Response::HTTP_FORBIDDEN, 'Invalid batch selected.');
+
+        $created = 0;
+        $deleted = 0;
+
+        DB::transaction(function () use ($batches, $data, &$created, &$deleted) {
+            foreach ($batches as $batch) {
+                $result = $this->syncBatchAssignments($batch, $data, $data['only_student_id'] ?? null);
+                $created += $result['created'];
+                $deleted += $result['deleted'];
+            }
+        });
+
+        return compact('created', 'deleted');
     }
 
-    private function validateStudentBatchAccess(array $data): void
+    private function syncBatchAssignments(Batch $batch, array $data, ?int $onlyStudentId = null): array
     {
-        abort_if(! $this->scopeStudentQuery(Student::query())->where('id', $data['student_id'])->exists(), Response::HTTP_FORBIDDEN, 'Invalid student.');
-        abort_if(! $this->scopeBatchQuery(Batch::query())->where('id', $data['batch_id'])->exists(), Response::HTTP_FORBIDDEN, 'Invalid batch.');
+        $students = $this->eligibleStudentsForBatch($batch)->get(['id']);
+        $eligibleStudentIds = $students->pluck('id')->map(fn ($id) => (int) $id)->values();
 
-        if (! empty($data['subject_id'])) {
-            abort_if(! $this->scopeBranchQuery(Subject::query())->where('id', $data['subject_id'])->exists(), Response::HTTP_FORBIDDEN, 'Invalid subject.');
-            abort_if(! Batch::where('id', $data['batch_id'])->whereHas('subjects', fn ($q) => $q->where('subjects.id', $data['subject_id']))->exists(), Response::HTTP_FORBIDDEN, 'Selected subject is not linked with selected batch.');
-        }
-    }
-
-    private function validateBulkStudentBatchAccess(array $data): void
-    {
-        $studentCount = $this->scopeStudentQuery(Student::query())
-            ->whereIn('id', $data['student_ids'])
-            ->count();
-
-        abort_if($studentCount !== count(array_unique($data['student_ids'])), Response::HTTP_FORBIDDEN, 'Invalid student selected.');
-        abort_if(! $this->scopeBatchQuery(Batch::query())->where('id', $data['batch_id'])->exists(), Response::HTTP_FORBIDDEN, 'Invalid batch.');
-
-        $subjectIds = array_filter($data['subject_ids'] ?? []);
-
-        if ($subjectIds) {
-            $linkedCount = Batch::where('id', $data['batch_id'])
-                ->firstOrFail()
-                ->subjects()
-                ->whereIn('subjects.id', $subjectIds)
-                ->count();
-
-            abort_if($linkedCount !== count(array_unique($subjectIds)), Response::HTTP_FORBIDDEN, 'Selected subject is not linked with selected batch.');
-        }
-    }
-
-    private function validateUpdateStudentBatchAccess(array $data): void
-    {
-        abort_if(! $this->scopeStudentQuery(Student::query())->where('id', $data['student_id'])->exists(), Response::HTTP_FORBIDDEN, 'Invalid student.');
-        abort_if(! $this->scopeBatchQuery(Batch::query())->where('id', $data['batch_id'])->exists(), Response::HTTP_FORBIDDEN, 'Invalid batch.');
-
-        $subjectIds = array_filter($data['subject_ids'] ?? []);
-
-        if ($subjectIds) {
-            $linkedCount = Batch::where('id', $data['batch_id'])
-                ->firstOrFail()
-                ->subjects()
-                ->whereIn('subjects.id', $subjectIds)
-                ->count();
-
-            abort_if($linkedCount !== count(array_unique($subjectIds)), Response::HTTP_FORBIDDEN, 'Selected subject is not linked with selected batch.');
-        }
-    }
-
-    private function assertNoDuplicateAssignment(array $data, ?int $ignoreId = null): void
-    {
-        $query = StudentBatch::where('unique_key', StudentBatch::makeUniqueKey($data['student_id'], $data['batch_id'], $data['subject_id'] ?? null));
-
-        if ($ignoreId) {
-            $query->where('id', '!=', $ignoreId);
+        if ($onlyStudentId !== null) {
+            // "Manage" edits one student at a time — only touch that student's assignments for
+            // this batch, so the rest of the batch's roster is left completely untouched.
+            $eligibleStudentIds = $eligibleStudentIds->filter(fn ($id) => $id === $onlyStudentId)->values();
         }
 
-        abort_if($query->exists(), Response::HTTP_UNPROCESSABLE_ENTITY, 'Student is already assigned to this batch/subject.');
-    }
+        $eligibleStudentSet = $eligibleStudentIds->flip();
+        $batchSubjectIds = $batch->subjects->pluck('id')->map(fn ($id) => (int) $id)->values();
+        $batchSubjectSet = $batchSubjectIds->flip();
 
-    private function duplicateAssignmentExists(array $data): bool
-    {
-        return StudentBatch::where('unique_key', StudentBatch::makeUniqueKey($data['student_id'], $data['batch_id'], $data['subject_id'] ?? null))->exists();
-    }
+        $requested = collect($data['assignments'] ?? [])->map(function ($byBatch) use ($batch) {
+            $byBatch = collect($byBatch);
 
-    private function subjectIdsForCreate(array $data): array
-    {
-        $subjectIds = array_values(array_filter($data['subject_ids'] ?? []));
+            return $byBatch->get((string) $batch->id, $byBatch->get($batch->id, []));
+        });
 
-        return $subjectIds ?: [null];
+        foreach ($requested as $studentId => $subjectIds) {
+            if (empty($subjectIds)) {
+                continue;
+            }
+
+            abort_if(! $eligibleStudentSet->has((int) $studentId), Response::HTTP_FORBIDDEN, 'Invalid student selected.');
+
+            foreach ((array) $subjectIds as $subjectId) {
+                abort_if(! $batchSubjectSet->has((int) $subjectId), Response::HTTP_FORBIDDEN, 'Selected subject is not linked with selected batch.');
+            }
+        }
+
+        $existingRows = StudentBatch::where('batch_id', $batch->id)
+            ->whereIn('student_id', $eligibleStudentIds)
+            ->whereIn('subject_id', $batchSubjectIds)
+            ->get(['id', 'student_id', 'subject_id', 'unique_key']);
+
+        $existingKeys = $existingRows
+            ->mapWithKeys(fn ($row) => [StudentBatch::makeUniqueKey($row->student_id, $batch->id, $row->subject_id) => $row])
+            ->all();
+
+        $desiredKeys = [];
+
+        foreach ($eligibleStudentIds as $studentId) {
+            $subjectIds = collect($requested->get((string) $studentId, $requested->get((int) $studentId, [])))
+                ->map(fn ($id) => (int) $id)
+                ->intersect($batchSubjectIds)
+                ->unique()
+                ->values();
+
+            foreach ($subjectIds as $subjectId) {
+                $key = StudentBatch::makeUniqueKey($studentId, $batch->id, $subjectId);
+                $desiredKeys[$key] = [
+                    'student_id' => $studentId,
+                    'batch_id' => $batch->id,
+                    'subject_id' => $subjectId,
+                    'status' => $data['status'],
+                ];
+            }
+        }
+
+        $deleteIds = [];
+
+        foreach ($existingKeys as $key => $row) {
+            if (! isset($desiredKeys[$key])) {
+                $deleteIds[] = $row->id;
+            }
+        }
+
+        $created = 0;
+        $deleted = 0;
+
+        if ($deleteIds) {
+            $deleted = count($deleteIds);
+            StudentBatch::whereIn('id', $deleteIds)->delete();
+        }
+
+        foreach ($desiredKeys as $key => $row) {
+            if (isset($existingKeys[$key])) {
+                StudentBatch::where('id', $existingKeys[$key]->id)->update(['status' => $data['status']]);
+                continue;
+            }
+
+            StudentBatch::create($row);
+            $created++;
+        }
+
+        return compact('created', 'deleted');
     }
 
     private function assertStudentBatchAccess(StudentBatch $studentBatch): void
     {
         abort_if(! $this->scopeStudentQuery(Student::query())->where('id', $studentBatch->student_id)->exists(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+    }
+
+    private function authorizedBatchQuery()
+    {
+        return $this->scopeBatchQuery(Batch::query());
+    }
+
+    private function eligibleStudentsForBatch(Batch $batch)
+    {
+        return $this->scopeStudentQuery(Student::query())
+            ->where('branch_id', $batch->branch_id)
+            ->when($batch->course_id, fn ($query) => $query->where('course_id', $batch->course_id));
     }
 }

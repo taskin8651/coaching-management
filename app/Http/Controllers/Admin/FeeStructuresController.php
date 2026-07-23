@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFeeStructureRequest;
 use App\Http\Requests\UpdateFeeStructureRequest;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class FeeStructuresController extends Controller
 {
+    use AppliesErpScope;
     public function index()
     {
         abort_if(Gate::denies('fee_structure_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -68,7 +70,10 @@ class FeeStructuresController extends Controller
             ->pluck('name', 'id')
             ->prepend('All Batches / Optional', '');
 
-        return view('admin.feeStructures.create', compact('branches', 'courses', 'batches'));
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+
+        return view('admin.feeStructures.create', compact('branches', 'courses', 'batches', 'coursesByBranch', 'batchesByBranchCourse'));
     }
 
     public function store(StoreFeeStructureRequest $request)
@@ -134,13 +139,18 @@ class FeeStructuresController extends Controller
             ->pluck('name', 'id')
             ->prepend('All Batches / Optional', '');
 
+        $coursesByBranch = $this->coursesByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+
         $feeStructure->load(['branch', 'course', 'batch']);
 
         return view('admin.feeStructures.edit', compact(
             'feeStructure',
             'branches',
             'courses',
-            'batches'
+            'batches',
+            'coursesByBranch',
+            'batchesByBranchCourse'
         ));
     }
 

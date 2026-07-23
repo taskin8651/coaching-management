@@ -100,7 +100,7 @@
 
                 <div class="field-group">
                     <label class="field-label">Branch <span class="req">*</span></label>
-                    <select name="branch_id" class="field-input" required>
+                    <select name="branch_id" id="branch_id" class="field-input" required>
                         @foreach($branches as $id => $branch)
                             <option value="{{ $id }}" {{ old('branch_id', $admission->branch_id) == $id ? 'selected' : '' }}>{{ $branch }}</option>
                         @endforeach
@@ -108,19 +108,19 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label">Course</label>
-                    <select name="course_id" class="field-input">
-                        @foreach($courses as $id => $course)
-                            <option value="{{ $id }}" {{ old('course_id', $admission->course_id) == $id ? 'selected' : '' }}>{{ $course }}</option>
+                    <label class="field-label">Batch</label>
+                    <select name="batch_id" id="batch_id" class="field-input">
+                        @foreach($batches as $id => $batch)
+                            <option value="{{ $id }}" {{ old('batch_id', $admission->batch_id) == $id ? 'selected' : '' }}>{{ $batch }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label">Batch</label>
-                    <select name="batch_id" class="field-input">
-                        @foreach($batches as $id => $batch)
-                            <option value="{{ $id }}" {{ old('batch_id', $admission->batch_id) == $id ? 'selected' : '' }}>{{ $batch }}</option>
+                    <label class="field-label">Course</label>
+                    <select name="course_id" id="course_id" class="field-input">
+                        @foreach($courses as $id => $course)
+                            <option value="{{ $id }}" {{ old('course_id', $admission->course_id) == $id ? 'selected' : '' }}>{{ $course }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -304,4 +304,28 @@
 
 </form>
 
+@endsection
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const branchSelect = document.getElementById('branch_id');
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect = document.getElementById('batch_id');
+    const batchesByBranch = @json($batchesByBranch);
+    const coursesByBatch = @json($coursesByBatch);
+    const placeholder = @json(trans('global.pleaseSelect'));
+
+    cascadeByParent(batchSelect, branchSelect, batchesByBranch, {
+        placeholder,
+        keepValue: @json(old('batch_id', $admission->batch_id)),
+    });
+
+    cascadeByParent(courseSelect, batchSelect, coursesByBatch, {
+        placeholder,
+        keepValue: @json(old('course_id', $admission->course_id)),
+    });
+});
+</script>
 @endsection

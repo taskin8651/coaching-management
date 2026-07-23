@@ -75,7 +75,7 @@
                         <td></td>
 
                         <td>
-                            <span class="id-text">#{{ $enquiry->id }}</span>
+                            <span class="id-text">#{{ $loop->iteration }}</span>
                         </td>
 
                         <td>
