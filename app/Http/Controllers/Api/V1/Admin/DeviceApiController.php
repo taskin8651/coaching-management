@@ -14,6 +14,8 @@ use App\Models\BiometricDeviceLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
+use App\Models\Teacher;
+
 class DeviceApiController extends Controller
 {
     public function heartbeat(Request $request): JsonResponse
