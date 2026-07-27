@@ -6,15 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-use App\Models\Student;
-use App\Models\StudentBatch;
-use App\Models\Timetable;
-use App\Models\StudentAttendance;
 use App\Models\BiometricDeviceLog;
+use App\Models\Staff;
+use App\Models\Student;
+use App\Models\Teacher;
+use App\Services\BiometricAttendanceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-
-use App\Models\Teacher;
 
 class DeviceApiController extends Controller
 {
@@ -25,213 +23,85 @@ class DeviceApiController extends Controller
         ]);
     }
 
-    public function attendance(Request $request): JsonResponse
-{
-    $transactions = $request->input('trans', []);
+    public function attendance(Request $request, BiometricAttendanceService $service): JsonResponse
+    {
+        $transactions = $request->input('trans', []);
 
-    $response = [];
+        $response = [];
 
-    foreach ($transactions as $txn) {
+        foreach ($transactions as $txn) {
+            DB::beginTransaction();
 
-        DB::beginTransaction();
+            try {
+                $punchId = $txn['punchId'] ?? null;
+                $txnTime = Carbon::parse($txn['txnDateTime'] ?? now());
+                $mode = strtolower($txn['mode'] ?? $txn['punch_type'] ?? 'in');
+                $userType = $this->resolveUserType($txn, $punchId);
 
-        try {
-
-            $punchId = $txn['punchId'] ?? null;
-
-            $txnTime = Carbon::parse(
-                $txn['txnDateTime'] ?? now()
-            );
-
-            $mode = strtoupper(
-                $txn['mode'] ?? 'IN'
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | Save Raw Device Log
-            |--------------------------------------------------------------------------
-            */
-
-            $deviceLog = BiometricDeviceLog::create([
-                'biometric_user_id' => $punchId,
-                'user_type'         => 'student',
-                'punch_time'        => $txnTime,
-                'punch_type'        => $mode,
-                'device_id'         => $txn['dvcId'] ?? null,
-                'raw_payload'       => $txn,
-                'processed_status'  => 'pending',
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | Find Student
-            |--------------------------------------------------------------------------
-            */
-
-            $student = Student::where('biometric_id', $punchId)
-                ->first();
-
-            if (!$student) {
-
-                $deviceLog->update([
-                    'processed_status' => 'ignored',
-                    'processing_message' => 'Student not found',
-                    'processed_at' => now(),
+                $deviceLog = BiometricDeviceLog::create([
+                    'biometric_user_id' => $punchId,
+                    'user_type'         => $userType,
+                    'punch_time'        => $txnTime,
+                    'punch_type'        => in_array($mode, ['in', 'out'], true) ? $mode : 'in',
+                    'device_id'         => $txn['dvcId'] ?? $txn['device_id'] ?? null,
+                    'raw_payload'       => $txn,
+                    'processed_status'  => 'pending',
                 ]);
 
-                DB::commit();
+                $service->process($deviceLog);
 
                 $response[] = [
-                    'txnId' => $txn['txnId'],
-                    'status' => 0,
+                    'txnId' => $txn['txnId'] ?? 0,
+                    'status' => $deviceLog->fresh()->processed_status === 'processed' ? 1 : 0,
                 ];
-
-                continue;
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Active Batch
-            |--------------------------------------------------------------------------
-            */
-
-            $studentBatch = StudentBatch::where(
-                'student_id',
-                $student->id
-            )
-            ->where('status', 'active')
-            ->first();
-
-            if (!$studentBatch) {
-
-                $deviceLog->update([
-                    'processed_status' => 'ignored',
-                    'processing_message' => 'Active batch not found',
-                    'processed_at' => now(),
-                ]);
 
                 DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
 
-                $response[] = [
-                    'txnId' => $txn['txnId'],
-                    'status' => 0,
-                ];
-
-                continue;
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Today's Timetable
-            |--------------------------------------------------------------------------
-            */
-
-            $today = $txnTime->format('l'); // Monday
-
-            $timetable = Timetable::where('batch_id', $studentBatch->batch_id)
-                ->where('day_of_week', $today)
-                ->where('status', 'scheduled')
-                ->orderBy('start_time')
-                ->first();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Attendance Date
-            |--------------------------------------------------------------------------
-            */
-
-            $attendanceDate = $txnTime->toDateString();
-
-            $attendance = StudentAttendance::firstOrCreate(
-                [
-                    'student_id'      => $student->id,
-                    'batch_id'        => $studentBatch->batch_id,
-                    'subject_id'      => optional($timetable)->subject_id,
-                    'attendance_date' => $attendanceDate,
-                ],
-                [
-                    'biometric_device_log_id' => $deviceLog->id,
-                    'scheduled_start_time'    => optional($timetable)->start_time,
-                    'scheduled_end_time'      => optional($timetable)->end_time,
-                    'status'                  => 'present',
-                    'source'                  => 'biometric',
-                ]
-            );
-
-            if ($mode === 'IN') {
-
-                if (!$attendance->actual_in_time) {
-
-                    $attendance->update([
-                        'actual_in_time' => $txnTime->format('H:i:s'),
-                    ]);
-
-                    app(\App\Services\WhatsappService::class)
-                        ->sendStudentBiometricCheckIn(
-                            $student,
-                            $txnTime
-                        );
-                }
-
-            } else {
-
-                $attendance->update([
-                    'actual_out_time' => $txnTime->format('H:i:s'),
+                \Log::error('BIOMETRIC ATTENDANCE ERROR', [
+                    'txn' => $txn,
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => $e->getFile(),
                 ]);
 
+                $response[] = [
+                    'txnId' => $txn['txnId'] ?? 0,
+                    'status' => 0,
+                ];
             }
-
-            $deviceLog->update([
-                'processed_status' => 'processed',
-                'processing_message' => 'Attendance created',
-                'processed_at' => now(),
-            ]);
-
-            DB::commit();
-
-            $response[] = [
-                'txnId' => $txn['txnId'],
-                'status' => 1,
-            ];
-
-        } catch (\Throwable $e) {
-
-            DB::rollBack();
-
-            \Log::error('BIOMETRIC ATTENDANCE ERROR', [
-                'txn' => $txn,
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
-            ]);
-
-            $response[] = [
-                'txnId' => $txn['txnId'] ?? 0,
-                'status' => 0,
-            ];
         }
+
+        return response()->json([
+            'transStatus' => $response
+        ]);
     }
 
-    return response()->json([
-        'transStatus' => $response
-    ]);
-}
-
-    private function decode(Request $request): array
+    private function resolveUserType(array $txn, ?string $punchId): string
     {
-        $payload = $request->all();
+        $potentialType = strtolower($txn['userType'] ?? $txn['user_type'] ?? $txn['type'] ?? '');
 
-        if (!empty($payload)) {
-            return $payload;
+        if (in_array($potentialType, ['student', 'teacher', 'staff'], true)) {
+            return $potentialType;
         }
 
-        $json = json_decode($request->getContent(), true);
-
-        if (json_last_error() === JSON_ERROR_NONE && is_array($json)) {
-            return $json;
+        if (! $punchId) {
+            return 'student';
         }
 
-        return [];
+        if (Student::where('biometric_id', $punchId)->exists()) {
+            return 'student';
+        }
+
+        if (Teacher::where('biometric_id', $punchId)->exists()) {
+            return 'teacher';
+        }
+
+        if (Staff::where('biometric_id', $punchId)->exists()) {
+            return 'staff';
+        }
+
+        return 'student';
     }
 }
