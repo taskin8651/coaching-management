@@ -35,7 +35,7 @@ class DeviceApiController extends Controller
             try {
                 $punchId = $txn['punchId'] ?? null;
                 $txnTime = Carbon::parse($txn['txnDateTime'] ?? now());
-                $mode = strtoupper($txn['mode'] ?? 'IN');
+                $mode = $service->normalizePunchType($txn['mode'] ?? 'IN');
 
                 // Detect user type by checking Student, Staff, Teacher
                 $userType = $this->detectUserType($punchId);

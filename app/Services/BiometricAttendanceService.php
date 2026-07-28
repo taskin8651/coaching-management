@@ -17,6 +17,13 @@ use Illuminate\Support\Facades\DB;
 
 class BiometricAttendanceService
 {
+    public function normalizePunchType(?string $punchType): string
+    {
+        $normalized = strtolower(trim((string) ($punchType ?? '')));
+
+        return in_array($normalized, ['in', 'out'], true) ? $normalized : 'in';
+    }
+
     public function process(BiometricDeviceLog $log): void
     {
         DB::transaction(function () use ($log) {
@@ -47,6 +54,7 @@ class BiometricAttendanceService
         $batch = $batchAssignment->batch;
         $date = $log->punch_time->toDateString();
         $time = $log->punch_time->format('H:i:s');
+        $punchType = $this->normalizePunchType($log->punch_type);
 
         $attendance = StudentAttendance::firstOrNew([
             'student_id' => $student->id,
@@ -62,9 +70,9 @@ class BiometricAttendanceService
             'biometric_device_log_id' => $log->id,
         ]);
 
-        $shouldSendCheckIn = $log->punch_type === 'in' && ! $attendance->actual_in_time;
+        $shouldSendCheckIn = $punchType === 'in' && ! $attendance->actual_in_time;
 
-        if ($log->punch_type === 'in') {
+        if ($punchType === 'in') {
             $attendance->actual_in_time = $attendance->actual_in_time
                 ? min($attendance->actual_in_time, $time)
                 : $time;
@@ -167,6 +175,7 @@ class BiometricAttendanceService
         ]);
 
         $time = $log->punch_time->format('H:i:s');
+        $punchType = $this->normalizePunchType($log->punch_type);
 
         $attendance->fill([
             'teacher_id' => $teacherId,
@@ -176,7 +185,7 @@ class BiometricAttendanceService
             'status' => 'present',
         ]);
 
-        if ($log->punch_type === 'in') {
+        if ($punchType === 'in') {
             $attendance->first_in_time = $attendance->first_in_time
                 ? min($attendance->first_in_time, $time)
                 : $time;
@@ -239,8 +248,9 @@ class BiometricAttendanceService
         ]);
 
         $punchTime = $log->punch_time->format('H:i:s');
+        $punchType = $this->normalizePunchType($log->punch_type);
 
-        if ($log->punch_type === 'in') {
+        if ($punchType === 'in') {
             $logBook->actual_start_time = $logBook->actual_start_time
                 ? min($logBook->actual_start_time, $punchTime)
                 : $punchTime;

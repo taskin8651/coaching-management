@@ -25,9 +25,11 @@ class BiometricAttendanceController extends Controller
             'biometric_user_id' => ['required', 'string', 'max:255'],
             'user_type' => ['required', 'in:student,staff,teacher'],
             'punch_time' => ['required', 'date'],
-            'punch_type' => ['required', 'in:in,out'],
+            'punch_type' => ['required', 'string'],
             'device_id' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $data['punch_type'] = $service->normalizePunchType($data['punch_type'] ?? null);
 
         $log = BiometricDeviceLog::create($data + [
             'raw_payload' => $request->all(),
