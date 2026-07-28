@@ -24,6 +24,19 @@ class BiometricAttendanceService
         return in_array($normalized, ['in', 'out'], true) ? $normalized : 'in';
     }
 
+    public function inferStaffPunchType(StaffAttendance $attendance, ?string $punchType): string
+    {
+        if (! $attendance->first_in_time) {
+            return 'in';
+        }
+
+        if (! $attendance->last_out_time) {
+            return 'out';
+        }
+
+        return $this->normalizePunchType($punchType);
+    }
+
     public function process(BiometricDeviceLog $log): void
     {
         DB::transaction(function () use ($log) {
@@ -101,8 +114,10 @@ class BiometricAttendanceService
             return;
         }
 
-        $this->upsertStaffAttendance($log, $teacher->user_id, $teacher->branch_id, $teacher->id, null);
-        $this->syncTeacherFacultyLog($teacher, $log);
+        $timetable = $this->matchTeacherTimetable($teacher, $log);
+
+        $this->upsertStaffAttendance($log, $teacher->user_id, $teacher->branch_id, $teacher->id, null, $timetable);
+        $this->syncTeacherFacultyLog($teacher, $log, $timetable);
         $this->processed($log, 'Teacher attendance processed.');
     }
 
@@ -167,15 +182,37 @@ class BiometricAttendanceService
         return $actual->greaterThan($start) ? 'late' : 'present';
     }
 
-    private function upsertStaffAttendance(BiometricDeviceLog $log, $userId, $branchId, $teacherId, $staffId): void
+    private function upsertStaffAttendance(BiometricDeviceLog $log, $userId, $branchId, $teacherId, $staffId, ?Timetable $timetable = null): void
     {
+        if ($teacherId) {
+            $setting = AttendanceSetting::current();
+            $time = $log->punch_time;
+
+            if (! $timetable) {
+                $timetable = $this->matchTeacherTimetable($this->teacherFromId($teacherId), $log);
+            }
+
+            if (! $timetable) {
+                return;
+            }
+
+            $windowStart = Carbon::parse($time->toDateString() . ' ' . $timetable->start_time)
+                ->subMinutes($setting->teacher_grace_minutes);
+            $windowEnd = Carbon::parse($time->toDateString() . ' ' . $timetable->end_time)
+                ->addMinutes($setting->teacher_grace_minutes);
+
+            if (! $time->betweenIncluded($windowStart, $windowEnd)) {
+                return;
+            }
+        }
+
         $attendance = StaffAttendance::firstOrNew([
             'user_id' => $userId,
             'attendance_date' => $log->punch_time->toDateString(),
         ]);
 
         $time = $log->punch_time->format('H:i:s');
-        $punchType = $this->normalizePunchType($log->punch_type);
+        $punchType = $this->inferStaffPunchType($attendance, $log->punch_type);
 
         $attendance->fill([
             'teacher_id' => $teacherId,
@@ -203,36 +240,15 @@ class BiometricAttendanceService
         $attendance->save();
     }
 
-    private function syncTeacherFacultyLog(Teacher $teacher, BiometricDeviceLog $log): void
+    private function syncTeacherFacultyLog(Teacher $teacher, BiometricDeviceLog $log, ?Timetable $timetable = null): void
     {
         $setting = AttendanceSetting::current();
         $date = $log->punch_time->toDateString();
         $time = $log->punch_time;
 
-        $timetable = Timetable::where('teacher_id', $teacher->id)
-            ->where('status', 'scheduled')
-            ->where(function ($query) use ($date, $time) {
-                $query->whereDate('schedule_date', $date)
-                    ->orWhere('day_of_week', $time->format('l'));
-            })
-            ->get()
-            ->filter(function ($row) use ($time, $setting) {
-                if (! $row->start_time || ! $row->end_time) {
-                    return false;
-                }
-
-                $start = Carbon::parse($time->toDateString() . ' ' . $row->start_time)
-                    ->subMinutes($setting->teacher_grace_minutes);
-                $end = Carbon::parse($time->toDateString() . ' ' . $row->end_time)
-                    ->addMinutes($setting->teacher_grace_minutes);
-
-                return $time->betweenIncluded($start, $end);
-            })
-            ->sortBy(function ($row) use ($time) {
-                $start = Carbon::parse($time->toDateString() . ' ' . $row->start_time);
-                return abs($time->diffInSeconds($start, false));
-            })
-            ->first();
+        if (! $timetable) {
+            $timetable = $this->matchTeacherTimetable($teacher, $log);
+        }
 
         if (! $timetable) {
             return;
@@ -279,6 +295,43 @@ class BiometricAttendanceService
         ]);
 
         $logBook->save();
+    }
+
+    private function matchTeacherTimetable(Teacher $teacher, BiometricDeviceLog $log): ?Timetable
+    {
+        $setting = AttendanceSetting::current();
+        $date = $log->punch_time->toDateString();
+        $time = $log->punch_time;
+
+        return Timetable::where('teacher_id', $teacher->id)
+            ->where('status', 'scheduled')
+            ->where(function ($query) use ($date, $time) {
+                $query->whereDate('schedule_date', $date)
+                    ->orWhere('day_of_week', $time->format('l'));
+            })
+            ->get()
+            ->filter(function ($row) use ($time, $setting) {
+                if (! $row->start_time || ! $row->end_time) {
+                    return false;
+                }
+
+                $start = Carbon::parse($time->toDateString() . ' ' . $row->start_time)
+                    ->subMinutes($setting->teacher_grace_minutes);
+                $end = Carbon::parse($time->toDateString() . ' ' . $row->end_time)
+                    ->addMinutes($setting->teacher_grace_minutes);
+
+                return $time->betweenIncluded($start, $end);
+            })
+            ->sortBy(function ($row) use ($time) {
+                $start = Carbon::parse($time->toDateString() . ' ' . $row->start_time);
+                return abs($time->diffInSeconds($start, false));
+            })
+            ->first();
+    }
+
+    private function teacherFromId($teacherId): ?Teacher
+    {
+        return $teacherId ? Teacher::find($teacherId) : null;
     }
 
     private function processed(BiometricDeviceLog $log, string $message): void
