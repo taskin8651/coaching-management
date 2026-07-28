@@ -196,10 +196,11 @@ class BiometricAttendanceService
                 return;
             }
 
+            $graceMinutes = max(30, (int) $setting->teacher_grace_minutes);
             $windowStart = Carbon::parse($time->toDateString() . ' ' . $timetable->start_time)
-                ->subMinutes($setting->teacher_grace_minutes);
+                ->subMinutes($graceMinutes);
             $windowEnd = Carbon::parse($time->toDateString() . ' ' . $timetable->end_time)
-                ->addMinutes($setting->teacher_grace_minutes);
+                ->addMinutes(180);
 
             if (! $time->betweenIncluded($windowStart, $windowEnd)) {
                 return;
@@ -223,13 +224,13 @@ class BiometricAttendanceService
         ]);
 
         if ($punchType === 'in') {
-            $attendance->first_in_time = $attendance->first_in_time
-                ? min($attendance->first_in_time, $time)
-                : $time;
+            if (! $attendance->first_in_time) {
+                $attendance->first_in_time = $time;
+            }
         } else {
-            $attendance->last_out_time = $attendance->last_out_time
-                ? max($attendance->last_out_time, $time)
-                : $time;
+            if (! $attendance->last_out_time) {
+                $attendance->last_out_time = $time;
+            }
         }
 
         if ($attendance->first_in_time && $attendance->last_out_time) {
@@ -267,13 +268,13 @@ class BiometricAttendanceService
         $punchType = $this->normalizePunchType($log->punch_type);
 
         if ($punchType === 'in') {
-            $logBook->actual_start_time = $logBook->actual_start_time
-                ? min($logBook->actual_start_time, $punchTime)
-                : $punchTime;
+            if (! $logBook->actual_start_time) {
+                $logBook->actual_start_time = $punchTime;
+            }
         } else {
-            $logBook->actual_end_time = $logBook->actual_end_time
-                ? max($logBook->actual_end_time, $punchTime)
-                : $punchTime;
+            if (! $logBook->actual_end_time) {
+                $logBook->actual_end_time = $punchTime;
+            }
         }
 
         $minutes = app(SalaryCalculationService::class)->payableMinutes(
@@ -315,10 +316,11 @@ class BiometricAttendanceService
                     return false;
                 }
 
+                $graceMinutes = max(30, (int) $setting->teacher_grace_minutes);
                 $start = Carbon::parse($time->toDateString() . ' ' . $row->start_time)
-                    ->subMinutes($setting->teacher_grace_minutes);
+                    ->subMinutes($graceMinutes);
                 $end = Carbon::parse($time->toDateString() . ' ' . $row->end_time)
-                    ->addMinutes($setting->teacher_grace_minutes);
+                    ->addMinutes(180);
 
                 return $time->betweenIncluded($start, $end);
             })
