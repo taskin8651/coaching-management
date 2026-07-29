@@ -30,10 +30,10 @@
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/dropzone/5.5.1/min/dropzone.min.css">
 
     {{-- Admin CSS --}}
-    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin-form.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin-list.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin-show.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin.css') }}?v={{ filemtime(public_path('assets/admin/css/admin.css')) }}">
+    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin-form.css') }}?v={{ filemtime(public_path('assets/admin/css/admin-form.css')) }}">
+    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin-list.css') }}?v={{ filemtime(public_path('assets/admin/css/admin-list.css')) }}">
+    <link rel="stylesheet" href="{{ asset('assets/admin/css/admin-show.css') }}?v={{ filemtime(public_path('assets/admin/css/admin-show.css')) }}">
 
     @yield('styles')
 </head>
@@ -226,9 +226,9 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/dropzone/5.5.1/min/dropzone.min.js"></script>
 
 {{-- Admin JS --}}
-<script src="{{ asset('assets/admin/js/admin.js') }}"></script>
-<script src="{{ asset('assets/admin/js/admin-form.js') }}"></script>
-<script src="{{ asset('assets/admin/js/admin-list.js') }}"></script>
+<script src="{{ asset('assets/admin/js/admin.js') }}?v={{ filemtime(public_path('assets/admin/js/admin.js')) }}"></script>
+<script src="{{ asset('assets/admin/js/admin-form.js') }}?v={{ filemtime(public_path('assets/admin/js/admin-form.js')) }}"></script>
+<script src="{{ asset('assets/admin/js/admin-list.js') }}?v={{ filemtime(public_path('assets/admin/js/admin-list.js')) }}"></script>
 
 @yield('scripts')
 
