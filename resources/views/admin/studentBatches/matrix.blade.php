@@ -3,6 +3,7 @@
     $selectedStatus = $selectedStatus ?? 'active';
     $oldAssignments = $oldAssignments ?? [];
     $managedStudentId = $managedStudentId ?? null;
+    $selectedCourseId = old('course_id', $selectedCourseId ?? '');
 @endphp
 
 @if($managedStudentId)
@@ -134,36 +135,50 @@
         </div>
 
         <div>
-            <p class="form-card-title">Select Batches</p>
-            <p class="form-card-subtitle">Choose one or more batches to build the assignment matrix</p>
+            <p class="form-card-title">Select Course &amp; Batches</p>
+            <p class="form-card-subtitle">Course choose karein, phir uske batches se assignment matrix banayein</p>
         </div>
     </div>
 
     <div class="form-card-body">
+        <div class="field-group">
+            <label class="field-label" for="matrix_course_id">
+                Course <span class="req">*</span>
+            </label>
+
+            <div class="input-icon-wrap">
+                <i class="fas fa-book icon"></i>
+
+                <select name="course_id"
+                        id="matrix_course_id"
+                        class="field-input {{ $errors->has('course_id') ? 'error' : '' }}">
+                    @foreach($courses as $id => $name)
+                        <option value="{{ $id }}" {{ (string) $selectedCourseId === (string) $id ? 'selected' : '' }}>
+                            {{ $name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            @if($errors->has('course_id'))
+                <p class="field-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ $errors->first('course_id') }}
+                </p>
+            @else
+                <p class="field-hint">Course select karne par uske batches niche dikhenge.</p>
+            @endif
+        </div>
+
         <div class="field-group">
             <label class="field-label">
                 Batches <span class="req">*</span>
             </label>
 
             <div class="checkbox-grid" id="batch-checkbox-grid">
-                @forelse($batches as $id => $name)
-                    @if($id !== '')
-                        <label class="role-checkbox-item {{ in_array((string) $id, $selectedBatchIds, true) ? 'checked' : '' }}">
-                            <input type="checkbox"
-                                   name="batch_ids[]"
-                                   value="{{ $id }}"
-                                   class="role-checkbox batch-checkbox"
-                                   {{ in_array((string) $id, $selectedBatchIds, true) ? 'checked' : '' }}>
-
-                            <div class="check-icon"></div>
-                            <span class="checkbox-text">{{ $name }}</span>
-                        </label>
-                    @endif
-                @empty
-                    <div class="form-info-box">
-                        <p><i class="fas fa-info-circle"></i> No batches available.</p>
-                    </div>
-                @endforelse
+                <div class="form-info-box">
+                    <p><i class="fas fa-info-circle"></i> Pehle course select karein.</p>
+                </div>
             </div>
 
             @if($errors->has('batch_ids'))
@@ -176,7 +191,7 @@
                     <i class="fas fa-exclamation-circle"></i>
                     Please select at least one batch.
                 </p>
-                <p class="field-hint">Select multiple batches to assign subjects across all of them together.</p>
+                <p class="field-hint">Ek course ke multiple batches select karke student ko un sabme assign kar sakte hain.</p>
             @endif
         </div>
 
@@ -276,6 +291,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const batchGrid = document.getElementById('batch-checkbox-grid');
+    const courseSelect = document.getElementById('matrix_course_id');
     const batchSelectError = document.getElementById('batchSelectError');
     const searchInput = document.getElementById('studentSearch');
     const loader = document.getElementById('matrixLoader');
@@ -651,7 +667,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    loadMatrix();
+    const batchesByCourse = @json($batchesByCourse);
+
+    cascadeCheckboxGridByParent(batchGrid, courseSelect, batchesByCourse, {
+        name: 'batch_ids[]',
+        className: 'batch-checkbox',
+        keepValue: @json($selectedBatchIds),
+        emptyHtml: '<div class="form-info-box"><p><i class="fas fa-info-circle"></i> Is course ke liye koi active batch nahi mila.</p></div>',
+        onRender: function () {
+            loadMatrix();
+        },
+    });
 });
 </script>
 @endsection

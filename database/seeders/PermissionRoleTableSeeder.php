@@ -19,6 +19,7 @@ class PermissionRoleTableSeeder extends Seeder
         Role::findOrFail(2)->permissions()->sync($user_permissions->pluck('id'));
 
         $this->syncRole('Branch Manager', [
+            'dashboard_access', 'my_portal_access',
             'branch_access', 'course_access', 'subject_access', 'batch_access',
             'teacher_access', 'staff_access', 'student_access',
             'enquiry_access', 'enquiry_create', 'enquiry_edit', 'enquiry_show', 'enquiry_follow_up_create',
@@ -45,6 +46,7 @@ class PermissionRoleTableSeeder extends Seeder
         ]);
 
         $this->syncRole('Teacher', [
+            'dashboard_access', 'my_portal_access',
             'student_access', 'student_show',
             'exam_access', 'exam_show', 'exam_result_create',
             'report_card_access',
@@ -61,6 +63,7 @@ class PermissionRoleTableSeeder extends Seeder
         ]);
 
         $this->syncRole('Staff', [
+            'dashboard_access', 'my_portal_access',
             'student_access', 'student_show',
             'enquiry_access', 'enquiry_create', 'enquiry_edit', 'enquiry_show', 'enquiry_follow_up_create',
             'admission_access', 'admission_show',
@@ -74,6 +77,7 @@ class PermissionRoleTableSeeder extends Seeder
         ]);
 
         $this->syncRole('Student', [
+            'dashboard_access', 'my_portal_access',
             'student_access', 'student_show',
             'admission_access', 'admission_show',
             'fee_payment_access', 'fee_payment_show',
@@ -88,6 +92,7 @@ class PermissionRoleTableSeeder extends Seeder
         ]);
 
         $this->syncRole('Parent', [
+            'dashboard_access', 'my_portal_access',
             'student_access', 'student_show',
             'admission_access', 'admission_show',
             'fee_payment_access', 'fee_payment_show',

@@ -365,7 +365,8 @@
                                         <td>
                                             @if($class)
                                                 <div class="class-box">
-                                                    <strong>{{ $class->course->name ?? '' }}</strong>
+                                                    <small>{{ $class->course->name ?? '' }}</small>
+                                                    <strong>{{ $class->batch->name ?? '' }}</strong>
 
                                                     @if($class->subject)
                                                         <span>{{ $class->subject->name }}</span>
