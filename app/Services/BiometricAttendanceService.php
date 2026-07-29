@@ -37,6 +37,19 @@ class BiometricAttendanceService
         return $this->normalizePunchType($punchType);
     }
 
+    public function inferStudentPunchType(StudentAttendance $attendance, ?string $punchType): string
+    {
+        if (! $attendance->actual_in_time) {
+            return 'in';
+        }
+
+        if (! $attendance->actual_out_time) {
+            return 'out';
+        }
+
+        return $this->normalizePunchType($punchType);
+    }
+
     public function process(BiometricDeviceLog $log): void
     {
         DB::transaction(function () use ($log) {
@@ -67,7 +80,6 @@ class BiometricAttendanceService
         $batch = $batchAssignment->batch;
         $date = $log->punch_time->toDateString();
         $time = $log->punch_time->format('H:i:s');
-        $punchType = $this->normalizePunchType($log->punch_type);
 
         $attendance = StudentAttendance::firstOrNew([
             'student_id' => $student->id,
@@ -83,16 +95,17 @@ class BiometricAttendanceService
             'biometric_device_log_id' => $log->id,
         ]);
 
+        $punchType = $this->inferStudentPunchType($attendance, $log->punch_type);
         $shouldSendCheckIn = $punchType === 'in' && ! $attendance->actual_in_time;
 
         if ($punchType === 'in') {
-            $attendance->actual_in_time = $attendance->actual_in_time
-                ? min($attendance->actual_in_time, $time)
-                : $time;
+            if (! $attendance->actual_in_time) {
+                $attendance->actual_in_time = $time;
+            }
         } else {
-            $attendance->actual_out_time = $attendance->actual_out_time
-                ? max($attendance->actual_out_time, $time)
-                : $time;
+            if (! $attendance->actual_out_time) {
+                $attendance->actual_out_time = $time;
+            }
         }
 
         $attendance->status = $this->studentStatus($batch, $attendance->actual_in_time);
@@ -155,10 +168,11 @@ class BiometricAttendanceService
                     return false;
                 }
 
+                $graceMinutes = max(30, (int) $setting->student_grace_minutes);
                 $start = Carbon::parse($time->toDateString() . ' ' . $assignment->batch->start_time)
-                    ->subMinutes($setting->student_grace_minutes);
+                    ->subMinutes($graceMinutes);
                 $end = Carbon::parse($time->toDateString() . ' ' . $assignment->batch->end_time)
-                    ->addMinutes($setting->student_grace_minutes);
+                    ->addMinutes(180);
 
                 return $time->betweenIncluded($start, $end);
             })
