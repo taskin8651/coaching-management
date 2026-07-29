@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Models\Batch;
 use App\Models\Branch;
+use App\Models\Course;
 use App\Models\Student;
 use App\Models\StudentBatch;
 use App\Models\Subject;
@@ -152,10 +153,11 @@ class StudentBatchesController extends Controller
         abort_if(Gate::denies('student_batch_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $this->assertStudentBatchAccess($studentBatch);
 
-        $studentBatch->load('student.user');
+        $studentBatch->load('student.user', 'batch');
         $managedStudentId = $studentBatch->student_id;
+        $selectedCourseId = $studentBatch->batch->course_id ?? null;
 
-        return view('admin.studentBatches.edit', $this->formData() + compact('studentBatch', 'managedStudentId'));
+        return view('admin.studentBatches.edit', $this->formData() + compact('studentBatch', 'managedStudentId', 'selectedCourseId'));
     }
 
     public function update(Request $request, StudentBatch $studentBatch, WhatsappService $whatsapp)
@@ -187,7 +189,31 @@ class StudentBatchesController extends Controller
 
         return [
             'batches' => $batches->mapWithKeys(fn ($batch) => [$batch->id => $batch->name . ' - ' . ($batch->branch->name ?? '-')])->prepend(trans('global.pleaseSelect'), ''),
+            'courses' => $this->scopeBranchQuery(Course::where('status', 'active'))
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->prepend(trans('global.pleaseSelect'), ''),
+            'batchesByCourse' => $this->batchesByCourse(),
         ];
+    }
+
+    /**
+     * Active batches grouped by course_id, for the Course -> Batches checkbox-grid cascade
+     * on the Assign/Manage Student Batches screen.
+     * Shape: { course_id: [{id, name}, ...] }
+     */
+    private function batchesByCourse(): array
+    {
+        return $this->scopeBatchQuery(Batch::where('status', 'active'))
+            ->orderBy('name')
+            ->get(['id', 'name', 'course_id'])
+            ->filter(fn ($batch) => $batch->course_id)
+            ->groupBy('course_id')
+            ->map(fn ($batches) => $batches->map(fn ($batch) => [
+                'id' => $batch->id,
+                'name' => $batch->name,
+            ])->values())
+            ->toArray();
     }
 
     private function validatedMatrix(Request $request): array
@@ -333,7 +359,9 @@ class StudentBatchesController extends Controller
     private function eligibleStudentsForBatch(Batch $batch)
     {
         return $this->scopeStudentQuery(Student::query())
-            ->where('branch_id', $batch->branch_id)
-            ->when($batch->course_id, fn ($query) => $query->where('course_id', $batch->course_id));
+            ->where(function ($query) use ($batch) {
+                $query->where('batch_id', $batch->id)
+                    ->orWhereHas('studentBatches', fn ($q) => $q->where('batch_id', $batch->id)->where('status', 'active'));
+            });
     }
 }

@@ -17,8 +17,10 @@ use App\Models\StudyMaterial;
 use App\Models\TeacherAssignment;
 use App\Models\Timetable;
 use Carbon\Carbon;
+use Gate;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\Response;
 
 class MyPortalController extends Controller
 {
@@ -26,6 +28,8 @@ class MyPortalController extends Controller
 
     public function index()
     {
+        abort_if(Gate::denies('my_portal_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $scope = $this->erpScope();
         $studentIds = $this->visibleStudentIds($scope);
         $portalStudent = $studentIds->isNotEmpty()

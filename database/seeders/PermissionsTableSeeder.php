@@ -10,6 +10,9 @@ class PermissionsTableSeeder extends Seeder
     public function run()
     {
         $permissions = [
+            'dashboard_access',
+            'my_portal_access',
+
             'user_management_access',
 
             'permission_create',

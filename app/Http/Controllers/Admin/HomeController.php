@@ -25,14 +25,18 @@ use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\Timetable;
 use Carbon\Carbon;
+use Gate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpFoundation\Response;
 
 class HomeController extends Controller
 {
     public function index()
     {
+        abort_if(Gate::denies('dashboard_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
         $today = Carbon::today();
         $scope = $this->resolveScope();
         $batchIds = $this->batchIdsForScope($scope);

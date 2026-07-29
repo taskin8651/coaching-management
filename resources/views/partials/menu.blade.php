@@ -36,19 +36,23 @@
         <p class="sidebar-section-title nav-label">Main</p>
 
         {{-- Dashboard --}}
-        <a href="{{ route('admin.home') }}"
-           data-tooltip="Dashboard"
-           class="nav-link {{ request()->routeIs('admin.home') ? 'active' : '' }}">
-            <i class="fas fa-chart-pie nav-icon"></i>
-            <span class="nav-label">{{ trans('global.dashboard') }}</span>
-        </a>
+        @can('dashboard_access')
+            <a href="{{ route('admin.home') }}"
+               data-tooltip="Dashboard"
+               class="nav-link {{ request()->routeIs('admin.home') ? 'active' : '' }}">
+                <i class="fas fa-chart-pie nav-icon"></i>
+                <span class="nav-label">{{ trans('global.dashboard') }}</span>
+            </a>
+        @endcan
 
-        <a href="{{ route('admin.my-portal.index') }}"
-           data-tooltip="My Portal"
-           class="nav-link {{ request()->routeIs('admin.my-portal.*') ? 'active' : '' }}">
-            <i class="fas fa-id-card nav-icon"></i>
-            <span class="nav-label">My Portal</span>
-        </a>
+        @can('my_portal_access')
+            <a href="{{ route('admin.my-portal.index') }}"
+               data-tooltip="My Portal"
+               class="nav-link {{ request()->routeIs('admin.my-portal.*') ? 'active' : '' }}">
+                <i class="fas fa-id-card nav-icon"></i>
+                <span class="nav-label">My Portal</span>
+            </a>
+        @endcan
 
         {{-- USER MANAGEMENT GROUP --}}
         @can('user_management_access')

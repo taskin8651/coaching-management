@@ -205,6 +205,74 @@ function cascadeByBranchCourse(childSelect, branchSelect, courseSelect, dataMap,
 }
 
 /**
+ * Single-level version of cascadeCheckboxGrid: repopulates a checkbox-card grid `container`
+ * whenever `parentSelect` changes, using the flat list `dataMap[parentSelect.value]`. Used for
+ * one-level cascades like Course -> Batches (multi-select).
+ */
+function cascadeCheckboxGridByParent(container, parentSelect, dataMap, options = {}) {
+    if (!container || !parentSelect) return function () {};
+
+    const inputName = options.name || 'items[]';
+    const extraClass = options.className || '';
+    let keepValues = options.keepValue || [];
+
+    function render() {
+        const parentId = parentSelect.value;
+        const list = (parentId && dataMap[parentId]) ? dataMap[parentId] : [];
+        const keepSet = new Set((Array.isArray(keepValues) ? keepValues : []).map(String));
+        keepValues = [];
+
+        container.innerHTML = '';
+
+        if (!list.length) {
+            if (options.emptyHtml) {
+                container.innerHTML = options.emptyHtml;
+            }
+
+            if (typeof options.onRender === 'function') options.onRender();
+            return;
+        }
+
+        list.forEach(function (item) {
+            const id = String(item.id);
+            const checked = keepSet.has(id);
+
+            const label = document.createElement('label');
+            label.className = 'role-checkbox-item' + (checked ? ' checked' : '');
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = inputName;
+            input.value = id;
+            input.className = extraClass ? `role-checkbox ${extraClass}` : 'role-checkbox';
+            input.checked = checked;
+            input.addEventListener('change', function () {
+                label.classList.toggle('checked', input.checked);
+            });
+
+            const checkIcon = document.createElement('div');
+            checkIcon.className = 'check-icon';
+
+            const text = document.createElement('span');
+            text.className = 'checkbox-text';
+            text.textContent = item.name;
+
+            label.appendChild(input);
+            label.appendChild(checkIcon);
+            label.appendChild(text);
+            container.appendChild(label);
+        });
+
+        if (typeof options.onRender === 'function') options.onRender();
+    }
+
+    parentSelect.addEventListener('change', render);
+    render();
+
+    return render;
+}
+
+/**
  * Same branch+course cascading as cascadeByBranchCourse (merging the 'all' bucket with the
  * course-specific bucket), but renders into a `container` <div> as a checkbox-card grid
  * (matching the app's `.role-checkbox-item` / `.check-icon` / `.checkbox-text` pattern) instead
@@ -214,6 +282,7 @@ function cascadeCheckboxGrid(container, branchSelect, courseSelect, dataMap, opt
     if (!container || !branchSelect) return function () {};
 
     const inputName = options.name || 'items[]';
+    const extraClass = options.className || '';
     let keepValues = options.keepValue || [];
 
     function items() {
@@ -259,7 +328,7 @@ function cascadeCheckboxGrid(container, branchSelect, courseSelect, dataMap, opt
             input.type = 'checkbox';
             input.name = inputName;
             input.value = id;
-            input.className = 'role-checkbox';
+            input.className = extraClass ? `role-checkbox ${extraClass}` : 'role-checkbox';
             input.checked = checked;
             input.addEventListener('change', function () {
                 label.classList.toggle('checked', input.checked);
