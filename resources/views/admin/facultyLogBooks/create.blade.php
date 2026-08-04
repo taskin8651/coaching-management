@@ -20,7 +20,7 @@
             <div class="field-group"><label class="field-label" for="lecture_date">Lecture Date <span class="req">*</span></label><input type="date" name="lecture_date" id="lecture_date" value="{{ old('lecture_date', now('Asia/Kolkata')->toDateString()) }}" max="{{ now('Asia/Kolkata')->toDateString() }}" required class="field-input">@if($errors->has('lecture_date'))<p class="field-error">{{ $errors->first('lecture_date') }}</p>@endif</div>
             <div class="field-group"><label class="field-label" for="batch_id">Batch <span class="req">*</span></label><select name="batch_id" id="batch_id" required class="field-input"><option value="">Select Batch</option>@foreach($batches as $id => $name)<option value="{{ $id }}" {{ old('batch_id') == $id ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select>@if($errors->has('batch_id'))<p class="field-error">{{ $errors->first('batch_id') }}</p>@endif</div>
             <div class="field-group"><label class="field-label" for="topic_taught">Topic Taught <span class="req">*</span></label><input type="text" name="topic_taught" id="topic_taught" value="{{ old('topic_taught') }}" required class="field-input" placeholder="Example: Algebra Chapter 1">@if($errors->has('topic_taught'))<p class="field-error">{{ $errors->first('topic_taught') }}</p>@endif</div>
-            <div class="field-group"><label class="field-label" for="remarks">Remarks</label><textarea name="remarks" id="remarks" rows="4" class="field-input">{{ old('remarks') }}</textarea></div>
+            <div class="field-group"><label class="field-label" for="remarks">Home Work</label><textarea name="remarks" id="remarks" rows="4" class="field-input">{{ old('remarks') }}</textarea></div>
         </div>
     </div>
     <div class="form-card">

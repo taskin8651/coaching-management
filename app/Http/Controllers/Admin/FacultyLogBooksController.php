@@ -234,4 +234,9 @@ class FacultyLogBooksController extends Controller
 
         return $data;
     }
+
+    public function show(FacultyLogBook $faculty_log_book)
+{
+    return view('admin.facultyLogBooks.show', compact('faculty_log_book'));
+}
 }

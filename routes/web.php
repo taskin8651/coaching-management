@@ -97,7 +97,7 @@ Route::resource('staff-attendances', 'StaffAttendancesController')->only(['index
 // Faculty Log Book
 Route::post('faculty-log-books/{faculty_log_book}/approve', 'FacultyLogBooksController@approve')->name('faculty-log-books.approve');
 Route::get('faculty-log-books/timetable', 'FacultyLogBooksController@timetable')->name('faculty-log-books.timetable');
-Route::resource('faculty-log-books', 'FacultyLogBooksController')->except(['show', 'destroy']);
+Route::resource('faculty-log-books', 'FacultyLogBooksController')->except([ 'destroy']);
 
 // Extra Classes
 Route::post('extra-classes/{extra_class}/approve', 'ExtraClassesController@approve')->name('extra-classes.approve');
