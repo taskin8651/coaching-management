@@ -67,6 +67,11 @@ class Exam extends Model
         return $this->hasMany(ExamResult::class, 'exam_id');
     }
 
+    public function selfAssessments()
+    {
+        return $this->hasMany(ExamSelfAssessment::class, 'exam_id');
+    }
+
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');

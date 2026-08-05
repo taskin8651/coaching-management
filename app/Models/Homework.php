@@ -15,8 +15,23 @@ class Homework extends Model implements HasMedia
 
     protected $fillable = ['branch_id', 'batch_id', 'subject_id', 'teacher_id', 'title', 'details', 'homework_date', 'due_date', 'status'];
     protected $dates = ['homework_date', 'due_date', 'created_at', 'updated_at'];
+    protected $appends = ['attachments'];
 
     public function registerMediaCollections(): void { $this->addMediaCollection('homework_attachments'); }
+
+    public function getAttachmentsAttribute()
+    {
+        return $this->getMedia('homework_attachments')->map(function ($file) {
+            return [
+                'id'   => $file->id,
+                'name' => $file->file_name,
+                'url'  => $file->getUrl(),
+                'mime' => $file->mime_type,
+                'size' => $file->size,
+            ];
+        });
+    }
+
     public function branch() { return $this->belongsTo(Branch::class); }
     public function batch() { return $this->belongsTo(Batch::class); }
     public function subject() { return $this->belongsTo(Subject::class); }

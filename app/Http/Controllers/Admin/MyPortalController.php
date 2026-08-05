@@ -205,12 +205,14 @@ class MyPortalController extends Controller
         $teacherTimetables = collect();
         $facultyLogs = collect();
         $salaryPayments = collect();
+        $teacherStats = [];
 
         if ($scope['is_teacher'] && $scope['teacher_id']) {
             $teacherTimetables = Timetable::with(['batch', 'subject'])
                 ->where('teacher_id', $scope['teacher_id'])
-                ->latest()
-                ->take(20)
+                ->where('status', '!=', 'cancelled')
+                ->orderBy('day_of_week')
+                ->orderBy('start_time')
                 ->get();
 
             $facultyLogs = FacultyLogBook::with(['batch', 'subject'])
@@ -220,9 +222,22 @@ class MyPortalController extends Controller
                 ->get();
 
             $salaryPayments = SalaryPayment::where('teacher_id', $scope['teacher_id'])
-                ->latest()
+                ->latest('payment_date')
                 ->take(12)
                 ->get();
+
+            $pendingApprovalLogs = FacultyLogBook::where('teacher_id', $scope['teacher_id'])
+                ->where('approval_status', 'pending')
+                ->count();
+
+            $latestSalary = $salaryPayments->first();
+
+            $teacherStats = [
+                ['label' => 'Weekly Classes', 'value' => $teacherTimetables->count(), 'note' => 'Scheduled', 'icon' => 'fa-calendar-check', 'color' => 'blue'],
+                ['label' => 'Faculty Logs', 'value' => $facultyLogs->count(), 'note' => 'Recent', 'icon' => 'fa-clipboard-list', 'color' => 'green'],
+                ['label' => 'Pending Approval', 'value' => $pendingApprovalLogs, 'note' => 'Logs', 'icon' => 'fa-hourglass-half', 'color' => 'orange'],
+                ['label' => 'Last Salary', 'value' => $latestSalary ? '₹' . number_format($latestSalary->net_salary, 0) : '-', 'note' => $latestSalary ? $latestSalary->salary_month : 'No record', 'icon' => 'fa-rupee-sign', 'color' => 'purple'],
+            ];
         }
 
         return view('admin.myPortal.index', compact(
@@ -248,7 +263,8 @@ class MyPortalController extends Controller
             'studyMaterials',
             'teacherTimetables',
             'facultyLogs',
-            'salaryPayments'
+            'salaryPayments',
+            'teacherStats'
         ));
     }
 

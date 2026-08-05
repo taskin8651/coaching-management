@@ -119,6 +119,12 @@
                             <span class="code-pill">
                                 {{ $log->actual_start_time ?? '-' }} - {{ $log->actual_end_time ?? '-' }}
                             </span>
+
+                            @if($log->is_actual_verified)
+                                <p class="table-sub-text" style="color:#059669;"><i class="fas fa-check-circle"></i> From attendance</p>
+                            @else
+                                <p class="table-sub-text" style="color:#D97706;"><i class="fas fa-clock"></i> Estimated (pending punch-out)</p>
+                            @endif
                         </td>
 
                         <td>

@@ -190,9 +190,12 @@ class PermissionsTableSeeder extends Seeder
             'homework_access',
             'homework_create',
             'homework_show',
+            'homework_edit',
+            'homework_delete',
 
             'student_remark_access',
             'student_remark_create',
+            'student_remark_approve',
 
             'maintenance_access',
             'maintenance_create',

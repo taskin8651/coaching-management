@@ -118,6 +118,7 @@ Route::get('biometric-logs', 'BiometricLogsController@index')->name('biometric-l
 // Exams
 Route::delete('exams/destroy', 'ExamsController@massDestroy')->name('exams.massDestroy');
 Route::post('exams/{exam}/results', 'ExamsController@storeResults')->name('exams.results.store');
+Route::post('exams/{exam}/self-assessment', 'ExamsController@storeSelfAssessment')->name('exams.selfAssessment.store');
 Route::resource('exams', 'ExamsController');
 
 // Study Materials
@@ -133,9 +134,11 @@ Route::post('timetables/{timetable}/substitute', 'TimetablesController@substitut
 Route::resource('timetables', 'TimetablesController')->except(['show']);
 
 // Homework
-Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show']);
 Route::delete('homeworks/destroy', 'HomeworksController@massDestroy')->name('homeworks.massDestroy');
+Route::delete('homeworks/media/{media}', 'HomeworksController@deleteMedia')->name('homeworks.media.destroy');
+Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 // Student Remarks
+Route::post('student-remarks/{student_remark}/approve', 'StudentRemarksController@approve')->name('student-remarks.approve');
 Route::resource('student-remarks', 'StudentRemarksController')->only(['index', 'create', 'store']);
 
 // Notices

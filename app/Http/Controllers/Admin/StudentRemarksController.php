@@ -16,9 +16,65 @@ class StudentRemarksController extends Controller
 {
     use AppliesErpScope;
 
-    public function index() { abort_if(Gate::denies('student_remark_access'), Response::HTTP_FORBIDDEN, '403 Forbidden'); $remarks = StudentRemark::with(['student.user','teacher.user','createdBy']); $scope = $this->erpScope(); if ($scope['is_student'] && $scope['student_id']) { $remarks->where('student_id', $scope['student_id'])->where('visible_to_parent', true); } elseif ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) { $remarks->whereIn('student_id', $scope['parent_student_ids'])->where('visible_to_parent', true); } elseif ($scope['is_teacher'] && $scope['teacher_id']) { $remarks->where('teacher_id', $scope['teacher_id']); } elseif (! $scope['is_admin']) { $remarks->whereHas('student', fn ($q) => $this->scopeStudentQuery($q)); } $remarks = $remarks->latest()->get(); return view('admin.studentRemarks.index', compact('remarks')); }
+    public function index() { abort_if(Gate::denies('student_remark_access'), Response::HTTP_FORBIDDEN, '403 Forbidden'); $remarks = StudentRemark::with(['student.user','teacher.user','createdBy','approvedBy']); $scope = $this->erpScope(); if ($scope['is_student'] && $scope['student_id']) { $remarks->where('student_id', $scope['student_id'])->where('visible_to_parent', true)->where('approval_status', 'approved'); } elseif ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) { $remarks->whereIn('student_id', $scope['parent_student_ids'])->where('visible_to_parent', true)->where('approval_status', 'approved'); } elseif ($scope['is_teacher'] && $scope['teacher_id']) { $remarks->where('teacher_id', $scope['teacher_id']); } elseif (! $scope['is_admin']) { $remarks->whereHas('student', fn ($q) => $this->scopeStudentQuery($q)); } $remarks = $remarks->latest()->get(); return view('admin.studentRemarks.index', compact('remarks')); }
     public function create() { abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden'); return view('admin.studentRemarks.create', $this->formData()); }
-    public function store(Request $request, WhatsappService $whatsapp) { abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden'); $remark = StudentRemark::create($this->validated($request) + ['created_by_id'=>auth()->id()]); if ($remark->visible_to_parent) { $whatsapp->sendStudentGuardianMessage($remark->student, 'remark', ucfirst($remark->remark_type).' remark added: '.$remark->remark); } return redirect()->route('admin.student-remarks.index')->with('message', 'Remark saved successfully.'); }
+    public function store(Request $request, WhatsappService $whatsapp)
+    {
+        abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $this->validated($request);
+        $data['created_by_id'] = auth()->id();
+
+        $canApprove = Gate::allows('student_remark_approve');
+        $data['approval_status'] = $canApprove ? 'approved' : 'pending';
+        if ($canApprove) {
+            $data['approved_by_id'] = auth()->id();
+            $data['approved_at'] = now();
+        }
+
+        $remark = StudentRemark::create($data);
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $remark->addMedia($file)->toMediaCollection('remark_attachments');
+            }
+        }
+
+        if ($remark->visible_to_parent && $remark->approval_status === 'approved') {
+            $whatsapp->sendStudentGuardianMessage($remark->student, 'remark', ucfirst($remark->remark_type).' remark added: '.$remark->remark);
+        }
+
+        $message = $remark->approval_status === 'pending'
+            ? 'Remark saved successfully. Waiting for branch manager approval.'
+            : 'Remark saved successfully.';
+
+        return redirect()->route('admin.student-remarks.index')->with('message', $message);
+    }
+
+    public function approve(StudentRemark $studentRemark, WhatsappService $whatsapp)
+    {
+        abort_if(Gate::denies('student_remark_approve'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $scope = $this->erpScope();
+        if (! $scope['is_admin']) {
+            abort_if(! $this->scopeStudentQuery(Student::query())->where('id', $studentRemark->student_id)->exists(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        }
+
+        $wasApproved = $studentRemark->approval_status === 'approved';
+
+        $studentRemark->update([
+            'approval_status' => 'approved',
+            'approved_by_id'  => auth()->id(),
+            'approved_at'     => now(),
+        ]);
+
+        if (! $wasApproved && $studentRemark->visible_to_parent) {
+            $whatsapp->sendStudentGuardianMessage($studentRemark->student, 'remark', ucfirst($studentRemark->remark_type).' remark added: '.$studentRemark->remark);
+        }
+
+        return back()->with('message', 'Remark approved successfully.');
+    }
+
     private function formData(): array { return ['students'=>$this->scopeStudentQuery(Student::with('user'))->get()->mapWithKeys(fn($s)=>[$s->id=>$s->user->name ?? $s->student_code ?? 'Student #'.$s->id])->prepend(trans('global.pleaseSelect'),''),'teachers'=>$this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn($t)=>[$t->id=>$t->user->name ?? 'Teacher #'.$t->id])->prepend('Optional','')]; }
-    private function validated(Request $request): array { return $request->validate(['student_id'=>['required','exists:students,id'],'teacher_id'=>['nullable','exists:teachers,id'],'remark_type'=>['required','in:positive,negative,neutral'],'remark_date'=>['required','date'],'title'=>['nullable','string','max:255'],'remark'=>['required','string'],'visible_to_parent'=>['nullable','boolean']]); }
+    private function validated(Request $request): array { return $request->validate(['student_id'=>['required','exists:students,id'],'teacher_id'=>['nullable','exists:teachers,id'],'remark_type'=>['required','in:positive,negative,neutral'],'remark_date'=>['required','date'],'title'=>['nullable','string','max:255'],'remark'=>['required','string'],'visible_to_parent'=>['nullable','boolean'],'attachments.*'=>['nullable','file','mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,ppt,pptx,zip','max:10240']]); }
 }

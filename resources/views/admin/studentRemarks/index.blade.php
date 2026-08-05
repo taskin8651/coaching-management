@@ -61,6 +61,7 @@
                     <th>Type</th>
                     <th>Title</th>
                     <th>Remark</th>
+                    <th>Attachments</th>
                     <th>Parent</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
@@ -117,6 +118,21 @@
                             <p class="table-sub-text" style="max-width:360px;">
                                 {{ $item->remark ? \Illuminate\Support\Str::limit($item->remark, 90) : '-' }}
                             </p>
+                        </td>
+
+                        <td>
+                            @if($item->attachments && count($item->attachments))
+                                <div class="tag-wrap">
+                                    @foreach($item->attachments as $file)
+                                        <a href="{{ $file['url'] }}" target="_blank" class="role-tag" title="{{ $file['name'] }}">
+                                            <i class="fas fa-paperclip"></i>
+                                            {{ \Illuminate\Support\Str::limit($file['name'], 14) }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="table-sub-text">-</span>
+                            @endif
                         </td>
 
                         <td>

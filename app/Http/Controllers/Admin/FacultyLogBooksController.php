@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\FacultyLogBook;
+use App\Models\StaffAttendance;
 use App\Models\Teacher;
 use App\Models\Timetable;
 use App\Services\SalaryCalculationService;
@@ -32,7 +33,10 @@ class FacultyLogBooksController extends Controller
             $this->scopeBranchQuery($logs);
         }
 
-        return view('admin.facultyLogBooks.index', ['logs' => $logs->latest()->get()]);
+        $logs = $logs->latest()->get();
+        $this->flagVerifiedActualTimes($logs);
+
+        return view('admin.facultyLogBooks.index', ['logs' => $logs]);
     }
 
     public function create()
@@ -64,7 +68,13 @@ class FacultyLogBooksController extends Controller
 
         $teacher = $this->loggedInTeacher();
         $this->mergeTrustedTimetableData($request, $teacher);
-        $data = $this->prepare($this->validated($request), $salaryService);
+        $validated = $this->validated($request);
+
+        if ($actual = $this->attendanceActualTimes($teacher->id, $validated['batch_id'], $validated['lecture_date'])) {
+            $validated = array_merge($validated, $actual);
+        }
+
+        $data = $this->prepare($validated, $salaryService);
 
         abort_if(FacultyLogBook::where('unique_key', FacultyLogBook::makeUniqueKey($data))->exists(), Response::HTTP_UNPROCESSABLE_ENTITY, 'Faculty log already exists for this teacher, batch and timetable slot.');
         FacultyLogBook::create($data);
@@ -78,6 +88,8 @@ class FacultyLogBooksController extends Controller
         $teacher = $this->loggedInTeacher();
         $this->assertTeacherCanEdit($facultyLogBook, $teacher);
 
+        $facultyLogBook->load('batch', 'branch', 'subject');
+
         return view('admin.facultyLogBooks.edit', $this->formData($teacher) + compact('facultyLogBook'));
     }
 
@@ -86,9 +98,16 @@ class FacultyLogBooksController extends Controller
         abort_if(Gate::denies('faculty_log_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $teacher = $this->loggedInTeacher();
         $this->assertTeacherCanEdit($facultyLogBook, $teacher);
+        $this->assertSameLectureSession($request, $facultyLogBook);
 
         $this->mergeTrustedTimetableData($request, $teacher);
-        $data = $this->prepare($this->validated($request), $salaryService);
+        $validated = $this->validated($request);
+
+        if ($actual = $this->attendanceActualTimes($teacher->id, $validated['batch_id'], $validated['lecture_date'])) {
+            $validated = array_merge($validated, $actual);
+        }
+
+        $data = $this->prepare($validated, $salaryService);
         abort_if(FacultyLogBook::where('unique_key', FacultyLogBook::makeUniqueKey($data))->where('id', '!=', $facultyLogBook->id)->exists(), Response::HTTP_UNPROCESSABLE_ENTITY, 'Faculty log already exists for this teacher, batch and timetable slot.');
 
         $facultyLogBook->update($data);
@@ -96,18 +115,63 @@ class FacultyLogBooksController extends Controller
         return redirect()->route('admin.faculty-log-books.index')->with('message', 'Faculty log updated successfully.');
     }
 
-    public function approve(FacultyLogBook $facultyLogBook)
+    public function approve(FacultyLogBook $facultyLogBook, SalaryCalculationService $salaryService)
     {
         abort_if(Gate::denies('faculty_log_approve'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $this->assertBranchAccess($facultyLogBook);
-        $facultyLogBook->update([
+
+        $data = [
             'approval_status' => 'approved',
-            'is_salary_eligible' => $facultyLogBook->salary_minutes > 0,
             'approved_by' => auth()->id(),
             'approved_at' => now(self::TIMEZONE),
-        ]);
+        ];
+
+        // Attendance may have been completed after the log was first submitted — re-sync the
+        // actual times (and the salary minutes they drive) from real punch data before this
+        // log's numbers are locked in by approval.
+        if ($actual = $this->attendanceActualTimes($facultyLogBook->teacher_id, $facultyLogBook->batch_id, $facultyLogBook->lecture_date)) {
+            $minutes = $salaryService->payableMinutes(
+                $facultyLogBook->scheduled_start_time,
+                $facultyLogBook->scheduled_end_time,
+                $actual['actual_start_time'],
+                $actual['actual_end_time']
+            );
+
+            $data += $actual + [
+                'scheduled_minutes' => $minutes['scheduled_minutes'],
+                'salary_minutes' => $minutes['salary_minutes'],
+            ];
+        }
+
+        $data['is_salary_eligible'] = ($data['salary_minutes'] ?? $facultyLogBook->salary_minutes) > 0;
+
+        $facultyLogBook->update($data);
 
         return back()->with('message', 'Faculty log approved successfully.');
+    }
+
+    /**
+     * Annotate each log with `is_actual_verified` (true = actual times came from a completed
+     * attendance punch, false = still the scheduled-time estimate) so the list can show which
+     * logs still need attendance to catch up before their payable minutes can be trusted.
+     */
+    private function flagVerifiedActualTimes(\Illuminate\Support\Collection $logs): void
+    {
+        if ($logs->isEmpty()) {
+            return;
+        }
+
+        $verifiedKeys = StaffAttendance::whereIn('teacher_id', $logs->pluck('teacher_id')->unique())
+            ->whereIn('batch_id', $logs->pluck('batch_id')->unique())
+            ->whereNotNull('first_in_time')
+            ->whereNotNull('last_out_time')
+            ->get(['teacher_id', 'batch_id', 'attendance_date'])
+            ->map(fn ($row) => $row->teacher_id . ':' . $row->batch_id . ':' . $row->attendance_date)
+            ->flip();
+
+        $logs->each(function (FacultyLogBook $log) use ($verifiedKeys) {
+            $log->is_actual_verified = $verifiedKeys->has($log->teacher_id . ':' . $log->batch_id . ':' . $log->lecture_date);
+        });
     }
 
     private function loggedInTeacher(): Teacher
@@ -167,6 +231,29 @@ class FacultyLogBooksController extends Controller
             ->first();
     }
 
+    /**
+     * Real punch in/out times for this teacher+batch+date, if the teacher has completed
+     * attendance (punched both in and out) for that class. Returns null when attendance is
+     * missing or still incomplete (punched in but not yet out) — callers should fall back to
+     * the scheduled timetable time in that case, since there's nothing real to use yet.
+     */
+    private function attendanceActualTimes(int $teacherId, int $batchId, string $lectureDate): ?array
+    {
+        $attendance = StaffAttendance::where('teacher_id', $teacherId)
+            ->where('batch_id', $batchId)
+            ->where('attendance_date', $lectureDate)
+            ->first();
+
+        if (! $attendance || ! $attendance->first_in_time || ! $attendance->last_out_time) {
+            return null;
+        }
+
+        return [
+            'actual_start_time' => Carbon::parse($attendance->first_in_time)->format('H:i'),
+            'actual_end_time' => Carbon::parse($attendance->last_out_time)->format('H:i'),
+        ];
+    }
+
     private function timetablePayload(Teacher $teacher, Timetable $timetable): array
     {
         $startTime = Carbon::parse($timetable->start_time)->format('H:i');
@@ -204,6 +291,27 @@ class FacultyLogBooksController extends Controller
         abort_if(now(self::TIMEZONE)->greaterThan($deadline), Response::HTTP_UNPROCESSABLE_ENTITY, 'Faculty log editing time is over for this lecture date.');
     }
 
+    /**
+     * An existing log entry represents one specific lecture session. Editing it may only
+     * correct the topic/homework notes — the batch and lecture date it was created for must
+     * stay fixed, otherwise the row would silently start representing a different session
+     * (mismatched batch/subject/time between the original submission and the edit).
+     */
+    private function assertSameLectureSession(Request $request, FacultyLogBook $facultyLogBook): void
+    {
+        $submittedBatchId = (int) $request->input('batch_id');
+        $submittedDate = $request->input('lecture_date')
+            ? Carbon::parse($request->input('lecture_date'), self::TIMEZONE)->toDateString()
+            : null;
+        $originalDate = Carbon::parse($facultyLogBook->lecture_date, self::TIMEZONE)->toDateString();
+
+        abort_if(
+            $submittedBatchId !== (int) $facultyLogBook->batch_id || $submittedDate !== $originalDate,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Batch and lecture date cannot be changed once a log is submitted, as that would log a different class session.'
+        );
+    }
+
     private function validated(Request $request): array
     {
         return $request->validate([
@@ -237,6 +345,8 @@ class FacultyLogBooksController extends Controller
 
     public function show(FacultyLogBook $faculty_log_book)
 {
+    $this->flagVerifiedActualTimes(collect([$faculty_log_book]));
+
     return view('admin.facultyLogBooks.show', compact('faculty_log_book'));
 }
 }

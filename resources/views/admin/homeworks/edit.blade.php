@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('page-title', 'Add Homework')
+@section('page-title', 'Edit Homework')
 
 @section('content')
 
@@ -10,16 +10,17 @@
             ← {{ trans('global.back_to_list') }}
         </a>
 
-        <h2 class="admin-page-title">Add Homework</h2>
+        <h2 class="admin-page-title">Edit Homework</h2>
 
         <p class="admin-page-subtitle">
-            Create homework assignment with batch, subject, teacher and due date
+            Update homework assignment details
         </p>
     </div>
 </div>
 
-<form method="POST" action="{{ route('admin.homeworks.store') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ route('admin.homeworks.update', $homework->id) }}" enctype="multipart/form-data">
     @csrf
+    @method('PUT')
 
     <div class="admin-form-grid">
 
@@ -48,7 +49,7 @@
                         <input type="text"
                                name="title"
                                id="title"
-                               value="{{ old('title') }}"
+                               value="{{ old('title', $homework->title) }}"
                                required
                                placeholder="Enter homework title"
                                class="field-input {{ $errors->has('title') ? 'error' : '' }}">
@@ -74,7 +75,7 @@
                                   id="details"
                                   rows="6"
                                   placeholder="Enter homework details, instructions or task description"
-                                  class="field-input {{ $errors->has('details') ? 'error' : '' }}">{{ old('details') }}</textarea>
+                                  class="field-input {{ $errors->has('details') ? 'error' : '' }}">{{ old('details', $homework->details) }}</textarea>
                     </div>
 
                     @if($errors->has('details'))
@@ -90,9 +91,36 @@
                     @endif
                 </div>
 
+                @if($homework->attachments && count($homework->attachments))
+                    <div class="form-info-box" style="margin-bottom:18px;">
+                        <p class="meta-label">Uploaded Attachments</p>
+
+                        @foreach($homework->getMedia('homework_attachments') as $file)
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid #E2E8F0;">
+                                <a href="{{ $file->getUrl() }}" target="_blank">
+                                    <i class="fas fa-file"></i>
+                                    {{ $file->file_name }}
+                                </a>
+
+                                <form action="{{ route('admin.homeworks.media.destroy', $file->id) }}"
+                                      method="POST"
+                                      onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
+                                    @method('DELETE')
+                                    @csrf
+
+                                    <button type="submit" class="btn-outline btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                        Remove
+                                    </button>
+                                </form>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
                 <div class="field-group">
                     <label class="field-label" for="attachments">
-                        Attachments
+                        Add More Attachments
                     </label>
 
                     <div class="input-icon-wrap">
@@ -118,7 +146,7 @@
                     @endif
                 </div>
 
-                <input type="hidden" name="status" value="{{ old('status', 'active') }}">
+                <input type="hidden" name="status" value="{{ old('status', $homework->status) }}">
 
             </div>
         </div>
@@ -152,7 +180,7 @@
                             <option value="">Select Batch</option>
 
                             @foreach($batches as $id => $name)
-                                <option value="{{ $id }}" {{ old('batch_id') == $id ? 'selected' : '' }}>
+                                <option value="{{ $id }}" {{ old('batch_id', $homework->batch_id) == $id ? 'selected' : '' }}>
                                     {{ $name }}
                                 </option>
                             @endforeach
@@ -181,7 +209,7 @@
                             <option value="">Select Subject</option>
 
                             @foreach($subjects as $id => $name)
-                                <option value="{{ $id }}" {{ old('subject_id') == $id ? 'selected' : '' }}>
+                                <option value="{{ $id }}" {{ old('subject_id', $homework->subject_id) == $id ? 'selected' : '' }}>
                                     {{ $name }}
                                 </option>
                             @endforeach
@@ -210,7 +238,7 @@
                             <option value="">Select Teacher</option>
 
                             @foreach($teachers as $id => $name)
-                                <option value="{{ $id }}" {{ old('teacher_id') == $id ? 'selected' : '' }}>
+                                <option value="{{ $id }}" {{ old('teacher_id', $homework->teacher_id) == $id ? 'selected' : '' }}>
                                     {{ $name }}
                                 </option>
                             @endforeach
@@ -260,7 +288,7 @@
                         <input type="date"
                                name="homework_date"
                                id="homework_date"
-                               value="{{ old('homework_date', date('Y-m-d')) }}"
+                               value="{{ old('homework_date', optional($homework->homework_date)->format('Y-m-d')) }}"
                                class="field-input {{ $errors->has('homework_date') ? 'error' : '' }}">
                     </div>
 
@@ -283,7 +311,7 @@
                         <input type="date"
                                name="due_date"
                                id="due_date"
-                               value="{{ old('due_date') }}"
+                               value="{{ old('due_date', optional($homework->due_date)->format('Y-m-d')) }}"
                                class="field-input {{ $errors->has('due_date') ? 'error' : '' }}">
                     </div>
 
@@ -301,23 +329,18 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label">
+                    <label class="field-label" for="status_select">
                         Status
                     </label>
 
                     <div class="input-icon-wrap">
                         <i class="fas fa-toggle-on icon"></i>
 
-                        <input type="text"
-                               value="Active"
-                               disabled
-                               class="field-input">
+                        <select id="status_select" class="field-input" onchange="document.querySelector('input[name=status]').value = this.value;">
+                            <option value="active" {{ old('status', $homework->status) == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="closed" {{ old('status', $homework->status) == 'closed' ? 'selected' : '' }}>Closed</option>
+                        </select>
                     </div>
-
-                    <p class="field-hint">
-                        <i class="fas fa-check-circle"></i>
-                        New homework will be active by default
-                    </p>
                 </div>
 
             </div>
@@ -350,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     cascadeByParent(subjectSelect, batchSelect, subjectsByBatch, {
         placeholder: 'Optional',
-        keepValue: @json(old('subject_id')),
+        keepValue: @json(old('subject_id', $homework->subject_id)),
     });
 });
 </script>

@@ -301,6 +301,18 @@
 
 
             <div class="detail-row">
+                <span class="detail-label">Actual Time Source</span>
+                <span class="detail-value">
+                    @if($faculty_log_book->is_actual_verified)
+                        <span style="color:#059669;"><i class="fas fa-check-circle"></i> Verified from attendance punch</span>
+                    @else
+                        <span style="color:#D97706;"><i class="fas fa-clock"></i> Estimated from timetable (attendance not punched out yet)</span>
+                    @endif
+                </span>
+            </div>
+
+
+            <div class="detail-row">
                 <span class="detail-label">Salary Minutes</span>
                 <span class="detail-value">
                     {{ $faculty_log_book->salary_minutes ?? 0 }} minutes

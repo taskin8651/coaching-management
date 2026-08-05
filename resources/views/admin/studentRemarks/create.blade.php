@@ -18,7 +18,7 @@
     </div>
 </div>
 
-<form method="POST" action="{{ route('admin.student-remarks.store') }}">
+<form method="POST" action="{{ route('admin.student-remarks.store') }}" enctype="multipart/form-data">
     @csrf
 
     <div class="admin-form-grid">
@@ -229,6 +229,34 @@
                         <p class="field-hint">
                             <i class="fas fa-info-circle"></i>
                             Keep remark clear and parent-friendly
+                        </p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="attachments">
+                        Attachments
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-paperclip icon"></i>
+
+                        <input type="file"
+                               name="attachments[]"
+                               id="attachments"
+                               multiple
+                               class="field-input {{ $errors->has('attachments') || $errors->has('attachments.*') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('attachments') || $errors->has('attachments.*'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('attachments') ?: $errors->first('attachments.*') }}
+                        </p>
+                    @else
+                        <p class="field-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Optional: photo, document proof etc. (max 10MB each, multiple files allowed)
                         </p>
                     @endif
                 </div>
