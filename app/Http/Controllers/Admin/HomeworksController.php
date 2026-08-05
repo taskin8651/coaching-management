@@ -106,7 +106,7 @@ class HomeworksController extends Controller
     {
         abort_if(Gate::denies('homework_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $this->assertBranchAccess($homework);
-        $homework->load(['submissions.student.user', 'batch', 'subject']);
+        $homework->load(['submissions.student.user', 'branch', 'batch', 'subject', 'teacher.user', 'approvedBy']);
 
         $scope = $this->erpScope();
 

@@ -61,14 +61,14 @@
         <table class="min-w-full datatable datatable-Homeworks">
             <thead>
                 <tr>
-                    <th>Title</th>
+                    <th>Home Work</th>
                     <th>Batch</th>
                     <th>Subject</th>
                     <th>Teacher</th>
                     <th>Due Date</th>
                     <th>Status</th>
                     <th>Approval</th>
-                    <th style="text-align:right;">{{ trans('global.actions') }}</th>
+                    <th style="text-align:right;">Attachments</th>
                 </tr>
             </thead>
 
@@ -144,22 +144,19 @@
 
                         <td>
                             <div class="action-row">
-                                @can('homework_show')
+                                 @can('homework_show')
                                     <a class="btn-outline" href="{{ route('admin.homeworks.show', $item->id) }}">
                                         <i class="fas fa-eye"></i>
-                                        View
                                     </a>
                                 @else
                                     <a class="btn-outline" href="{{ route('admin.homeworks.show', $item->id) }}">
                                         <i class="fas fa-eye"></i>
-                                        View
                                     </a>
                                 @endcan
-
+                              
                                 @can('homework_edit')
                                     <a class="btn-outline btn-outline-edit" href="{{ route('admin.homeworks.edit', $item->id) }}">
                                         <i class="fas fa-pencil-alt"></i>
-                                        Edit
                                     </a>
                                 @endcan
 
@@ -172,7 +169,6 @@
 
                                             <button type="submit" class="btn-outline">
                                                 <i class="fas fa-check"></i>
-                                                Approve
                                             </button>
                                         </form>
                                     @endif
@@ -188,10 +184,26 @@
 
                                         <button type="submit" class="btn-outline btn-outline-danger">
                                             <i class="fas fa-trash-alt"></i>
-                                            Delete
                                         </button>
                                     </form>
                                 @endcan
+
+                                @if($item->attachments && count($item->attachments))
+    <div class="tag-wrap">
+        @foreach($item->attachments as $file)
+            <a href="{{ $file['url'] }}" target="_blank" class="role-tag">
+                <i class="fas fa-paperclip"></i>
+            </a>
+        @endforeach
+    </div>
+@else
+    <p class="field-hint mb-0">
+        <i class="fas fa-info-circle"></i>
+        No attachments uploaded for this homework.
+    </p>
+@endif
+
+                            
                             </div>
                         </td>
                     </tr>
