@@ -136,6 +136,7 @@ Route::resource('timetables', 'TimetablesController')->except(['show']);
 // Homework
 Route::delete('homeworks/destroy', 'HomeworksController@massDestroy')->name('homeworks.massDestroy');
 Route::delete('homeworks/media/{media}', 'HomeworksController@deleteMedia')->name('homeworks.media.destroy');
+Route::post('homeworks/{homework}/approve', 'HomeworksController@approve')->name('homeworks.approve');
 Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 // Student Remarks
 Route::post('student-remarks/{student_remark}/approve', 'StudentRemarksController@approve')->name('student-remarks.approve');

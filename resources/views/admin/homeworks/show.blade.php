@@ -3,7 +3,30 @@
 <div class="admin-page-head">
     <div>
         <a href="{{ route('admin.homeworks.index') }}" class="admin-back-link">{{ trans('global.back_to_list') }}</a>
-        <h2 class="admin-page-title">{{ $homework->title }}</h2>
+        <h2 class="admin-page-title">
+            {{ $homework->title }}
+            @if($homework->approval_status == 'approved')
+                <span class="status-pill success">Approved</span>
+            @elseif($homework->approval_status == 'rejected')
+                <span class="status-pill" style="background:#FEE2E2;color:#991B1B;">Rejected</span>
+            @else
+                <span class="status-pill warning">Pending Approval</span>
+            @endif
+        </h2>
+    </div>
+
+    <div class="show-actions">
+        @can('homework_approve')
+            @if($homework->approval_status !== 'approved')
+                <form action="{{ route('admin.homeworks.approve', $homework->id) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-check"></i>
+                        Approve Homework
+                    </button>
+                </form>
+            @endif
+        @endcan
     </div>
 </div>
 

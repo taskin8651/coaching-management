@@ -20,7 +20,7 @@ class HomeworksController extends Controller
 {
     use AppliesErpScope;
 
-    public function index() { abort_if(Gate::denies('homework_access'), Response::HTTP_FORBIDDEN, '403 Forbidden'); $homeworks = Homework::with(['batch','subject','teacher.user']); $scope = $this->erpScope(); if ($scope['is_student'] && $scope['student_id']) { $homeworks->whereHas('submissions', fn ($q) => $q->where('student_id', $scope['student_id'])); } elseif ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) { $homeworks->whereHas('submissions', fn ($q) => $q->whereIn('student_id', $scope['parent_student_ids'])); } elseif ($scope['is_teacher'] && $scope['teacher_id']) { $homeworks->where('teacher_id', $scope['teacher_id']); } elseif (! $scope['is_admin']) { $this->scopeBranchQuery($homeworks); } $homeworks = $homeworks->latest()->get(); return view('admin.homeworks.index', compact('homeworks')); }
+    public function index() { abort_if(Gate::denies('homework_access'), Response::HTTP_FORBIDDEN, '403 Forbidden'); $homeworks = Homework::with(['batch','subject','teacher.user']); $scope = $this->erpScope(); if ($scope['is_student'] && $scope['student_id']) { $homeworks->where('approval_status', 'approved')->whereHas('submissions', fn ($q) => $q->where('student_id', $scope['student_id'])); } elseif ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) { $homeworks->where('approval_status', 'approved')->whereHas('submissions', fn ($q) => $q->whereIn('student_id', $scope['parent_student_ids'])); } elseif ($scope['is_teacher'] && $scope['teacher_id']) { $homeworks->where('teacher_id', $scope['teacher_id']); } elseif (! $scope['is_admin']) { $this->scopeBranchQuery($homeworks); } $homeworks = $homeworks->latest()->get(); return view('admin.homeworks.index', compact('homeworks')); }
     public function create() { abort_if(Gate::denies('homework_create'), Response::HTTP_FORBIDDEN, '403 Forbidden'); return view('admin.homeworks.create', $this->formData()); }
     public function store(Request $request, WhatsappService $whatsapp)
     {
@@ -39,6 +39,13 @@ class HomeworksController extends Controller
             abort_if(! $this->scopeBranchQuery(Subject::query())->where('id', $data['subject_id'])->exists(), Response::HTTP_FORBIDDEN, 'Invalid subject.');
         }
 
+        $canApprove = Gate::allows('homework_approve');
+        $data['approval_status'] = $canApprove ? 'approved' : 'pending';
+        if ($canApprove) {
+            $data['approved_by_id'] = auth()->id();
+            $data['approved_at'] = now();
+        }
+
         $homework = Homework::create($data);
 
         if ($request->hasFile('attachments')) {
@@ -47,6 +54,39 @@ class HomeworksController extends Controller
             }
         }
 
+        if ($homework->approval_status === 'approved') {
+            $this->assignToStudents($homework, $whatsapp);
+        }
+
+        $message = $homework->approval_status === 'pending'
+            ? 'Homework saved successfully. Waiting for branch manager approval.'
+            : 'Homework assigned successfully.';
+
+        return redirect()->route('admin.homeworks.index')->with('message', $message);
+    }
+
+    public function approve(Homework $homework, WhatsappService $whatsapp)
+    {
+        abort_if(Gate::denies('homework_approve'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $this->assertBranchAccess($homework);
+
+        $wasApproved = $homework->approval_status === 'approved';
+
+        $homework->update([
+            'approval_status' => 'approved',
+            'approved_by_id'  => auth()->id(),
+            'approved_at'     => now(),
+        ]);
+
+        if (! $wasApproved) {
+            $this->assignToStudents($homework, $whatsapp);
+        }
+
+        return back()->with('message', 'Homework approved successfully.');
+    }
+
+    private function assignToStudents(Homework $homework, WhatsappService $whatsapp): void
+    {
         $students = Student::where(function ($query) use ($homework) {
             $query->where('batch_id', $homework->batch_id)
                 ->orWhereHas('studentBatches', fn ($q) => $q->where('batch_id', $homework->batch_id)->where('status', 'active'));
@@ -61,7 +101,6 @@ class HomeworksController extends Controller
             );
             $whatsapp->sendStudentGuardianMessage($student, 'homework', 'Homework assigned: '.$homework->title.' due on '.optional($homework->due_date)->format('d M Y'));
         }
-        return redirect()->route('admin.homeworks.index')->with('message', 'Homework assigned successfully.');
     }
     public function show(Homework $homework)
     {
@@ -70,6 +109,10 @@ class HomeworksController extends Controller
         $homework->load(['submissions.student.user', 'batch', 'subject']);
 
         $scope = $this->erpScope();
+
+        if (($scope['is_student'] || $scope['is_parent']) && $homework->approval_status !== 'approved') {
+            abort(Response::HTTP_NOT_FOUND);
+        }
 
         if ($scope['is_student']) {
             // Student ko sirf apni hi submission dikhe, poori batch ki nahi.

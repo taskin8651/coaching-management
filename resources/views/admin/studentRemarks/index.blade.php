@@ -40,6 +40,11 @@
         <p class="stat-label">Parent Visible</p>
         <p class="stat-value">{{ $remarks->where('visible_to_parent', 1)->count() }}</p>
     </div>
+
+    <div class="stat-card">
+        <p class="stat-label">Pending Approval</p>
+        <p class="stat-value">{{ $remarks->where('approval_status', 'pending')->count() }}</p>
+    </div>
 </div>
 
 <div class="page-card">
@@ -63,6 +68,7 @@
                     <th>Remark</th>
                     <th>Attachments</th>
                     <th>Parent</th>
+                    <th>Approval</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
             </thead>
@@ -144,6 +150,16 @@
                         </td>
 
                         <td>
+                            @if($item->approval_status == 'approved')
+                                <span class="status-pill success">Approved</span>
+                            @elseif($item->approval_status == 'rejected')
+                                <span class="status-pill" style="background:#FEE2E2;color:#991B1B;">Rejected</span>
+                            @else
+                                <span class="status-pill warning">Pending</span>
+                            @endif
+                        </td>
+
+                        <td>
                             <div class="action-row">
                                 @can('student_remark_show')
                                     <a href="{{ route('admin.student-remarks.show', $item->id) }}" class="btn-outline">
@@ -157,6 +173,21 @@
                                         <i class="fas fa-pencil-alt"></i>
                                         Edit
                                     </a>
+                                @endcan
+
+                                @can('student_remark_approve')
+                                    @if($item->approval_status !== 'approved')
+                                        <form action="{{ route('admin.student-remarks.approve', $item->id) }}"
+                                              method="POST"
+                                              style="display:inline;">
+                                            @csrf
+
+                                            <button type="submit" class="btn-outline">
+                                                <i class="fas fa-check"></i>
+                                                Approve
+                                            </button>
+                                        </form>
+                                    @endif
                                 @endcan
 
                                 @can('student_remark_delete')

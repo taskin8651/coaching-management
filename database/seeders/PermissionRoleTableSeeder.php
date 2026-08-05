@@ -38,7 +38,7 @@ class PermissionRoleTableSeeder extends Seeder
             'faculty_log_access', 'faculty_log_create', 'faculty_log_edit', 'faculty_log_approve',
             'extra_class_access', 'extra_class_create', 'extra_class_edit', 'extra_class_approve',
             'timetable_access', 'timetable_create', 'timetable_edit', 'timetable_delete', 'timetable_substitute',
-            'homework_access', 'homework_create', 'homework_show', 'homework_edit', 'homework_delete',
+            'homework_access', 'homework_create', 'homework_show', 'homework_edit', 'homework_delete', 'homework_approve',
             'student_remark_access', 'student_remark_create', 'student_remark_approve',
             'maintenance_access', 'maintenance_create', 'maintenance_edit',
             'inventory_access', 'inventory_create', 'inventory_edit', 'inventory_transaction_create',

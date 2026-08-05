@@ -52,7 +52,7 @@ class MyPortalController extends Controller
 
         $homeworks = Homework::with(['batch', 'subject', 'teacher.user', 'submissions'])
             ->when($studentIds->isNotEmpty(), function ($q) use ($studentIds, $studentBatchIds, $studentSubjectIds) {
-                $q->where(function ($qq) use ($studentIds, $studentBatchIds, $studentSubjectIds) {
+                $q->where('approval_status', 'approved')->where(function ($qq) use ($studentIds, $studentBatchIds, $studentSubjectIds) {
                     $qq->whereHas('submissions', fn ($sub) => $sub->whereIn('student_id', $studentIds));
 
                     if ($studentBatchIds->isNotEmpty()) {
@@ -77,7 +77,7 @@ class MyPortalController extends Controller
             ->get();
 
         $remarks = StudentRemark::with(['student.user', 'teacher.user'])
-            ->when($studentIds->isNotEmpty(), fn ($q) => $q->whereIn('student_id', $studentIds)->where('visible_to_parent', true), fn ($q) => $q->whereRaw('1 = 0'))
+            ->when($studentIds->isNotEmpty(), fn ($q) => $q->whereIn('student_id', $studentIds)->where('visible_to_parent', true)->where('approval_status', 'approved'), fn ($q) => $q->whereRaw('1 = 0'))
             ->latest('remark_date')
             ->take(20)
             ->get();

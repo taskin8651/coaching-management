@@ -13,8 +13,9 @@ class Homework extends Model implements HasMedia
 
     public $table = 'homeworks';
 
-    protected $fillable = ['branch_id', 'batch_id', 'subject_id', 'teacher_id', 'title', 'details', 'homework_date', 'due_date', 'status'];
+    protected $fillable = ['branch_id', 'batch_id', 'subject_id', 'teacher_id', 'title', 'details', 'homework_date', 'due_date', 'status', 'approval_status', 'approved_by_id', 'approved_at'];
     protected $dates = ['homework_date', 'due_date', 'created_at', 'updated_at'];
+    protected $casts = ['approved_at' => 'datetime'];
     protected $appends = ['attachments'];
 
     public function registerMediaCollections(): void { $this->addMediaCollection('homework_attachments'); }
@@ -37,4 +38,5 @@ class Homework extends Model implements HasMedia
     public function subject() { return $this->belongsTo(Subject::class); }
     public function teacher() { return $this->belongsTo(Teacher::class); }
     public function submissions() { return $this->hasMany(HomeworkSubmission::class); }
+    public function approvedBy() { return $this->belongsTo(User::class, 'approved_by_id'); }
 }

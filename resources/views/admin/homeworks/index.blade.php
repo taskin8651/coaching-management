@@ -40,6 +40,11 @@
         <p class="stat-label">Completed</p>
         <p class="stat-value">{{ $homeworks->where('status', 'completed')->count() }}</p>
     </div>
+
+    <div class="stat-card">
+        <p class="stat-label">Pending Approval</p>
+        <p class="stat-value">{{ $homeworks->where('approval_status', 'pending')->count() }}</p>
+    </div>
 </div>
 
 <div class="page-card">
@@ -62,6 +67,7 @@
                     <th>Teacher</th>
                     <th>Due Date</th>
                     <th>Status</th>
+                    <th>Approval</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
             </thead>
@@ -127,6 +133,16 @@
                         </td>
 
                         <td>
+                            @if($item->approval_status == 'approved')
+                                <span class="status-pill success">Approved</span>
+                            @elseif($item->approval_status == 'rejected')
+                                <span class="status-pill" style="background:#FEE2E2;color:#991B1B;">Rejected</span>
+                            @else
+                                <span class="status-pill warning">Pending</span>
+                            @endif
+                        </td>
+
+                        <td>
                             <div class="action-row">
                                 @can('homework_show')
                                     <a class="btn-outline" href="{{ route('admin.homeworks.show', $item->id) }}">
@@ -145,6 +161,21 @@
                                         <i class="fas fa-pencil-alt"></i>
                                         Edit
                                     </a>
+                                @endcan
+
+                                @can('homework_approve')
+                                    @if($item->approval_status !== 'approved')
+                                        <form action="{{ route('admin.homeworks.approve', $item->id) }}"
+                                              method="POST"
+                                              style="display:inline;">
+                                            @csrf
+
+                                            <button type="submit" class="btn-outline">
+                                                <i class="fas fa-check"></i>
+                                                Approve
+                                            </button>
+                                        </form>
+                                    @endif
                                 @endcan
 
                                 @can('homework_delete')
