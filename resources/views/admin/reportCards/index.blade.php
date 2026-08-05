@@ -44,7 +44,7 @@
 
             <span class="page-card-note">
                 <i class="fas fa-file-alt"></i>
-                Enter exam ID to generate report cards
+                Select an exam (with results entered) to generate report cards
             </span>
         </div>
 
@@ -53,14 +53,18 @@
                 @csrf
 
                 <div class="action-row" style="justify-content:flex-start; gap:12px;">
-                    <div class="input-icon-wrap" style="max-width:220px;">
+                    <div class="input-icon-wrap" style="max-width:420px;">
                         <i class="fas fa-clipboard-list icon"></i>
 
-                        <input type="number"
-                               name="exam_id"
-                               required
-                               placeholder="Exam ID"
-                               class="field-input {{ $errors->has('exam_id') ? 'error' : '' }}">
+                        <select name="exam_id"
+                                required
+                                class="field-input {{ $errors->has('exam_id') ? 'error' : '' }}">
+                            @foreach($exams as $id => $label)
+                                <option value="{{ $id }}" {{ old('exam_id') == $id ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <button type="submit" class="btn-primary">
@@ -73,6 +77,11 @@
                     <p class="field-error" style="margin-top:8px;">
                         <i class="fas fa-exclamation-circle"></i>
                         {{ $errors->first('exam_id') }}
+                    </p>
+                @elseif($exams->count() <= 1)
+                    <p class="field-hint" style="margin-top:8px;">
+                        <i class="fas fa-info-circle"></i>
+                        No completed exam with results found yet. Enter results for an exam first.
                     </p>
                 @endif
             </form>
