@@ -13,6 +13,7 @@ use App\Services\SalaryCalculationService;
 use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
 
 class FacultyLogBooksController extends Controller
@@ -69,6 +70,8 @@ class FacultyLogBooksController extends Controller
         $teacher = $this->loggedInTeacher();
         $this->mergeTrustedTimetableData($request, $teacher);
         $validated = $this->validated($request);
+        $attachments = $validated['attachments'] ?? [];
+        unset($validated['attachments']);
 
         if ($actual = $this->attendanceActualTimes($teacher->id, $validated['batch_id'], $validated['lecture_date'])) {
             $validated = array_merge($validated, $actual);
@@ -77,7 +80,11 @@ class FacultyLogBooksController extends Controller
         $data = $this->prepare($validated, $salaryService);
 
         abort_if(FacultyLogBook::where('unique_key', FacultyLogBook::makeUniqueKey($data))->exists(), Response::HTTP_UNPROCESSABLE_ENTITY, 'Faculty log already exists for this teacher, batch and timetable slot.');
-        FacultyLogBook::create($data);
+        $facultyLogBook = FacultyLogBook::create($data);
+
+        foreach ($attachments as $file) {
+            $facultyLogBook->addMedia($file)->toMediaCollection('faculty_log_attachments');
+        }
 
         return redirect()->route('admin.faculty-log-books.index')->with('message', 'Faculty log saved successfully.');
     }
@@ -102,6 +109,8 @@ class FacultyLogBooksController extends Controller
 
         $this->mergeTrustedTimetableData($request, $teacher);
         $validated = $this->validated($request);
+        $attachments = $validated['attachments'] ?? [];
+        unset($validated['attachments']);
 
         if ($actual = $this->attendanceActualTimes($teacher->id, $validated['batch_id'], $validated['lecture_date'])) {
             $validated = array_merge($validated, $actual);
@@ -112,7 +121,26 @@ class FacultyLogBooksController extends Controller
 
         $facultyLogBook->update($data);
 
+        foreach ($attachments as $file) {
+            $facultyLogBook->addMedia($file)->toMediaCollection('faculty_log_attachments');
+        }
+
         return redirect()->route('admin.faculty-log-books.index')->with('message', 'Faculty log updated successfully.');
+    }
+
+    public function deleteMedia(Media $media)
+    {
+        abort_if(Gate::denies('faculty_log_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $facultyLogBook = $media->model;
+
+        if ($facultyLogBook instanceof FacultyLogBook) {
+            $this->assertTeacherCanEdit($facultyLogBook, $this->loggedInTeacher());
+        }
+
+        $media->delete();
+
+        return back()->with('message', 'Attachment deleted successfully.');
     }
 
     public function approve(FacultyLogBook $facultyLogBook, SalaryCalculationService $salaryService)
@@ -328,6 +356,8 @@ class FacultyLogBooksController extends Controller
             'remarks' => ['nullable', 'string'],
             'log_status' => ['required', 'in:submitted'],
             'approval_status' => ['required', 'in:pending'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'mimes:pdf,doc,docx,jpg,jpeg,png,webp', 'max:10240'],
         ]);
     }
 

@@ -5,10 +5,12 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class FacultyLogBook extends Model
+class FacultyLogBook extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
     public $table = 'faculty_log_books';
 
@@ -44,6 +46,28 @@ class FacultyLogBook extends Model
         'approved_by',
         'approved_at',
     ];
+
+    protected $appends = [
+        'attachments',
+    ];
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('faculty_log_attachments');
+    }
+
+    public function getAttachmentsAttribute()
+    {
+        return $this->getMedia('faculty_log_attachments')->map(function ($file) {
+            return [
+                'id'   => $file->id,
+                'name' => $file->file_name,
+                'url'  => $file->getUrl(),
+                'mime' => $file->mime_type,
+                'size' => $file->size,
+            ];
+        });
+    }
 
     public function teacher()
     {

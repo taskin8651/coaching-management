@@ -11,7 +11,7 @@
     </div>
 </div>
 
-<form method="POST" action="{{ route('admin.faculty-log-books.update', $facultyLogBook) }}" id="facultyLogForm">
+<form method="POST" action="{{ route('admin.faculty-log-books.update', $facultyLogBook) }}" id="facultyLogForm" enctype="multipart/form-data">
     @csrf
     @method('PUT')
 
@@ -61,6 +61,43 @@
                 <div class="field-group">
                     <label class="field-label">Home Work</label>
                     <textarea class="field-input" name="remarks" rows="4">{{ old('remarks', $facultyLogBook->remarks) }}</textarea>
+                </div>
+
+                @if($facultyLogBook->attachments && count($facultyLogBook->attachments))
+                    <div class="form-info-box" style="margin-bottom:18px;">
+                        <p class="meta-label">Uploaded Attachments</p>
+
+                        @foreach($facultyLogBook->getMedia('faculty_log_attachments') as $file)
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid #E2E8F0;">
+                                <a href="{{ $file->getUrl() }}" target="_blank">
+                                    <i class="fas fa-file"></i>
+                                    {{ $file->file_name }}
+                                </a>
+
+                                <form action="{{ route('admin.faculty-log-books.media.destroy', $file->id) }}"
+                                      method="POST"
+                                      onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
+                                    @method('DELETE')
+                                    @csrf
+
+                                    <button type="submit" class="btn-outline btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                        Remove
+                                    </button>
+                                </form>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <div class="field-group">
+                    <label class="field-label" for="attachments">Add More Attachments</label>
+                    <input type="file" name="attachments[]" id="attachments" multiple class="field-input {{ $errors->has('attachments') ? 'error' : '' }}">
+                    @if($errors->has('attachments'))
+                        <p class="field-error">{{ $errors->first('attachments') }}</p>
+                    @else
+                        <p class="field-hint">Attachments become visible on the log only after admin/branch manager approval.</p>
+                    @endif
                 </div>
             </div>
         </div>

@@ -395,6 +395,69 @@
     </div>
 
 
+    {{-- ATTACHMENTS --}}
+    @php
+        $isOwnerTeacher = $faculty_log_book->teacher_id === optional(auth()->user()->teacherProfile)->id;
+        $canReviewAttachments = auth()->user()->can('faculty_log_approve');
+        $attachmentsVisible = $approvalStatus === 'approved' || $isOwnerTeacher || $canReviewAttachments;
+    @endphp
+
+    <div class="detail-card mb-3">
+
+        <div class="detail-section-head">
+
+            <div class="detail-section-icon">
+                <i class="fas fa-paperclip"></i>
+            </div>
+
+            <p class="detail-section-title">
+                Attachments
+            </p>
+
+        </div>
+
+        <div class="detail-section-body">
+
+            @if(! $attachmentsVisible)
+
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">
+                        <span style="color:#D97706;"><i class="fas fa-clock"></i> Attachments will be visible once admin/branch manager approves this log.</span>
+                    </span>
+                </div>
+
+            @elseif($faculty_log_book->attachments && count($faculty_log_book->attachments))
+
+                @foreach($faculty_log_book->attachments as $file)
+                    <div class="detail-row">
+                        <span class="detail-label">File</span>
+                        <span class="detail-value">
+                            <a href="{{ $file['url'] }}" target="_blank">
+                                <i class="fas fa-download"></i>
+                                {{ $file['name'] }}
+                            </a>
+                            @if($approvalStatus !== 'approved')
+                                <span class="status-pill warning" style="margin-left:8px;">Pending Approval</span>
+                            @endif
+                        </span>
+                    </div>
+                @endforeach
+
+            @else
+
+                <div class="detail-row">
+                    <span class="detail-label">Files</span>
+                    <span class="detail-value">No attachments uploaded.</span>
+                </div>
+
+            @endif
+
+        </div>
+
+    </div>
+
+
     {{-- APPROVAL DETAILS --}}
     <div class="detail-card">
 
