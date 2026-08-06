@@ -155,11 +155,15 @@ class ExamsController extends Controller
             ->get();
 
         foreach ($students as $student) {
-            $whatsapp->sendStudentGuardianMessage(
-                $student,
-                'exam_schedule',
-                'Exam scheduled: ' . $exam->title . ' on ' . ($exam->exam_date ? Carbon::parse($exam->exam_date)->format('d M Y') : '-')
-            );
+            if ($exam->exam_type === 'Weekly Test') {
+                $whatsapp->sendWeeklyTestNotification($student, $exam);
+            } else {
+                $whatsapp->sendStudentGuardianMessage(
+                    $student,
+                    'exam_schedule',
+                    'Exam scheduled: ' . $exam->title . ' on ' . ($exam->exam_date ? Carbon::parse($exam->exam_date)->format('d M Y') : '-')
+                );
+            }
         }
 
         return redirect()->route('admin.exams.index')->with('message', 'Exam created successfully.');
@@ -343,13 +347,15 @@ class ExamsController extends Controller
         return response(null, Response::HTTP_NO_CONTENT);
     }
 
-    public function storeResults(StoreExamResultRequest $request, Exam $exam)
+    public function storeResults(StoreExamResultRequest $request, Exam $exam, WhatsappService $whatsapp)
     {
         abort_if(Gate::denies('exam_result_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         abort_if($this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $this->checkExamAccess($exam);
+
+        $savedResults = [];
 
         foreach ($request->results as $resultData) {
             $student = Student::find($resultData['student_id'] ?? null);
@@ -385,7 +391,7 @@ class ExamsController extends Controller
                 $status = $marksObtained >= $exam->passing_marks ? 'pass' : 'fail';
             }
 
-            ExamResult::updateOrCreate(
+            $savedResults[] = ExamResult::updateOrCreate(
                 [
                     'exam_id'    => $exam->id,
                     'student_id' => $resultData['student_id'],
@@ -403,6 +409,12 @@ class ExamsController extends Controller
         $this->generateRanks($exam);
 
         $exam->update(['status' => 'completed']);
+
+        if ($exam->exam_type === 'Weekly Test') {
+            foreach ($savedResults as $result) {
+                $whatsapp->sendWeeklyTestResult($result);
+            }
+        }
 
         return back()->with('message', 'Exam results saved successfully.');
     }
