@@ -358,7 +358,7 @@
             <div class="detail-row">
 
                 <span class="detail-label">
-                    Remarks
+                    Home Work
                 </span>
 
                 <span class="detail-value">
