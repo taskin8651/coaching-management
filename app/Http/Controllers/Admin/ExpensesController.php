@@ -51,12 +51,12 @@ class ExpensesController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $usersByBranch = $this->usersByBranch();
 
         $categories = $this->categories();
         $paymentModes = $this->paymentModes();
 
-        return view('admin.expenses.create', compact('branches', 'users', 'categories', 'paymentModes'));
+        return view('admin.expenses.create', compact('branches', 'usersByBranch', 'categories', 'paymentModes'));
     }
 
     public function store(StoreExpenseRequest $request)
@@ -112,14 +112,28 @@ class ExpensesController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
-        $users = User::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $expense->load(['branch', 'paidBy']);
+
+        $usersByBranch = $this->usersByBranch();
+
+        // Never silently drop the expense's existing "Paid By" user from the list just because
+        // their role/branch assignment has since changed — otherwise saving without touching
+        // this field would lose the original value.
+        if ($expense->paidBy && $expense->branch_id) {
+            $bucket = collect($usersByBranch[$expense->branch_id] ?? []);
+
+            if (! $bucket->contains('id', $expense->paid_by_id)) {
+                $usersByBranch[$expense->branch_id] = $bucket
+                    ->push(['id' => $expense->paidBy->id, 'name' => $expense->paidBy->name])
+                    ->values()
+                    ->toArray();
+            }
+        }
 
         $categories = $this->categories();
         $paymentModes = $this->paymentModes();
 
-        $expense->load(['branch', 'paidBy']);
-
-        return view('admin.expenses.edit', compact('expense', 'branches', 'users', 'categories', 'paymentModes'));
+        return view('admin.expenses.edit', compact('expense', 'branches', 'usersByBranch', 'categories', 'paymentModes'));
     }
 
     public function update(UpdateExpenseRequest $request, Expense $expense)
@@ -223,6 +237,45 @@ class ExpensesController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * "Paid By" options grouped by branch_id — only Admin (branch-agnostic, included in every
+     * branch's list), Branch Manager and Staff of that specific branch. Teachers/Students never
+     * pay expenses, so they're excluded entirely.
+     * Shape: { branch_id: [{id, name}, ...] }
+     */
+    private function usersByBranch(): array
+    {
+        $admins = User::whereHas('roles', fn ($q) => $q->where('id', 1))->get(['id', 'name']);
+
+        $branches = Branch::where('status', 'active')->get(['id', 'manager_id']);
+
+        $staffUsers = Staff::whereHas('user')
+            ->with('user:id,name')
+            ->get(['id', 'user_id', 'branch_id']);
+
+        return $branches->mapWithKeys(function ($branch) use ($admins, $staffUsers) {
+            $branchUsers = $admins->values();
+
+            if ($branch->manager_id) {
+                $manager = User::find($branch->manager_id, ['id', 'name']);
+
+                if ($manager) {
+                    $branchUsers = $branchUsers->push($manager);
+                }
+            }
+
+            $branchStaffUsers = $staffUsers->where('branch_id', $branch->id)->pluck('user')->filter();
+            $branchUsers = $branchUsers->merge($branchStaffUsers);
+
+            return [
+                $branch->id => $branchUsers->unique('id')->sortBy('name')->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                ])->values()->toArray(),
+            ];
+        })->toArray();
     }
 
     private function categories(): array

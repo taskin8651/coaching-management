@@ -7,6 +7,7 @@
     $formatDate = fn ($date) => $date ? \Carbon\Carbon::parse($date)->format('d M Y') : '-';
     $formatTime = fn ($time) => $time ? \Carbon\Carbon::parse($time)->format('h:i A') : '-';
     $studentName = $portalStudent->user->name ?? 'Student';
+    $welcomeName = $portalStudent->user->name ?? auth()->user()->name;
     $studentPhoto = $portalStudent->photo ?? null;
     $activeBatch = $portalStudent->batch ?? optional($portalStudent?->studentBatches?->firstWhere('status', 'active'))->batch;
     $materialCount = $studyMaterials->count();
@@ -67,13 +68,95 @@
             <div class="portal-title-icon"><i class="fas fa-user"></i></div>
             <div>
                 <h2>My Portal</h2>
-                <p>Welcome back, {{ $studentName }}! Here's what's happening.</p>
+                <p>Welcome back, {{ $welcomeName }}! Here's what's happening.</p>
             </div>
         </div>
         <div class="year-pill">Academic Year {{ now('Asia/Kolkata')->format('Y') }}-{{ now('Asia/Kolkata')->addYear()->format('y') }} <i class="fas fa-chevron-down ml-2"></i></div>
     </div>
 
-    @unless($portalStudent)
+    @if(! $portalStudent && $scope['is_teacher'])
+        <div class="portal-stat-grid">
+            @foreach($teacherStats as $stat)
+                <div class="portal-stat {{ $stat['color'] }}">
+                    <div class="icon"><i class="fas {{ $stat['icon'] }}"></i></div>
+                    <div>
+                        <small>{{ $stat['label'] }}</small>
+                        <strong>{{ $stat['value'] }}</strong>
+                        <span>{{ $stat['note'] }}</span>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="portal-card mb-3">
+            <div class="portal-card-head"><p class="portal-card-title">My Timetable</p></div>
+            <div class="portal-table-wrap">
+                <table class="portal-table">
+                    <thead><tr><th>Day</th><th>Time</th><th>Subject</th><th>Batch</th><th>Room</th></tr></thead>
+                    <tbody>
+                        @forelse($teacherTimetables as $row)
+                            <tr>
+                                <td>{{ $row->day_of_week ?? '-' }}</td>
+                                <td>{{ $formatTime($row->start_time) }} - {{ $formatTime($row->end_time) }}</td>
+                                <td>{{ $row->subject->name ?? '-' }}</td>
+                                <td>{{ $row->batch->name ?? '-' }}</td>
+                                <td>{{ $row->room ?? '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="empty-line">No timetable assigned.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="portal-grid">
+            <div class="portal-card">
+                <div class="portal-card-head"><p class="portal-card-title">Faculty Log Book</p></div>
+                <div class="portal-table-wrap">
+                    <table class="portal-table">
+                        <thead><tr><th>Date</th><th>Batch</th><th>Subject</th><th>Scheduled</th><th>Actual</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @forelse($facultyLogs->take(8) as $row)
+                                <tr>
+                                    <td>{{ $formatDate($row->lecture_date) }}</td>
+                                    <td>{{ $row->batch->name ?? '-' }}</td>
+                                    <td>{{ $row->subject->name ?? '-' }}</td>
+                                    <td>{{ $formatTime($row->scheduled_start_time) }} - {{ $formatTime($row->scheduled_end_time) }}</td>
+                                    <td>{{ $formatTime($row->actual_start_time) }} - {{ $formatTime($row->actual_end_time) }}</td>
+                                    <td><span class="badge-soft {{ $statusClass($row->approval_status) }}">{{ ucfirst($row->approval_status ?? '-') }}</span></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="6" class="empty-line">No faculty log entries found.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="portal-card">
+                <div class="portal-card-head"><p class="portal-card-title">Salary Payments</p></div>
+                <div class="portal-table-wrap">
+                    <table class="portal-table">
+                        <thead><tr><th>Month</th><th>Net Salary</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @forelse($salaryPayments as $row)
+                                <tr>
+                                    <td>{{ $row->salary_month }}</td>
+                                    <td>₹{{ number_format($row->net_salary, 0) }}</td>
+                                    <td>₹{{ number_format($row->paid_amount, 0) }}</td>
+                                    <td>₹{{ number_format($row->due_amount, 0) }}</td>
+                                    <td><span class="badge-soft {{ $statusClass($row->payment_status) }}">{{ ucfirst($row->payment_status ?? '-') }}</span></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5" class="empty-line">No salary payment records found.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @elseif(! $portalStudent)
         <div class="portal-card">
             <div class="empty-state">
                 <i class="fas fa-user-graduate"></i>
@@ -337,6 +420,6 @@
                 </table>
             </div>
         </div>
-    @endunless
+    @endif
 </div>
 @endsection

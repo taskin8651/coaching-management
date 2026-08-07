@@ -40,6 +40,11 @@
         <p class="stat-label">Parent Visible</p>
         <p class="stat-value">{{ $remarks->where('visible_to_parent', 1)->count() }}</p>
     </div>
+
+    <div class="stat-card">
+        <p class="stat-label">Pending Approval</p>
+        <p class="stat-value">{{ $remarks->where('approval_status', 'pending')->count() }}</p>
+    </div>
 </div>
 
 <div class="page-card">
@@ -61,7 +66,9 @@
                     <th>Type</th>
                     <th>Title</th>
                     <th>Remark</th>
+                    <th>Attachments</th>
                     <th>Parent</th>
+                    <th>Approval</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
             </thead>
@@ -120,10 +127,35 @@
                         </td>
 
                         <td>
+                            @if($item->attachments && count($item->attachments))
+                                <div class="tag-wrap">
+                                    @foreach($item->attachments as $file)
+                                        <a href="{{ $file['url'] }}" target="_blank" class="role-tag" title="{{ $file['name'] }}">
+                                            <i class="fas fa-paperclip"></i>
+                                            {{ \Illuminate\Support\Str::limit($file['name'], 14) }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="table-sub-text">-</span>
+                            @endif
+                        </td>
+
+                        <td>
                             @if($item->visible_to_parent)
                                 <span class="status-pill success">Visible</span>
                             @else
                                 <span class="status-pill warning">Hidden</span>
+                            @endif
+                        </td>
+
+                        <td>
+                            @if($item->approval_status == 'approved')
+                                <span class="status-pill success">Approved</span>
+                            @elseif($item->approval_status == 'rejected')
+                                <span class="status-pill" style="background:#FEE2E2;color:#991B1B;">Rejected</span>
+                            @else
+                                <span class="status-pill warning">Pending</span>
                             @endif
                         </td>
 
@@ -141,6 +173,21 @@
                                         <i class="fas fa-pencil-alt"></i>
                                         Edit
                                     </a>
+                                @endcan
+
+                                @can('student_remark_approve')
+                                    @if($item->approval_status !== 'approved')
+                                        <form action="{{ route('admin.student-remarks.approve', $item->id) }}"
+                                              method="POST"
+                                              style="display:inline;">
+                                            @csrf
+
+                                            <button type="submit" class="btn-outline">
+                                                <i class="fas fa-check"></i>
+                                                Approve
+                                            </button>
+                                        </form>
+                                    @endif
                                 @endcan
 
                                 @can('student_remark_delete')

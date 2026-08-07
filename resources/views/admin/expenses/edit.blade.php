@@ -207,16 +207,14 @@
                         <select name="paid_by_id"
                                 id="paid_by_id"
                                 class="field-input {{ $errors->has('paid_by_id') ? 'error' : '' }}">
-                            @foreach($users as $id => $user)
-                                <option value="{{ $id }}" {{ old('paid_by_id', $expense->paid_by_id) == $id ? 'selected' : '' }}>
-                                    {{ $user }}
-                                </option>
-                            @endforeach
+                            <option value="">{{ trans('global.pleaseSelect') }}</option>
                         </select>
                     </div>
 
                     @if($errors->has('paid_by_id'))
                         <p class="field-error"><i class="fas fa-exclamation-circle"></i> {{ $errors->first('paid_by_id') }}</p>
+                    @else
+                        <p class="field-hint">Select a branch first — only Admin, Branch Manager and Staff of that branch can be picked.</p>
                     @endif
                 </div>
 
@@ -330,5 +328,21 @@
     </div>
 
 </form>
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const branchSelect = document.getElementById('branch_id');
+    const paidBySelect = document.getElementById('paid_by_id');
+    const usersByBranch = @json($usersByBranch);
+
+    cascadeByParent(paidBySelect, branchSelect, usersByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('paid_by_id', $expense->paid_by_id)),
+    });
+});
+</script>
+@endsection
 
 @endsection

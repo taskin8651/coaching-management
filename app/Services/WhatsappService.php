@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Exam;
+use App\Models\ExamResult;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\WhatsappNotificationLog;
 use App\Models\WhatsappSetting;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -15,6 +18,8 @@ class WhatsappService
 {
     private const BIOMETRIC_CHECK_IN_TEMPLATE = 'student_biometric_check_in_new_crm';
     private const WELCOME_TEMPLATE = 'karmayoga_welcome_message_crm';
+    private const WEEKLY_TEST_RESULT_TEMPLATE = 'weekly_test_result_crm';
+    private const WEEKLY_TEST_NOTIFICATION_TEMPLATE = 'weekly_test_notification_crm';
 
     public function sendWelcomeMessage(User $user): WhatsappNotificationLog
     {
@@ -122,6 +127,128 @@ class WhatsappService
                         $studentName,
                         $branchName,
                         $checkInTime->format('d F Y, h:i A'),
+                    ],
+                ]);
+
+            $log->update([
+                'status' => $response->successful() ? 'sent' : 'failed',
+                'response' => $response->body(),
+                'sent_at' => $response->successful() ? now() : null,
+            ]);
+        } catch (Throwable $exception) {
+            $this->failLog($log, $exception->getMessage());
+        }
+
+        return $log->fresh();
+    }
+
+    public function sendWeeklyTestNotification(Student $student, Exam $exam): WhatsappNotificationLog
+    {
+        $student->loadMissing('user');
+        $exam->loadMissing('subject');
+
+        $studentName = $student->user->name ?? $student->student_code ?? 'Student';
+        $number = $this->studentGuardianNumber($student);
+        $message = sprintf(
+            '%s: %s scheduled on %s.',
+            $exam->title ?? 'Weekly Test',
+            $studentName,
+            $exam->exam_date ? Carbon::parse($exam->exam_date)->format('d F Y') : '-'
+        );
+
+        $log = $this->createLog($student, 'weekly_test_notification', $message, $number);
+
+        if (! $number) {
+            return $this->failLog($log, 'Guardian WhatsApp/phone number is missing.');
+        }
+
+        $apiUrl = config('services.11za.api_url');
+        $authToken = config('services.11za.auth_token');
+        $originWebsite = config('services.11za.origin_website');
+
+        if (! $apiUrl || ! $authToken || ! $originWebsite) {
+            return $this->failLog($log, '11za WhatsApp configuration is incomplete.');
+        }
+
+        try {
+            $response = Http::asJson()
+                ->timeout(15)
+                ->post($apiUrl, [
+                    'authToken' => $authToken,
+                    'name' => $student->guardian_name ?: $studentName,
+                    'sendto' => $this->normalizeIndianNumber($number),
+                    'originWebsite' => $originWebsite,
+                    'templateName' => self::WEEKLY_TEST_NOTIFICATION_TEMPLATE,
+                    'language' => config('services.11za.language', 'en'),
+                    'data' => [
+                        $studentName,
+                        $exam->title ?? '-',
+                        $exam->subject->name ?? '-',
+                        $exam->exam_date ? Carbon::parse($exam->exam_date)->format('d F Y') : '-',
+                        (string) $exam->total_marks,
+                    ],
+                ]);
+
+            $log->update([
+                'status' => $response->successful() ? 'sent' : 'failed',
+                'response' => $response->body(),
+                'sent_at' => $response->successful() ? now() : null,
+            ]);
+        } catch (Throwable $exception) {
+            $this->failLog($log, $exception->getMessage());
+        }
+
+        return $log->fresh();
+    }
+
+    public function sendWeeklyTestResult(ExamResult $examResult): WhatsappNotificationLog
+    {
+        $examResult->loadMissing(['student.user', 'exam.subject']);
+
+        $student = $examResult->student;
+        $exam = $examResult->exam;
+
+        $studentName = $student->user->name ?? $student->student_code ?? 'Student';
+        $number = $this->studentGuardianNumber($student);
+        $message = sprintf(
+            '%s scored %s/%s in %s.',
+            $studentName,
+            $examResult->marks_obtained,
+            $examResult->total_marks,
+            $exam->title ?? 'Test'
+        );
+
+        $log = $this->createLog($student, 'weekly_test_result', $message, $number);
+
+        if (! $number) {
+            return $this->failLog($log, 'Guardian WhatsApp/phone number is missing.');
+        }
+
+        $apiUrl = config('services.11za.api_url');
+        $authToken = config('services.11za.auth_token');
+        $originWebsite = config('services.11za.origin_website');
+
+        if (! $apiUrl || ! $authToken || ! $originWebsite) {
+            return $this->failLog($log, '11za WhatsApp configuration is incomplete.');
+        }
+
+        try {
+            $response = Http::asJson()
+                ->timeout(15)
+                ->post($apiUrl, [
+                    'authToken' => $authToken,
+                    'name' => $student->guardian_name ?: $studentName,
+                    'sendto' => $this->normalizeIndianNumber($number),
+                    'originWebsite' => $originWebsite,
+                    'templateName' => self::WEEKLY_TEST_RESULT_TEMPLATE,
+                    'language' => config('services.11za.language', 'en'),
+                    'data' => [
+                        $studentName,
+                        $exam->title ?? '-',
+                        $exam->subject->name ?? '-',
+                        $exam->exam_date ? Carbon::parse($exam->exam_date)->format('d F Y') : '-',
+                        (string) $examResult->marks_obtained,
+                        (string) $examResult->total_marks,
                     ],
                 ]);
 

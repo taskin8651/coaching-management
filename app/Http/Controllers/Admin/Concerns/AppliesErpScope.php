@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 
@@ -222,6 +223,47 @@ trait AppliesErpScope
                 'name' => $subject->name,
             ])->values())
             ->toArray();
+    }
+
+    /**
+     * "Staff-side" users grouped by branch_id, for client-side cascading Branch -> assignee
+     * selects (e.g. "Paid By" on Expenses, "Assigned To" on Maintenance Requests). Only Admin
+     * (branch-agnostic, included in every branch's list), Branch Manager and Staff of that
+     * specific branch — Teachers/Students/Parents are never valid assignees for these ops
+     * screens.
+     * Shape: { branch_id: [{id, name}, ...] }
+     */
+    protected function usersByBranch(): array
+    {
+        $admins = User::whereHas('roles', fn ($q) => $q->where('id', 1))->get(['id', 'name']);
+
+        $branches = Branch::where('status', 'active')->get(['id', 'manager_id']);
+
+        $staffUsers = Staff::whereHas('user')
+            ->with('user:id,name')
+            ->get(['id', 'user_id', 'branch_id']);
+
+        return $branches->mapWithKeys(function ($branch) use ($admins, $staffUsers) {
+            $branchUsers = $admins->values();
+
+            if ($branch->manager_id) {
+                $manager = User::find($branch->manager_id, ['id', 'name']);
+
+                if ($manager) {
+                    $branchUsers = $branchUsers->push($manager);
+                }
+            }
+
+            $branchStaffUsers = $staffUsers->where('branch_id', $branch->id)->pluck('user')->filter();
+            $branchUsers = $branchUsers->merge($branchStaffUsers);
+
+            return [
+                $branch->id => $branchUsers->unique('id')->sortBy('name')->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                ])->values()->toArray(),
+            ];
+        })->toArray();
     }
 
     /**

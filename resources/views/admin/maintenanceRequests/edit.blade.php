@@ -152,12 +152,6 @@
                                 id="assigned_to_id"
                                 class="field-input {{ $errors->has('assigned_to_id') ? 'error' : '' }}">
                             <option value="">Select User</option>
-
-                            @foreach($users as $id => $name)
-                                <option value="{{ $id }}" {{ old('assigned_to_id', $maintenanceRequest->assigned_to_id) == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
                         </select>
                     </div>
 
@@ -169,7 +163,7 @@
                     @else
                         <p class="field-hint">
                             <i class="fas fa-info-circle"></i>
-                            Optional: assign this request to staff or manager
+                            Select a branch first — only Admin, Branch Manager and Staff of that branch can be assigned
                         </p>
                     @endif
                 </div>
@@ -389,6 +383,15 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     updateMaintenancePreview();
+
+    const branchSelect = document.getElementById('branch_id');
+    const assignedToSelect = document.getElementById('assigned_to_id');
+    const usersByBranch = @json($usersByBranch);
+
+    cascadeByParent(assignedToSelect, branchSelect, usersByBranch, {
+        placeholder: 'Select User',
+        keepValue: @json(old('assigned_to_id', $maintenanceRequest->assigned_to_id)),
+    });
 });
 </script>
 @endsection

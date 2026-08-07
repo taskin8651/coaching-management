@@ -12,6 +12,7 @@ use App\Models\Branch;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Models\ExamSelfAssessment;
 use App\Models\Staff;
 use App\Models\Student;
 use App\Models\Subject;
@@ -154,11 +155,15 @@ class ExamsController extends Controller
             ->get();
 
         foreach ($students as $student) {
-            $whatsapp->sendStudentGuardianMessage(
-                $student,
-                'exam_schedule',
-                'Exam scheduled: ' . $exam->title . ' on ' . ($exam->exam_date ? Carbon::parse($exam->exam_date)->format('d M Y') : '-')
-            );
+            if ($exam->exam_type === 'Weekly Test') {
+                $whatsapp->sendWeeklyTestNotification($student, $exam);
+            } else {
+                $whatsapp->sendStudentGuardianMessage(
+                    $student,
+                    'exam_schedule',
+                    'Exam scheduled: ' . $exam->title . ' on ' . ($exam->exam_date ? Carbon::parse($exam->exam_date)->format('d M Y') : '-')
+                );
+            }
         }
 
         return redirect()->route('admin.exams.index')->with('message', 'Exam created successfully.');
@@ -177,6 +182,8 @@ class ExamsController extends Controller
             ->when($exam->course_id, fn ($q) => $q->where('course_id', $exam->course_id))
             ->when($exam->batch_id, fn ($q) => $q->where('batch_id', $exam->batch_id));
 
+        $selfAssessment = null;
+
         if ($this->isStudent()) {
             $authStudent = Student::where('user_id', auth()->id())->first();
             $authStudent ? $students->where('id', $authStudent->id) : $students->whereRaw('1 = 0');
@@ -186,6 +193,10 @@ class ExamsController extends Controller
                 'results',
                 $authStudent ? $exam->results->where('student_id', $authStudent->id)->values() : $exam->results->take(0)
             );
+
+            if ($authStudent) {
+                $selfAssessment = ExamSelfAssessment::where('exam_id', $exam->id)->where('student_id', $authStudent->id)->first();
+            }
         }
 
         if ($this->isParent()) {
@@ -204,8 +215,33 @@ class ExamsController extends Controller
         $students = $students->get();
 
         $existingResults = $exam->results->keyBy('student_id');
+        $isStudentViewer = $this->isStudent();
 
-        return view('admin.exams.show', compact('exam', 'students', 'existingResults'));
+        return view('admin.exams.show', compact('exam', 'students', 'existingResults', 'selfAssessment', 'isStudentViewer'));
+    }
+
+    public function storeSelfAssessment(Request $request, Exam $exam)
+    {
+        abort_if(Gate::denies('exam_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_if(! $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkExamAccess($exam);
+
+        $student = Student::where('user_id', auth()->id())->first();
+        abort_if(! $student, Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'expected_marks'      => ['nullable', 'numeric', 'min:0', 'max:' . $exam->total_marks],
+            'preparation_status'  => ['required', 'in:not_prepared,partially_prepared,well_prepared'],
+            'notes'               => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        ExamSelfAssessment::updateOrCreate(
+            ['exam_id' => $exam->id, 'student_id' => $student->id],
+            $data + ['submitted_at' => now()]
+        );
+
+        return back()->with('message', 'Self-assessment saved successfully.');
     }
 
     public function edit(Exam $exam)
@@ -311,13 +347,15 @@ class ExamsController extends Controller
         return response(null, Response::HTTP_NO_CONTENT);
     }
 
-    public function storeResults(StoreExamResultRequest $request, Exam $exam)
+    public function storeResults(StoreExamResultRequest $request, Exam $exam, WhatsappService $whatsapp)
     {
         abort_if(Gate::denies('exam_result_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         abort_if($this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $this->checkExamAccess($exam);
+
+        $savedResults = [];
 
         foreach ($request->results as $resultData) {
             $student = Student::find($resultData['student_id'] ?? null);
@@ -353,7 +391,7 @@ class ExamsController extends Controller
                 $status = $marksObtained >= $exam->passing_marks ? 'pass' : 'fail';
             }
 
-            ExamResult::updateOrCreate(
+            $savedResults[] = ExamResult::updateOrCreate(
                 [
                     'exam_id'    => $exam->id,
                     'student_id' => $resultData['student_id'],
@@ -371,6 +409,12 @@ class ExamsController extends Controller
         $this->generateRanks($exam);
 
         $exam->update(['status' => 'completed']);
+
+        if ($exam->exam_type === 'Weekly Test') {
+            foreach ($savedResults as $result) {
+                $whatsapp->sendWeeklyTestResult($result);
+            }
+        }
 
         return back()->with('message', 'Exam results saved successfully.');
     }

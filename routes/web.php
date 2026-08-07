@@ -97,7 +97,8 @@ Route::resource('staff-attendances', 'StaffAttendancesController')->only(['index
 // Faculty Log Book
 Route::post('faculty-log-books/{faculty_log_book}/approve', 'FacultyLogBooksController@approve')->name('faculty-log-books.approve');
 Route::get('faculty-log-books/timetable', 'FacultyLogBooksController@timetable')->name('faculty-log-books.timetable');
-Route::resource('faculty-log-books', 'FacultyLogBooksController')->except(['show', 'destroy']);
+Route::delete('faculty-log-books/media/{media}', 'FacultyLogBooksController@deleteMedia')->name('faculty-log-books.media.destroy');
+Route::resource('faculty-log-books', 'FacultyLogBooksController')->except([ 'destroy']);
 
 // Extra Classes
 Route::post('extra-classes/{extra_class}/approve', 'ExtraClassesController@approve')->name('extra-classes.approve');
@@ -118,6 +119,7 @@ Route::get('biometric-logs', 'BiometricLogsController@index')->name('biometric-l
 // Exams
 Route::delete('exams/destroy', 'ExamsController@massDestroy')->name('exams.massDestroy');
 Route::post('exams/{exam}/results', 'ExamsController@storeResults')->name('exams.results.store');
+Route::post('exams/{exam}/self-assessment', 'ExamsController@storeSelfAssessment')->name('exams.selfAssessment.store');
 Route::resource('exams', 'ExamsController');
 
 // Study Materials
@@ -133,9 +135,12 @@ Route::post('timetables/{timetable}/substitute', 'TimetablesController@substitut
 Route::resource('timetables', 'TimetablesController')->except(['show']);
 
 // Homework
-Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show']);
 Route::delete('homeworks/destroy', 'HomeworksController@massDestroy')->name('homeworks.massDestroy');
+Route::delete('homeworks/media/{media}', 'HomeworksController@deleteMedia')->name('homeworks.media.destroy');
+Route::post('homeworks/{homework}/approve', 'HomeworksController@approve')->name('homeworks.approve');
+Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 // Student Remarks
+Route::post('student-remarks/{student_remark}/approve', 'StudentRemarksController@approve')->name('student-remarks.approve');
 Route::resource('student-remarks', 'StudentRemarksController')->only(['index', 'create', 'store']);
 
 // Notices
