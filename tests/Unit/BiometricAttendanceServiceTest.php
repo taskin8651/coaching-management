@@ -34,4 +34,31 @@ class BiometricAttendanceServiceTest extends TestCase
 
         $this->assertSame('out', $service->inferStudentPunchType($attendance, 'IN'));
     }
+
+    public function test_it_treats_first_teacher_punch_as_check_in(): void
+    {
+        $service = new BiometricAttendanceService();
+        $attendance = new \App\Models\StaffAttendance();
+        $logTime = \Carbon\Carbon::parse('2026-08-07 08:05:00');
+        $bounds = [
+            'earliest_start' => \Carbon\Carbon::parse('2026-08-07 08:00:00'),
+            'latest_end' => \Carbon\Carbon::parse('2026-08-07 18:00:00'),
+        ];
+
+        $this->assertSame('in', $service->inferTeacherPunchType($attendance, $logTime, $bounds, 'OUT'));
+    }
+
+    public function test_it_treats_last_teacher_punch_after_latest_end_as_check_out(): void
+    {
+        $service = new BiometricAttendanceService();
+        $attendance = new \App\Models\StaffAttendance();
+        $attendance->first_in_time = '08:05:00';
+        $logTime = \Carbon\Carbon::parse('2026-08-07 18:05:00');
+        $bounds = [
+            'earliest_start' => \Carbon\Carbon::parse('2026-08-07 08:00:00'),
+            'latest_end' => \Carbon\Carbon::parse('2026-08-07 18:00:00'),
+        ];
+
+        $this->assertSame('out', $service->inferTeacherPunchType($attendance, $logTime, $bounds, 'IN'));
+    }
 }

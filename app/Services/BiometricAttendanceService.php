@@ -226,8 +226,7 @@ class BiometricAttendanceService
             'attendance_date' => $log->punch_time->toDateString(),
         ]);
 
-        $time = $log->punch_time->format('H:i:s');
-        $punchType = $this->inferStaffPunchType($attendance, $log->punch_type);
+        $punchTime = $log->punch_time;
 
         $attendance->fill([
             'teacher_id' => $teacherId,
@@ -235,15 +234,24 @@ class BiometricAttendanceService
             'branch_id' => $branchId,
             'source' => 'biometric',
             'status' => 'present',
+            'batch_id' => $timetable?->batch_id,
         ]);
 
+        if ($teacherId) {
+            $teacher = $this->teacherFromId($teacherId);
+            $teacherBounds = $teacher ? $this->teacherDayScheduleBounds($teacher, $log) : null;
+            $punchType = $this->inferTeacherPunchType($attendance, $punchTime, $teacherBounds, $log->punch_type);
+        } else {
+            $punchType = $this->inferStaffPunchType($attendance, $log->punch_type);
+        }
+
         if ($punchType === 'in') {
-            if (! $attendance->first_in_time) {
-                $attendance->first_in_time = $time;
+            if (! $attendance->first_in_time || $punchTime->lessThan(Carbon::parse($attendance->first_in_time))) {
+                $attendance->first_in_time = $punchTime->format('H:i:s');
             }
         } else {
-            if (! $attendance->last_out_time) {
-                $attendance->last_out_time = $time;
+            if (! $attendance->last_out_time || $punchTime->greaterThan(Carbon::parse($attendance->last_out_time))) {
+                $attendance->last_out_time = $punchTime->format('H:i:s');
             }
         }
 
@@ -310,6 +318,48 @@ class BiometricAttendanceService
         ]);
 
         $logBook->save();
+    }
+
+    private function inferTeacherPunchType(StaffAttendance $attendance, Carbon $punchTime, ?array $bounds, ?string $punchType): string
+    {
+        if (! $attendance->first_in_time) {
+            return 'in';
+        }
+
+        if (! $attendance->last_out_time && $bounds) {
+            if ($punchTime->greaterThanOrEqualTo($bounds['latest_end'])) {
+                return 'out';
+            }
+
+            return 'in';
+        }
+
+        return $this->normalizePunchType($punchType);
+    }
+
+    private function teacherDayScheduleBounds(Teacher $teacher, BiometricDeviceLog $log): ?array
+    {
+        $rows = Timetable::where('teacher_id', $teacher->id)
+            ->where('status', 'scheduled')
+            ->where(function ($query) use ($log) {
+                $query->whereDate('schedule_date', $log->punch_time->toDateString())
+                    ->orWhere('day_of_week', $log->punch_time->format('l'));
+            })
+            ->get()
+            ->filter(function ($row) {
+                return $row->start_time && $row->end_time;
+            });
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        $date = $log->punch_time->toDateString();
+
+        return [
+            'earliest_start' => Carbon::parse($date . ' ' . $rows->min('start_time')),
+            'latest_end' => Carbon::parse($date . ' ' . $rows->max('end_time')),
+        ];
     }
 
     private function matchTeacherTimetable(Teacher $teacher, BiometricDeviceLog $log): ?Timetable
