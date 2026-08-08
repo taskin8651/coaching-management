@@ -6,10 +6,13 @@ use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\FacultyLogBook;
+use App\Models\Homework;
 use App\Models\StaffAttendance;
 use App\Models\Teacher;
 use App\Models\Timetable;
+use App\Services\HomeworkAssignmentService;
 use App\Services\SalaryCalculationService;
+use App\Services\WhatsappService;
 use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
@@ -143,10 +146,12 @@ class FacultyLogBooksController extends Controller
         return back()->with('message', 'Attachment deleted successfully.');
     }
 
-    public function approve(FacultyLogBook $facultyLogBook, SalaryCalculationService $salaryService)
+    public function approve(FacultyLogBook $facultyLogBook, SalaryCalculationService $salaryService, HomeworkAssignmentService $homeworkAssignment, WhatsappService $whatsapp)
     {
         abort_if(Gate::denies('faculty_log_approve'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $this->assertBranchAccess($facultyLogBook);
+
+        $wasApproved = $facultyLogBook->approval_status === 'approved';
 
         $data = [
             'approval_status' => 'approved',
@@ -175,7 +180,47 @@ class FacultyLogBooksController extends Controller
 
         $facultyLogBook->update($data);
 
+        if (! $wasApproved) {
+            $this->publishHomeworkFromLog($facultyLogBook, $homeworkAssignment, $whatsapp);
+        }
+
         return back()->with('message', 'Faculty log approved successfully.');
+    }
+
+    /**
+     * Approving a faculty log is the only approval a teacher's homework note + attachments
+     * need — this mirrors that approval into a live, already-approved Homework record so
+     * students see it immediately without a second approval step in the Homeworks module.
+     */
+    private function publishHomeworkFromLog(FacultyLogBook $facultyLogBook, HomeworkAssignmentService $homeworkAssignment, WhatsappService $whatsapp): void
+    {
+        $attachments = $facultyLogBook->getMedia('faculty_log_attachments');
+        if (! trim((string) $facultyLogBook->remarks) && $attachments->isEmpty()) {
+            return;
+        }
+
+        $homework = Homework::updateOrCreate(
+            ['faculty_log_book_id' => $facultyLogBook->id],
+            [
+                'branch_id' => $facultyLogBook->branch_id,
+                'batch_id' => $facultyLogBook->batch_id,
+                'subject_id' => $facultyLogBook->subject_id,
+                'teacher_id' => $facultyLogBook->teacher_id,
+                'title' => $facultyLogBook->topic_taught,
+                'details' => $facultyLogBook->remarks,
+                'homework_date' => $facultyLogBook->lecture_date,
+                'status' => 'active',
+                'approval_status' => 'approved',
+                'approved_by_id' => auth()->id(),
+                'approved_at' => now(self::TIMEZONE),
+            ]
+        );
+
+        foreach ($attachments as $media) {
+            $media->copy($homework, 'homework_attachments');
+        }
+
+        $homeworkAssignment->assignToStudents($homework, $whatsapp);
     }
 
     /**

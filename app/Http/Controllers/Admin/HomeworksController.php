@@ -6,10 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Models\Batch;
 use App\Models\Homework;
-use App\Models\HomeworkSubmission;
-use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
+use App\Services\HomeworkAssignmentService;
 use App\Services\WhatsappService;
 use Gate;
 use Illuminate\Http\Request;
@@ -55,7 +54,7 @@ class HomeworksController extends Controller
         }
 
         if ($homework->approval_status === 'approved') {
-            $this->assignToStudents($homework, $whatsapp);
+            app(HomeworkAssignmentService::class)->assignToStudents($homework, $whatsapp);
         }
 
         $message = $homework->approval_status === 'pending'
@@ -79,28 +78,10 @@ class HomeworksController extends Controller
         ]);
 
         if (! $wasApproved) {
-            $this->assignToStudents($homework, $whatsapp);
+            app(HomeworkAssignmentService::class)->assignToStudents($homework, $whatsapp);
         }
 
         return back()->with('message', 'Homework approved successfully.');
-    }
-
-    private function assignToStudents(Homework $homework, WhatsappService $whatsapp): void
-    {
-        $students = Student::where(function ($query) use ($homework) {
-            $query->where('batch_id', $homework->batch_id)
-                ->orWhereHas('studentBatches', fn ($q) => $q->where('batch_id', $homework->batch_id)->where('status', 'active'));
-        })
-            ->when($homework->branch_id, fn ($query) => $query->where('branch_id', $homework->branch_id))
-            ->get();
-
-        foreach ($students as $student) {
-            HomeworkSubmission::firstOrCreate(
-                ['unique_key' => HomeworkSubmission::makeUniqueKey($homework->id, $student->id)],
-                ['homework_id' => $homework->id, 'student_id' => $student->id]
-            );
-            $whatsapp->sendStudentGuardianMessage($student, 'homework', 'Homework assigned: '.$homework->title.' due on '.optional($homework->due_date)->format('d M Y'));
-        }
     }
     public function show(Homework $homework)
     {

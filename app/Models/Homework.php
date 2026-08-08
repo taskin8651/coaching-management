@@ -13,7 +13,7 @@ class Homework extends Model implements HasMedia
 
     public $table = 'homeworks';
 
-    protected $fillable = ['branch_id', 'batch_id', 'subject_id', 'teacher_id', 'title', 'details', 'homework_date', 'due_date', 'status', 'approval_status', 'approved_by_id', 'approved_at'];
+    protected $fillable = ['branch_id', 'batch_id', 'subject_id', 'teacher_id', 'faculty_log_book_id', 'title', 'details', 'homework_date', 'due_date', 'status', 'approval_status', 'approved_by_id', 'approved_at'];
     protected $dates = ['homework_date', 'due_date', 'created_at', 'updated_at'];
     protected $casts = ['approved_at' => 'datetime'];
     protected $appends = ['attachments'];
@@ -39,4 +39,5 @@ class Homework extends Model implements HasMedia
     public function teacher() { return $this->belongsTo(Teacher::class); }
     public function submissions() { return $this->hasMany(HomeworkSubmission::class); }
     public function approvedBy() { return $this->belongsTo(User::class, 'approved_by_id'); }
+    public function facultyLogBook() { return $this->belongsTo(FacultyLogBook::class); }
 }
