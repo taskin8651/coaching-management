@@ -214,6 +214,31 @@
     @csrf
 </form>
 
+@if(session('popup_error'))
+    <style>
+        .premium-popup-overlay{position:fixed;inset:0;background:rgba(13,25,48,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:99999;opacity:0;transition:opacity .25s ease;padding:16px}
+        .premium-popup-overlay.show{opacity:1}
+        .premium-popup-box{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px 28px 26px;text-align:center;box-shadow:0 30px 70px rgba(15,35,68,.35);transform:scale(.9) translateY(10px);opacity:0;transition:transform .25s ease,opacity .25s ease}
+        .premium-popup-overlay.show .premium-popup-box{transform:scale(1) translateY(0);opacity:1}
+        .premium-popup-icon{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;background:linear-gradient(135deg,#ff9d3d,#ef4444);color:#fff;font-size:28px;box-shadow:0 12px 28px rgba(239,68,68,.35)}
+        .premium-popup-title{font-size:18px;font-weight:800;color:#0d1f3c;margin:0 0 8px}
+        .premium-popup-message{font-size:14px;color:#5b6b82;line-height:1.6;margin:0 0 22px}
+        .premium-popup-btn{border:0;background:linear-gradient(135deg,#2f80ff,#4866ff);color:#fff;font-weight:700;font-size:14px;padding:11px 30px;border-radius:10px;cursor:pointer;box-shadow:0 12px 24px rgba(47,128,255,.28)}
+        .premium-popup-btn:hover{opacity:.92}
+    </style>
+    <div class="premium-popup-overlay" id="premiumPopupOverlay">
+        <div class="premium-popup-box">
+            <div class="premium-popup-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <p class="premium-popup-title">Action Not Allowed</p>
+            <p class="premium-popup-message">{{ session('popup_error') }}</p>
+            <button type="button" class="premium-popup-btn" onclick="document.getElementById('premiumPopupOverlay').classList.remove('show')">Got it</button>
+        </div>
+    </div>
+    <script>
+        document.getElementById('premiumPopupOverlay').classList.add('show');
+    </script>
+@endif
+
 {{-- JS --}}
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
