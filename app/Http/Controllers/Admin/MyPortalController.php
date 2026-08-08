@@ -51,16 +51,12 @@ class MyPortalController extends Controller
             ->get();
 
         $homeworks = Homework::with(['batch', 'subject', 'teacher.user', 'submissions'])
-            ->when($studentIds->isNotEmpty(), function ($q) use ($studentIds, $studentBatchIds, $studentSubjectIds) {
-                $q->where('approval_status', 'approved')->where(function ($qq) use ($studentIds, $studentBatchIds, $studentSubjectIds) {
+            ->when($studentIds->isNotEmpty(), function ($q) use ($studentIds, $studentBatchIds) {
+                $q->where('approval_status', 'approved')->where(function ($qq) use ($studentIds, $studentBatchIds) {
                     $qq->whereHas('submissions', fn ($sub) => $sub->whereIn('student_id', $studentIds));
 
                     if ($studentBatchIds->isNotEmpty()) {
                         $qq->orWhereIn('batch_id', $studentBatchIds);
-                    }
-
-                    if ($studentSubjectIds->isNotEmpty()) {
-                        $qq->orWhereIn('subject_id', $studentSubjectIds);
                     }
                 });
             })
@@ -94,14 +90,18 @@ class MyPortalController extends Controller
                 $q->where(function ($qq) use ($scope) {
                     $qq->whereNull('branch_id')->orWhere('branch_id', $scope['branch_id']);
                 })->where(function ($qq) use ($visibleBatchIds, $studentSubjectIds) {
-                    $qq->whereNull('batch_id');
+                    $qq->where(function ($general) use ($studentSubjectIds) {
+                        $general->whereNull('batch_id');
+
+                        if ($studentSubjectIds->isNotEmpty()) {
+                            $general->where(fn ($subj) => $subj->whereNull('subject_id')->orWhereIn('subject_id', $studentSubjectIds));
+                        } else {
+                            $general->whereNull('subject_id');
+                        }
+                    });
 
                     if ($visibleBatchIds->isNotEmpty()) {
                         $qq->orWhereIn('batch_id', $visibleBatchIds);
-                    }
-
-                    if ($studentSubjectIds->isNotEmpty()) {
-                        $qq->orWhereIn('subject_id', $studentSubjectIds);
                     }
                 });
             })
