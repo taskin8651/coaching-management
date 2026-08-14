@@ -52,6 +52,11 @@ class StoreStaffRequest extends FormRequest
                 'unique:staff,biometric_id',
                 Rule::unique('users', 'biometric_id')->ignore($selectedUserId),
             ],
+            'device_id' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
             'phone' => [
                 'nullable',
                 'string',

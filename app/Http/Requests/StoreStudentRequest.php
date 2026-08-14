@@ -81,6 +81,11 @@ class StoreStudentRequest extends FormRequest
                 'unique:students,biometric_id',
                 Rule::unique('users', 'biometric_id')->ignore($selectedUserId),
             ],
+            'device_id' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
             'father_name' => [
                 'nullable',
                 'string',

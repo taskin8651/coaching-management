@@ -90,6 +90,12 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label" for="device_id">Device ID</label>
+                    <div class="input-icon-wrap"><i class="fas fa-mobile-alt icon"></i><input type="text" name="device_id" id="device_id" value="{{ old('device_id') }}" placeholder="Device ID" class="field-input {{ $errors->has('device_id') ? 'error' : '' }}"></div>
+                    @if($errors->has('device_id')) <p class="field-error">{{ $errors->first('device_id') }}</p> @endif
+                </div>
+
+                <div class="field-group">
                     <label class="field-label" for="phone">
                         Phone
                     </label>

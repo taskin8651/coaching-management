@@ -24,6 +24,7 @@ class Staff extends Model implements HasMedia
         'user_id',
         'branch_id',
         'biometric_id',
+        'device_id',
         'phone',
         'alternate_phone',
         'designation',

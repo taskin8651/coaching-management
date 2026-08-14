@@ -29,6 +29,7 @@ class Student extends Model implements HasMedia
         'batch_id',
         'student_code',
         'biometric_id',
+        'device_id',
         'father_name',
         'father_phone',
         'mother_name',
