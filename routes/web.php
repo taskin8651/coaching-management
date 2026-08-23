@@ -116,6 +116,10 @@ Route::get('whatsapp-logs', 'WhatsappLogsController@index')->name('whatsapp-logs
 // Biometric Logs
 Route::get('biometric-logs', 'BiometricLogsController@index')->name('biometric-logs.index');
 
+// Exam Types
+Route::delete('exam-types/destroy', 'ExamTypesController@massDestroy')->name('exam-types.massDestroy');
+Route::resource('exam-types', 'ExamTypesController');
+
 // Exams
 Route::delete('exams/destroy', 'ExamsController@massDestroy')->name('exams.massDestroy');
 Route::post('exams/{exam}/results', 'ExamsController@storeResults')->name('exams.results.store');
@@ -162,6 +166,7 @@ Route::post('fee-installments/{fee_installment}/remind', 'FeeInstallmentsControl
 Route::resource('fee-installments', 'FeeInstallmentsController')->only(['index', 'create', 'store']);
 
 // Report Cards
+Route::get('report-cards/export', 'ReportCardsController@export')->name('report-cards.export');
 Route::post('report-cards/generate', 'ReportCardsController@generate')->name('report-cards.generate');
 Route::post('report-cards/{report_card}/publish', 'ReportCardsController@publish')->name('report-cards.publish');
 Route::resource('report-cards', 'ReportCardsController')->only(['index']);

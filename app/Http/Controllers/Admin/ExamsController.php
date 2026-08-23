@@ -13,6 +13,7 @@ use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\ExamSelfAssessment;
+use App\Models\ExamType;
 use App\Models\Staff;
 use App\Models\Student;
 use App\Models\Subject;
@@ -31,7 +32,7 @@ class ExamsController extends Controller
     {
         abort_if(Gate::denies('exam_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $exams = Exam::with(['branch', 'course', 'batch', 'subject']);
+        $exams = Exam::with(['branch', 'course', 'batch', 'subject'])->withCount('results');
 
         if (auth()->user()->is_admin) {
             // Admin all exams
@@ -180,7 +181,10 @@ class ExamsController extends Controller
         $students = Student::with(['user'])
             ->when($exam->branch_id, fn ($q) => $q->where('branch_id', $exam->branch_id))
             ->when($exam->course_id, fn ($q) => $q->where('course_id', $exam->course_id))
-            ->when($exam->batch_id, fn ($q) => $q->where('batch_id', $exam->batch_id));
+            ->when($exam->batch_id, fn ($q) => $q->where(function ($qq) use ($exam) {
+                $qq->where('batch_id', $exam->batch_id)
+                    ->orWhereHas('studentBatches', fn ($bq) => $bq->where('batch_id', $exam->batch_id)->where('status', 'active'));
+            }));
 
         $selfAssessment = null;
 
@@ -410,10 +414,29 @@ class ExamsController extends Controller
 
         $exam->update(['status' => 'completed']);
 
-        if ($exam->exam_type === 'Weekly Test') {
-            foreach ($savedResults as $result) {
+        foreach ($savedResults as $result) {
+            if ($exam->exam_type === 'Weekly Test' && $result->result_status !== 'absent') {
                 $whatsapp->sendWeeklyTestResult($result);
+
+                continue;
             }
+
+            $result->loadMissing('student.user');
+            $studentName = $result->student->user->name ?? $result->student->student_code ?? 'Student';
+
+            $message = $result->result_status === 'absent'
+                ? sprintf('%s was marked absent for %s.', $studentName, $exam->title)
+                : sprintf(
+                    '%s scored %s/%s (%s%%) in %s. Result: %s.',
+                    $studentName,
+                    $result->marks_obtained,
+                    $result->total_marks,
+                    $result->percentage,
+                    $exam->title,
+                    ucfirst($result->result_status)
+                );
+
+            $whatsapp->sendStudentGuardianMessage($result->student, 'exam_result', $message);
         }
 
         return back()->with('message', 'Exam results saved successfully.');
@@ -507,14 +530,20 @@ class ExamsController extends Controller
 
     private function examTypes(): array
     {
-        return [
-            'Weekly Test'  => 'Weekly Test',
-            'Monthly Test' => 'Monthly Test',
-            'Unit Test'    => 'Unit Test',
-            'Mock Test'    => 'Mock Test',
-            'Final Test'   => 'Final Test',
-            'Other'        => 'Other',
-        ];
+        $types = ExamType::where('status', 'active')->orderBy('name')->pluck('name', 'name')->toArray();
+
+        if (empty($types)) {
+            return [
+                'Weekly Test'  => 'Weekly Test',
+                'Monthly Test' => 'Monthly Test',
+                'Unit Test'    => 'Unit Test',
+                'Mock Test'    => 'Mock Test',
+                'Final Test'   => 'Final Test',
+                'Other'        => 'Other',
+            ];
+        }
+
+        return $types;
     }
 
     private function getUserBranchId()

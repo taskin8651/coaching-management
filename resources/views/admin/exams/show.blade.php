@@ -98,133 +98,6 @@
     </div>
 </div>
 
-@if($isStudentViewer)
-<div class="page-card mb-3">
-    <div class="page-card-header">
-        <p class="page-card-title">My Self-Assessment</p>
-
-        <span class="page-card-note">
-            <i class="fas fa-info-circle"></i>
-            Enter your expected marks / preparation status before the result is out
-        </span>
-    </div>
-
-    <div style="padding:20px;">
-        <form method="POST" action="{{ route('admin.exams.selfAssessment.store', $exam->id) }}">
-            @csrf
-
-            <div class="admin-form-grid" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
-
-                <div class="field-group">
-                    <label class="field-label" for="expected_marks">
-                        Expected Marks
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-star icon"></i>
-
-                        <input type="number"
-                               step="0.01"
-                               min="0"
-                               max="{{ $exam->total_marks }}"
-                               name="expected_marks"
-                               id="expected_marks"
-                               value="{{ old('expected_marks', optional($selfAssessment)->expected_marks) }}"
-                               placeholder="Out of {{ $exam->total_marks }}"
-                               class="field-input {{ $errors->has('expected_marks') ? 'error' : '' }}">
-                    </div>
-
-                    @if($errors->has('expected_marks'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('expected_marks') }}
-                        </p>
-                    @endif
-                </div>
-
-                <div class="field-group">
-                    <label class="field-label" for="preparation_status">
-                        Preparation Status <span class="req">*</span>
-                    </label>
-
-                    <div class="input-icon-wrap">
-                        <i class="fas fa-tasks icon"></i>
-
-                        @php
-                            $prepValue = old('preparation_status', optional($selfAssessment)->preparation_status);
-                        @endphp
-
-                        <select name="preparation_status"
-                                id="preparation_status"
-                                required
-                                class="field-input {{ $errors->has('preparation_status') ? 'error' : '' }}">
-                            <option value="">Select Status</option>
-                            <option value="well_prepared" {{ $prepValue == 'well_prepared' ? 'selected' : '' }}>Well Prepared</option>
-                            <option value="partially_prepared" {{ $prepValue == 'partially_prepared' ? 'selected' : '' }}>Partially Prepared</option>
-                            <option value="not_prepared" {{ $prepValue == 'not_prepared' ? 'selected' : '' }}>Not Prepared</option>
-                        </select>
-                    </div>
-
-                    @if($errors->has('preparation_status'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('preparation_status') }}
-                        </p>
-                    @endif
-                </div>
-
-                <div class="field-group" style="grid-column:1/-1;">
-                    <label class="field-label" for="notes">
-                        Notes
-                    </label>
-
-                    <div class="input-icon-wrap textarea-wrap">
-                        <i class="fas fa-align-left icon"></i>
-
-                        <textarea name="notes"
-                                  id="notes"
-                                  rows="3"
-                                  placeholder="Optional notes about your preparation"
-                                  class="field-input {{ $errors->has('notes') ? 'error' : '' }}">{{ old('notes', optional($selfAssessment)->notes) }}</textarea>
-                    </div>
-
-                    @if($errors->has('notes'))
-                        <p class="field-error">
-                            <i class="fas fa-exclamation-circle"></i>
-                            {{ $errors->first('notes') }}
-                        </p>
-                    @endif
-                </div>
-
-            </div>
-
-            <div class="form-actions" style="padding:14px 0 0;">
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-check"></i>
-                    {{ $selfAssessment ? 'Update' : 'Save' }}
-                </button>
-            </div>
-        </form>
-
-        @if($selfAssessment && $exam->results->isNotEmpty())
-            @php $actual = $exam->results->first(); @endphp
-            <div class="form-info-box" style="margin-top:18px;">
-                <p>
-                    <i class="fas fa-chart-line"></i>
-                    Expected: {{ $selfAssessment->expected_marks !== null ? number_format($selfAssessment->expected_marks, 2) : '-' }}
-                    &nbsp;vs&nbsp;
-                    Actual: {{ number_format($actual->marks_obtained, 2) }}
-                    @if($selfAssessment->expected_marks !== null)
-                        @php $diff = $actual->marks_obtained - $selfAssessment->expected_marks; @endphp
-                        ({{ $diff >= 0 ? '+' : '' }}{{ number_format($diff, 2) }})
-                    @endif
-                </p>
-            </div>
-        @endif
-    </div>
-</div>
-@endif
-
 @can('exam_result_create')
 <div class="page-card">
     <div class="page-card-header">
@@ -274,12 +147,12 @@
                                        max="{{ $exam->total_marks }}"
                                        name="results[{{ $index }}][marks_obtained]"
                                        value="{{ old('results.' . $index . '.marks_obtained', $result->marks_obtained ?? 0) }}"
-                                       class="field-input"
+                                       class="field-input js-marks-input"
                                        style="max-width:140px;">
                             </td>
 
                             <td>
-                                <select name="results[{{ $index }}][result_status]" class="field-input" style="max-width:140px;">
+                                <select name="results[{{ $index }}][result_status]" class="field-input js-status-select" style="max-width:140px;">
                                     <option value="pass" {{ old('results.' . $index . '.result_status', $result->result_status ?? 'pass') == 'pass' ? 'selected' : '' }}>Present</option>
                                     <option value="absent" {{ old('results.' . $index . '.result_status', $result->result_status ?? '') == 'absent' ? 'selected' : '' }}>Absent</option>
                                 </select>
@@ -371,4 +244,39 @@
     </div>
 </div>
 
+@endsection
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function syncMarksField(select) {
+        const row = select.closest('tr');
+        const marksInput = row ? row.querySelector('.js-marks-input') : null;
+
+        if (!marksInput) {
+            return;
+        }
+
+        if (select.value === 'absent') {
+            marksInput.dataset.lastValue = marksInput.dataset.lastValue ?? marksInput.value;
+            marksInput.value = 0;
+            marksInput.disabled = true;
+            marksInput.style.opacity = '0.5';
+        } else {
+            marksInput.disabled = false;
+            marksInput.style.opacity = '';
+
+            if (marksInput.dataset.lastValue !== undefined) {
+                marksInput.value = marksInput.dataset.lastValue;
+            }
+        }
+    }
+
+    document.querySelectorAll('.js-status-select').forEach(function (select) {
+        syncMarksField(select);
+        select.addEventListener('change', function () { syncMarksField(select); });
+    });
+});
+</script>
 @endsection

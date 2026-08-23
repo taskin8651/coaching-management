@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -70,6 +71,30 @@ class Exam extends Model
     public function selfAssessments()
     {
         return $this->hasMany(ExamSelfAssessment::class, 'exam_id');
+    }
+
+    /**
+     * Scheduled/Completed here reflects whether the exam's date & time have passed —
+     * independent of the stored `status` column, which the results-entry flow flips to
+     * "completed" only once marks are saved. Manual cancellation still wins over both.
+     */
+    public function getDisplayStatusAttribute(): string
+    {
+        if ($this->status === 'cancelled') {
+            return 'cancelled';
+        }
+
+        if ($this->exam_date) {
+            $examEndsAt = Carbon::parse($this->exam_date->format('Y-m-d').' '.($this->end_time ?: '23:59:59'));
+
+            if (now()->greaterThanOrEqualTo($examEndsAt)) {
+                return 'completed';
+            }
+
+            return 'scheduled';
+        }
+
+        return $this->status ?: 'scheduled';
     }
 
     protected function serializeDate(DateTimeInterface $date)

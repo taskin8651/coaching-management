@@ -28,17 +28,17 @@
 
     <div class="stat-card">
         <p class="stat-label">Scheduled</p>
-        <p class="stat-value">{{ $exams->where('status', 'scheduled')->count() }}</p>
+        <p class="stat-value">{{ $exams->where('display_status', 'scheduled')->count() }}</p>
     </div>
 
     <div class="stat-card">
         <p class="stat-label">Completed</p>
-        <p class="stat-value">{{ $exams->where('status', 'completed')->count() }}</p>
+        <p class="stat-value">{{ $exams->where('display_status', 'completed')->count() }}</p>
     </div>
 
     <div class="stat-card">
         <p class="stat-label">Cancelled</p>
-        <p class="stat-value">{{ $exams->where('status', 'cancelled')->count() }}</p>
+        <p class="stat-value">{{ $exams->where('display_status', 'cancelled')->count() }}</p>
     </div>
 </div>
 
@@ -66,6 +66,7 @@
                     <th>Date</th>
                     <th>Marks</th>
                     <th>Status</th>
+                    <th>Remarks</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
             </thead>
@@ -100,12 +101,26 @@
                         </td>
 
                         <td>
-                            @if($exam->status == 'scheduled')
+                            @if($exam->display_status == 'scheduled')
                                 <span class="status-pill warning">Scheduled</span>
-                            @elseif($exam->status == 'completed')
+                            @elseif($exam->display_status == 'completed')
                                 <span class="status-pill success">Completed</span>
                             @else
                                 <span class="status-pill" style="background:#FEE2E2;color:#991B1B;">Cancelled</span>
+                            @endif
+                        </td>
+
+                        <td>
+                            @if($exam->results_count > 0)
+                                <span class="status-pill success">
+                                    <i class="fas fa-check-circle"></i>
+                                    Remark Added
+                                </span>
+                            @else
+                                <span class="status-pill warning">
+                                    <i class="fas fa-clock"></i>
+                                    Pending
+                                </span>
                             @endif
                         </td>
 

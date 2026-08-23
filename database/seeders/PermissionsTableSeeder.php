@@ -133,6 +133,12 @@ class PermissionsTableSeeder extends Seeder
             'exam_access',
             'exam_result_create',
 
+            'exam_type_create',
+            'exam_type_edit',
+            'exam_type_show',
+            'exam_type_delete',
+            'exam_type_access',
+
             'study_material_create',
             'study_material_edit',
             'study_material_show',

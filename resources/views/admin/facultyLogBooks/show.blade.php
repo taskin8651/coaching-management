@@ -362,7 +362,7 @@
                 </span>
 
                 <span class="detail-value">
-                    {{ $faculty_log_book->remarks ?? '-' }}
+                    {{ $faculty_log_book->remarks ?: 'No Homework Today' }}
                 </span>
 
             </div>

@@ -59,9 +59,19 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label">Home Work</label>
-                    <textarea class="field-input" name="remarks" rows="4">{{ old('remarks', $facultyLogBook->remarks) }}</textarea>
+                    <label class="field-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" id="has_homework" {{ old('remarks', $facultyLogBook->remarks) ? 'checked' : '' }}>
+                        Add Homework
+                    </label>
                 </div>
+                <div class="field-group" id="homework_field" style="display:{{ old('remarks', $facultyLogBook->remarks) ? 'block' : 'none' }};">
+                    <label class="field-label">Home Work</label>
+                    <textarea class="field-input" name="remarks" id="remarks" rows="4">{{ old('remarks', $facultyLogBook->remarks) }}</textarea>
+                </div>
+                <p class="field-hint" id="no_homework_hint" style="display:{{ old('remarks', $facultyLogBook->remarks) ? 'none' : 'block' }};">
+                    <i class="fas fa-info-circle"></i>
+                    No Homework Today
+                </p>
 
                 @if($facultyLogBook->attachments && count($facultyLogBook->attachments))
                     <div class="form-info-box" style="margin-bottom:18px;">
@@ -169,5 +179,29 @@ async function loadTimetable() {
 }
 
 loadTimetable();
+
+const hasHomework = document.getElementById('has_homework');
+const homeworkField = document.getElementById('homework_field');
+const noHomeworkHint = document.getElementById('no_homework_hint');
+const remarksInput = document.getElementById('remarks');
+
+function toggleHomeworkField() {
+    if (hasHomework.checked) {
+        homeworkField.style.display = 'block';
+        noHomeworkHint.style.display = 'none';
+    } else {
+        homeworkField.style.display = 'none';
+        noHomeworkHint.style.display = 'block';
+        remarksInput.value = '';
+    }
+}
+
+hasHomework.addEventListener('change', toggleHomeworkField);
+
+document.getElementById('facultyLogForm').addEventListener('submit', function () {
+    if (! hasHomework.checked) {
+        remarksInput.value = '';
+    }
+});
 </script>
 @endsection

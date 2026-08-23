@@ -369,11 +369,19 @@
 document.addEventListener('DOMContentLoaded', function () {
     const batchSelect = document.getElementById('batch_id');
     const subjectSelect = document.getElementById('subject_id');
+    const teacherSelect = document.getElementById('teacher_id');
     const subjectsByBatch = @json($subjectsByBatch);
+    const teachersBySubject = @json($teachersBySubject);
+
+    const renderTeachers = cascadeByParent(teacherSelect, subjectSelect, teachersBySubject, {
+        placeholder: 'Optional',
+        keepValue: @json(old('teacher_id', $homework->teacher_id)),
+    });
 
     cascadeByParent(subjectSelect, batchSelect, subjectsByBatch, {
         placeholder: 'Optional',
         keepValue: @json(old('subject_id', $homework->subject_id)),
+        onRender: renderTeachers,
     });
 });
 </script>

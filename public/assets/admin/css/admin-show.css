@@ -107,6 +107,11 @@
     color: #92400E;
 }
 
+.status-pill.danger {
+    background: #FEE2E2;
+    color: #B91C1C;
+}
+
 .stat-mini {
     background: #F8FAFC;
     border-radius: 10px;

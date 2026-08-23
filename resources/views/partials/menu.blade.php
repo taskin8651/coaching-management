@@ -388,9 +388,10 @@
         @endcanany
 
         {{-- ACADEMIC GROUP --}}
-        @canany(['exam_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'timetable_substitute', 'homework_access', 'student_remark_access'])
+        @canany(['exam_access', 'exam_type_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'timetable_substitute', 'homework_access', 'student_remark_access'])
             @php
                 $academicActive = request()->is('admin/exams*')
+                    || request()->is('admin/exam-types*')
                     || request()->is('admin/study-materials*')
                     || request()->is('admin/student-batches*')
                     || request()->is('admin/student-attendances*')
@@ -431,6 +432,14 @@
                            class="sub-link {{ request()->is('admin/exams*') ? 'active' : '' }}">
                             <i class="fas fa-clipboard-list"></i>
                             Exams / Tests
+                        </a>
+                    @endcan
+
+                    @can('exam_type_access')
+                        <a href="{{ route('admin.exam-types.index') }}"
+                           class="sub-link {{ request()->is('admin/exam-types*') ? 'active' : '' }}">
+                            <i class="fas fa-list-alt"></i>
+                            Exam Types
                         </a>
                     @endcan
 

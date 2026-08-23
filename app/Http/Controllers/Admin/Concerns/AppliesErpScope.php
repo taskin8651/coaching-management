@@ -226,6 +226,28 @@ trait AppliesErpScope
     }
 
     /**
+     * Teachers grouped by subject_id, via each teacher's active Teaching Assignments — for
+     * client-side cascading Subject -> Teacher selects (e.g. Homework's Academic Mapping card).
+     * Shape: { subject_id: [{id, name}, ...] }
+     */
+    protected function teachersBySubject(): array
+    {
+        return $this->scopeBranchQuery(TeacherAssignment::where('status', 'active')->whereNotNull('subject_id'))
+            ->with('teacher.user')
+            ->get()
+            ->filter(fn ($assignment) => $assignment->teacher && $assignment->teacher->user)
+            ->groupBy('subject_id')
+            ->map(fn ($assignments) => $assignments->pluck('teacher')
+                ->unique('id')
+                ->sortBy(fn ($teacher) => $teacher->user->name)
+                ->map(fn ($teacher) => [
+                    'id' => $teacher->id,
+                    'name' => $teacher->user->name,
+                ])->values())
+            ->toArray();
+    }
+
+    /**
      * "Staff-side" users grouped by branch_id, for client-side cascading Branch -> assignee
      * selects (e.g. "Paid By" on Expenses, "Assigned To" on Maintenance Requests). Only Admin
      * (branch-agnostic, included in every branch's list), Branch Manager and Staff of that

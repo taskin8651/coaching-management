@@ -20,7 +20,20 @@
             <div class="field-group"><label class="field-label" for="lecture_date">Lecture Date <span class="req">*</span></label><input type="date" name="lecture_date" id="lecture_date" value="{{ old('lecture_date', now('Asia/Kolkata')->toDateString()) }}" max="{{ now('Asia/Kolkata')->toDateString() }}" required class="field-input">@if($errors->has('lecture_date'))<p class="field-error">{{ $errors->first('lecture_date') }}</p>@endif</div>
             <div class="field-group"><label class="field-label" for="batch_id">Batch <span class="req">*</span></label><select name="batch_id" id="batch_id" required class="field-input"><option value="">Select Batch</option>@foreach($batches as $id => $name)<option value="{{ $id }}" {{ old('batch_id') == $id ? 'selected' : '' }}>{{ $name }}</option>@endforeach</select>@if($errors->has('batch_id'))<p class="field-error">{{ $errors->first('batch_id') }}</p>@endif</div>
             <div class="field-group"><label class="field-label" for="topic_taught">Topic Taught <span class="req">*</span></label><input type="text" name="topic_taught" id="topic_taught" value="{{ old('topic_taught') }}" required class="field-input" placeholder="Example: Algebra Chapter 1">@if($errors->has('topic_taught'))<p class="field-error">{{ $errors->first('topic_taught') }}</p>@endif</div>
-            <div class="field-group"><label class="field-label" for="remarks">Home Work</label><textarea name="remarks" id="remarks" rows="4" class="field-input">{{ old('remarks') }}</textarea></div>
+            <div class="field-group">
+                <label class="field-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="has_homework" {{ old('remarks') ? 'checked' : '' }}>
+                    Add Homework
+                </label>
+            </div>
+            <div class="field-group" id="homework_field" style="display:{{ old('remarks') ? 'block' : 'none' }};">
+                <label class="field-label" for="remarks">Home Work</label>
+                <textarea name="remarks" id="remarks" rows="4" class="field-input">{{ old('remarks') }}</textarea>
+            </div>
+            <p class="field-hint" id="no_homework_hint" style="display:{{ old('remarks') ? 'none' : 'block' }};">
+                <i class="fas fa-info-circle"></i>
+                No Homework Today
+            </p>
             <div class="field-group">
                 <label class="field-label" for="attachments">Attachments</label>
                 <input type="file" name="attachments[]" id="attachments" multiple class="field-input {{ $errors->has('attachments') ? 'error' : '' }}">
@@ -60,5 +73,29 @@ async function loadTimetable() {
     document.getElementById('timetable_branch').value = data.branch_name || '-'; document.getElementById('timetable_subject').value = data.subject_name || '-'; document.getElementById('timetable_schedule').value = `${data.scheduled_start_time} - ${data.scheduled_end_time}`; message.innerHTML='<p><i class="fas fa-check-circle"></i> Timetable loaded. These details will be verified again when saving.</p>';
 }
 batch.addEventListener('change', loadTimetable); date.addEventListener('change', loadTimetable); if (batch.value && date.value) loadTimetable();
+
+const hasHomework = document.getElementById('has_homework');
+const homeworkField = document.getElementById('homework_field');
+const noHomeworkHint = document.getElementById('no_homework_hint');
+const remarksInput = document.getElementById('remarks');
+
+function toggleHomeworkField() {
+    if (hasHomework.checked) {
+        homeworkField.style.display = 'block';
+        noHomeworkHint.style.display = 'none';
+    } else {
+        homeworkField.style.display = 'none';
+        noHomeworkHint.style.display = 'block';
+        remarksInput.value = '';
+    }
+}
+
+hasHomework.addEventListener('change', toggleHomeworkField);
+
+document.getElementById('facultyLogForm').addEventListener('submit', function () {
+    if (! hasHomework.checked) {
+        remarksInput.value = '';
+    }
+});
 </script>
 @endsection

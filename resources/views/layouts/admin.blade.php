@@ -216,8 +216,8 @@
 
 @if(session('popup_error'))
     <style>
-        .premium-popup-overlay{position:fixed;inset:0;background:rgba(13,25,48,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:99999;opacity:0;transition:opacity .25s ease;padding:16px}
-        .premium-popup-overlay.show{opacity:1}
+        .premium-popup-overlay{position:fixed;inset:0;background:rgba(13,25,48,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:99999;opacity:0;pointer-events:none;transition:opacity .25s ease;padding:16px}
+        .premium-popup-overlay.show{opacity:1;pointer-events:auto}
         .premium-popup-box{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px 28px 26px;text-align:center;box-shadow:0 30px 70px rgba(15,35,68,.35);transform:scale(.9) translateY(10px);opacity:0;transition:transform .25s ease,opacity .25s ease}
         .premium-popup-overlay.show .premium-popup-box{transform:scale(1) translateY(0);opacity:1}
         .premium-popup-icon{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;background:linear-gradient(135deg,#ff9d3d,#ef4444);color:#fff;font-size:28px;box-shadow:0 12px 28px rgba(239,68,68,.35)}

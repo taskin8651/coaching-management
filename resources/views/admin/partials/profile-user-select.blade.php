@@ -60,6 +60,12 @@ document.addEventListener('DOMContentLoaded', function () {
         setValue('branch_id', user.branch_id);
         setValue('biometric_id', user.biometric_id);
 
+        const branchField = document.getElementById('branch_id');
+
+        if (branchField) {
+            branchField.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
         const password = document.getElementById('account_password');
 
         if (password) {
