@@ -92,7 +92,12 @@ class UpdateStaffRequest extends FormRequest
             ],
             'salary_type' => [
                 'nullable',
-                'in:monthly',
+                'in:monthly,hourly',
+            ],
+            'hourly_rate' => [
+                'nullable',
+                'numeric',
+                'min:0',
             ],
             'joining_date' => [
                 'nullable',

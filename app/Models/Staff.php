@@ -32,6 +32,7 @@ class Staff extends Model implements HasMedia
         'address',
         'salary',
         'salary_type',
+        'hourly_rate',
         'joining_date',
         'status',
         'created_at',
@@ -95,5 +96,10 @@ public function salaryPayments()
 public function staffAttendances()
 {
     return $this->hasMany(StaffAttendance::class, 'staff_id');
+}
+
+public function timetables()
+{
+    return $this->hasMany(StaffTimetable::class, 'staff_id');
 }
 }

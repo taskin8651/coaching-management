@@ -22,6 +22,8 @@ class StoreFeePaymentRequest extends FormRequest
             'student_id' => ['nullable', 'integer', 'exists:students,id'],
             'course_id' => ['nullable', 'integer', 'exists:courses,id'],
             'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
+            'fee_structure_id' => ['nullable', 'integer', 'exists:fee_structures,id'],
+            'fee_installment_id' => ['nullable', 'integer', 'exists:fee_installments,id'],
             'collected_by_id' => ['nullable', 'integer', 'exists:users,id'],
 
             'receipt_no' => ['nullable', 'string', 'max:255', 'unique:fee_payments,receipt_no'],

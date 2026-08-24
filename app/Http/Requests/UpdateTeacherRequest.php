@@ -97,7 +97,7 @@ class UpdateTeacherRequest extends FormRequest
             ],
             'salary_type' => [
                 'nullable',
-                'in:monthly,lecture',
+                'in:monthly,hourly',
             ],
             'minute_rate' => [
                 'nullable',

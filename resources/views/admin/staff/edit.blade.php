@@ -265,6 +265,57 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label" for="salary_type">
+                        Salary Type
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-toggle-on icon"></i>
+
+                        <select name="salary_type"
+                                id="salary_type"
+                                class="field-input {{ $errors->has('salary_type') ? 'error' : '' }}">
+                            <option value="monthly" {{ old('salary_type', $staff->salary_type) == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                            <option value="hourly" {{ old('salary_type', $staff->salary_type) == 'hourly' ? 'selected' : '' }}>Hourly</option>
+                        </select>
+                    </div>
+
+                    @if($errors->has('salary_type'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('salary_type') }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="hourly_rate">
+                        Hourly Rate (₹/hr)
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-stopwatch icon"></i>
+
+                        <input type="number"
+                               step="0.01"
+                               min="0"
+                               name="hourly_rate"
+                               id="hourly_rate"
+                               value="{{ old('hourly_rate', $staff->hourly_rate) }}"
+                               class="field-input {{ $errors->has('hourly_rate') ? 'error' : '' }}">
+                    </div>
+
+                    @if($errors->has('hourly_rate'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('hourly_rate') }}
+                        </p>
+                    @else
+                        <p class="field-hint">Used only when Salary Type is Hourly.</p>
+                    @endif
+                </div>
+
+                <div class="field-group">
                     <label class="field-label" for="joining_date">
                         Joining Date
                     </label>

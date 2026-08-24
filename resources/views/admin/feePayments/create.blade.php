@@ -64,6 +64,8 @@
                             <i class="fas fa-exclamation-circle"></i>
                             {{ $errors->first('student_id') }}
                         </p>
+                    @else
+                        <p class="field-hint">Selecting a student auto-fills branch, course, batch and matching fee structure below.</p>
                     @endif
                 </div>
 
@@ -94,6 +96,32 @@
                         </p>
                     @else
                         <p class="field-hint">Select fee structure to auto-fill total fee.</p>
+                    @endif
+                </div>
+
+                {{-- INSTALLMENT --}}
+                <div class="field-group">
+                    <label class="field-label" for="fee_installment_id">
+                        Installment
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-layer-group icon"></i>
+
+                        <select name="fee_installment_id"
+                                id="fee_installment_id"
+                                class="field-input {{ $errors->has('fee_installment_id') ? 'error' : '' }}">
+                            <option value="">Optional</option>
+                        </select>
+                    </div>
+
+                    @if($errors->has('fee_installment_id'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('fee_installment_id') }}
+                        </p>
+                    @else
+                        <p class="field-hint">If this payment is settling a specific installment, link it here so that installment's due amount updates.</p>
                     @endif
                 </div>
 
@@ -557,6 +585,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (feeStructureSelect) {
         feeStructureSelect.addEventListener('change', applyFeeStructure);
+    }
+
+    const installmentSelect = document.getElementById('fee_installment_id');
+    const installmentsByStudent = @json($installmentsByStudent);
+
+    cascadeByParent(installmentSelect, document.getElementById('student_id'), installmentsByStudent, {
+        placeholder: 'Optional',
+        keepValue: @json(old('fee_installment_id')),
+    });
+
+    const studentDetails = @json($studentDetails);
+    const studentSelect = document.getElementById('student_id');
+
+    function matchingFeeStructureId(branchId, courseId, batchId) {
+        return Object.keys(feeStructures).find(function (id) {
+            const structure = feeStructures[id];
+
+            return String(structure.branch_id) === String(branchId)
+                && String(structure.course_id) === String(courseId)
+                && String(structure.batch_id) === String(batchId);
+        });
+    }
+
+    if (studentSelect) {
+        studentSelect.addEventListener('change', function () {
+            const details = studentDetails[this.value];
+
+            if (!details) {
+                return;
+            }
+
+            if (details.branch_id) {
+                branchSelect.value = details.branch_id;
+                branchSelect.dispatchEvent(new Event('change'));
+            }
+
+            if (details.batch_id) {
+                batchSelect.value = details.batch_id;
+                batchSelect.dispatchEvent(new Event('change'));
+            }
+
+            if (details.course_id) {
+                courseSelect.value = details.course_id;
+            }
+
+            const structureId = matchingFeeStructureId(details.branch_id, details.course_id, details.batch_id);
+
+            if (structureId && feeStructureSelect) {
+                feeStructureSelect.value = structureId;
+                applyFeeStructure();
+            }
+        });
     }
 
     updateFeePreview();

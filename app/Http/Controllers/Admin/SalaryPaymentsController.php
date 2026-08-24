@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SalaryPaymentsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         abort_if(Gate::denies('salary_payment_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -41,9 +41,58 @@ class SalaryPaymentsController extends Controller
             $branchId ? $salaryPayments->where('branch_id', $branchId) : $salaryPayments->whereRaw('1 = 0');
         }
 
+        $filters = $request->only(['employee_type', 'salary_type', 'branch_id', 'salary_month', 'payment_status', 'teacher_id', 'staff_id']);
+
+        if (! empty($filters['employee_type'])) {
+            $salaryPayments->where('employee_type', $filters['employee_type']);
+        }
+
+        if (! empty($filters['salary_type'])) {
+            $salaryPayments->where('salary_type', $filters['salary_type']);
+        }
+
+        if (! empty($filters['branch_id'])) {
+            $salaryPayments->where('branch_id', $filters['branch_id']);
+        }
+
+        if (! empty($filters['salary_month'])) {
+            $salaryPayments->where('salary_month', $filters['salary_month']);
+        }
+
+        if (! empty($filters['payment_status'])) {
+            $salaryPayments->where('payment_status', $filters['payment_status']);
+        }
+
+        if (! empty($filters['teacher_id'])) {
+            $salaryPayments->where('teacher_id', $filters['teacher_id']);
+        }
+
+        if (! empty($filters['staff_id'])) {
+            $salaryPayments->where('staff_id', $filters['staff_id']);
+        }
+
         $salaryPayments = $salaryPayments->latest()->get();
 
-        return view('admin.salaryPayments.index', compact('salaryPayments'));
+        $branchId = $this->getUserBranchId();
+
+        $branches = Branch::where('status', 'active')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('id', $branchId) : $q->whereRaw('1 = 0'))
+            ->pluck('name', 'id')
+            ->prepend('All Branches', '');
+
+        $teacherFilterOptions = Teacher::with('user')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->get()
+            ->mapWithKeys(fn ($teacher) => [$teacher->id => $teacher->user->name ?? 'Teacher #' . $teacher->id])
+            ->prepend('All Teachers', '');
+
+        $staffFilterOptions = Staff::with('user')
+            ->when(! auth()->user()->is_admin, fn ($q) => $branchId ? $q->where('branch_id', $branchId) : $q->whereRaw('1 = 0'))
+            ->get()
+            ->mapWithKeys(fn ($member) => [$member->id => $member->user->name ?? 'Staff #' . $member->id])
+            ->prepend('All Staff', '');
+
+        return view('admin.salaryPayments.index', compact('salaryPayments', 'filters', 'branches', 'teacherFilterOptions', 'staffFilterOptions'));
     }
 
     public function create()
@@ -297,6 +346,7 @@ class SalaryPaymentsController extends Controller
 
             $data['user_id'] = $teacher->user_id ?? null;
             $data['staff_id'] = null;
+            $data['salary_type'] = $teacher->salary_type ?? 'monthly';
 
             if (empty($data['branch_id'])) {
                 $data['branch_id'] = $teacher->branch_id ?? null;
@@ -308,6 +358,7 @@ class SalaryPaymentsController extends Controller
 
             $data['user_id'] = $staff->user_id ?? null;
             $data['teacher_id'] = null;
+            $data['salary_type'] = $staff->salary_type ?? 'monthly';
 
             if (empty($data['branch_id'])) {
                 $data['branch_id'] = $staff->branch_id ?? null;

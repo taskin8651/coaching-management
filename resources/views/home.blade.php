@@ -180,7 +180,7 @@
         </div>
     </div>
 
-    <div class="wide-grid">
+    <div class="wide-grid" style="grid-template-columns:1.1fr 1.45fr;">
         <div class="ed-card">
             <div class="card-head"><p class="card-title">Exam Results Overview</p></div>
             <div class="score-box">
@@ -189,17 +189,6 @@
                 <div class="metric-trend"><i class="fas fa-arrow-up"></i> scoped exam result average</div>
                 <div class="score-line"><div class="score-month"><div class="score-bar"></div><div class="bar-label">Jan</div></div><div class="score-month"><div class="score-bar" style="height:88px"></div><div class="bar-label">Feb</div></div><div class="score-month"><div class="score-bar" style="height:100px"></div><div class="bar-label">Mar</div></div></div>
             </div>
-        </div>
-
-        <div class="ed-card">
-            <div class="card-head"><p class="card-title">Recent Admissions</p>@can('admission_access')<a class="view-link" href="{{ route('admin.admissions.index') }}">View All</a>@endcan</div>
-            <table class="mini-table"><thead><tr><th>#</th><th>Student</th><th>Course</th><th>Batch</th><th>Date</th></tr></thead><tbody>
-            @forelse($recentAdmissions as $admission)
-                <tr><td>{{ $loop->iteration }}</td><td>{{ $admission->student->user->name ?? 'Student' }}</td><td>{{ $admission->course->name ?? '-' }}</td><td>{{ $admission->batch->name ?? '-' }}</td><td>{{ $admission->admission_date ? \Carbon\Carbon::parse($admission->admission_date)->format('d M') : '-' }}</td></tr>
-            @empty
-                <tr><td colspan="5">No admissions found.</td></tr>
-            @endforelse
-            </tbody></table>
         </div>
 
         <div class="ed-card">

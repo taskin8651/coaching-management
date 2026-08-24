@@ -38,6 +38,7 @@ class SalaryPayment extends Model
         'staff_id',
         'paid_by_id',
         'employee_type',
+        'salary_type',
         'salary_month',
         'slip_no',
         'basic_salary',

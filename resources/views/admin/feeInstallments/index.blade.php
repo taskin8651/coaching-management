@@ -37,6 +37,11 @@
     </div>
 
     <div class="stat-card">
+        <p class="stat-label">Overdue</p>
+        <p class="stat-value">{{ $installments->where('display_status', 'overdue')->count() }}</p>
+    </div>
+
+    <div class="stat-card">
         <p class="stat-label">Total Due</p>
         <p class="stat-value">₹{{ number_format($installments->sum('due_amount'), 0) }}</p>
     </div>
@@ -63,7 +68,7 @@
                     <th>Due</th>
                     <th>Due Date</th>
                     <th>Status</th>
-                    <th style="text-align:right;">Reminder</th>
+                    <th style="text-align:right;">{{ trans('global.actions') }}</th>
                 </tr>
             </thead>
 
@@ -115,19 +120,17 @@
                         </td>
 
                         <td>
-                            @if($item->status == 'paid')
+                            @if($item->display_status == 'paid')
                                 <span class="status-pill success">Paid</span>
-                            @elseif($item->status == 'partial')
+                            @elseif($item->display_status == 'partial')
                                 <span class="status-pill warning">Partial</span>
-                            @elseif($item->status == 'overdue')
+                            @elseif($item->display_status == 'overdue')
                                 <span class="status-pill" style="background:#FEE2E2;color:#991B1B;">Overdue</span>
-                            @elseif($item->status == 'pending' || $item->status == 'due')
-                                <span class="status-pill" style="background:#FEF3C7;color:#92400E;">
-                                    {{ ucfirst($item->status) }}
-                                </span>
+                            @elseif($item->display_status == 'pending')
+                                <span class="status-pill" style="background:#FEF3C7;color:#92400E;">Pending</span>
                             @else
                                 <span class="status-pill" style="background:#F1F5F9;color:#475569;">
-                                    {{ ucfirst($item->status ?? '-') }}
+                                    {{ ucfirst($item->display_status ?? '-') }}
                                 </span>
                             @endif
                         </td>
@@ -145,8 +148,28 @@
                                             Send
                                         </button>
                                     </form>
-                                @else
-                                    <span style="font-size:12px;color:#94A3B8;">—</span>
+                                @endcan
+
+                                @can('fee_installment_edit')
+                                    <a href="{{ route('admin.fee-installments.edit', $item->id) }}" class="btn-outline btn-outline-edit">
+                                        <i class="fas fa-pencil-alt"></i>
+                                        Edit
+                                    </a>
+                                @endcan
+
+                                @can('fee_installment_delete')
+                                    <form method="POST"
+                                          action="{{ route('admin.fee-installments.destroy', $item->id) }}"
+                                          style="display:inline;"
+                                          onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit" class="btn-outline btn-outline-danger">
+                                            <i class="fas fa-trash-alt"></i>
+                                            Delete
+                                        </button>
+                                    </form>
                                 @endcan
                             </div>
                         </td>

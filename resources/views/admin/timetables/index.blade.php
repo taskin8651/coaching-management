@@ -77,7 +77,6 @@
                     <th>Teacher</th>
                     <th>Day / Date</th>
                     <th>Time</th>
-                    <th>Room</th>
                     <th>Status</th>
                     <th style="text-align:right;">Substitute</th>
                     <th style="text-align:right;">{{ trans('global.actions') }}</th>
@@ -89,7 +88,7 @@
                     <tr>
                         <td>
                             <p class="table-main-text">{{ $item->course->name ?? '-' }}</p>
-                            <p class="table-sub-text">course</p>
+                            <p class="table-sub-text">{{ $item->batch->name ?? '-' }}</p>
                         </td>
 
                         <td>
@@ -136,11 +135,7 @@
                             </span>
                         </td>
 
-                        <td>
-                            <span class="code-pill">
-                                {{ $item->room ?? '-' }}
-                            </span>
-                        </td>
+                       
 
                         <td>
                             @if($item->status == 'active')

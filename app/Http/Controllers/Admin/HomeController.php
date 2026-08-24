@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Admission;
 use App\Models\Batch;
 use App\Models\Branch;
 use App\Models\Course;
@@ -97,11 +96,6 @@ class HomeController extends Controller
         );
         $monthlyEnquiries = $this->monthlyCountSeries((clone $enquiriesQuery), 'created_at');
 
-        $recentAdmissions = $this->scopeAdmissions(Admission::with(['student.user', 'course', 'batch']), $scope, $studentIds)
-            ->latest()
-            ->take(5)
-            ->get();
-
         $recentFeePayments = (clone $feeQuery)
             ->with(['student.user', 'batch'])
             ->latest()
@@ -163,12 +157,6 @@ class HomeController extends Controller
         ];
 
         $activityFeed = collect()
-            ->merge($recentAdmissions->map(fn ($item) => [
-                'icon' => 'fas fa-user-plus',
-                'tone' => 'green',
-                'title' => 'New admission: ' . ($item->student->user->name ?? 'Student'),
-                'meta' => optional($item->created_at)->format('h:i A') ?? '',
-            ]))
             ->merge($recentFeePayments->take(3)->map(fn ($item) => [
                 'icon' => 'fas fa-indian-rupee-sign',
                 'tone' => 'blue',
@@ -206,7 +194,6 @@ class HomeController extends Controller
             'netBalance',
             'monthlyFee',
             'monthlyEnquiries',
-            'recentAdmissions',
             'recentFeePayments',
             'latestNotices',
             'todayClasses',
@@ -463,19 +450,6 @@ class HomeController extends Controller
         }
 
         return $this->scopeBranch($query, $scope);
-    }
-
-    private function scopeAdmissions(Builder $query, array $scope, ?Collection $studentIds): Builder
-    {
-        if ($scope['is_admin']) {
-            return $query;
-        }
-
-        if ($studentIds && $studentIds->isNotEmpty()) {
-            return $query->whereIn('student_id', $studentIds);
-        }
-
-        return $scope['branch_id'] ? $query->where('branch_id', $scope['branch_id']) : $query->whereRaw('1 = 0');
     }
 
     private function scopeSalary(Builder $query, array $scope): Builder

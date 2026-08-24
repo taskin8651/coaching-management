@@ -42,6 +42,96 @@
     </div>
 </div>
 
+<div class="page-card" style="margin-bottom:16px;">
+    <div class="page-card-header">
+        <p class="page-card-title">Filters</p>
+
+        <span class="page-card-note">
+            <i class="fas fa-filter"></i>
+            Employee type / salary type / branch / month / status
+        </span>
+    </div>
+
+    <form method="GET" action="{{ route('admin.salary-payments.index') }}" style="padding:16px;">
+        <div class="admin-form-grid" style="grid-template-columns: repeat(6, 1fr); gap:12px;">
+
+            <div class="field-group mb-0">
+                <label class="field-label" for="filter_employee_type">Employee Type</label>
+                <select name="employee_type" id="filter_employee_type" class="field-input">
+                    <option value="">All Types</option>
+                    <option value="teacher" {{ ($filters['employee_type'] ?? '') == 'teacher' ? 'selected' : '' }}>Teacher</option>
+                    <option value="staff" {{ ($filters['employee_type'] ?? '') == 'staff' ? 'selected' : '' }}>Staff</option>
+                    <option value="manager" {{ ($filters['employee_type'] ?? '') == 'manager' ? 'selected' : '' }}>Manager</option>
+                </select>
+            </div>
+
+            <div class="field-group mb-0">
+                <label class="field-label" for="filter_salary_type">Pay Basis</label>
+                <select name="salary_type" id="filter_salary_type" class="field-input">
+                    <option value="">All</option>
+                    <option value="monthly" {{ ($filters['salary_type'] ?? '') == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                    <option value="hourly" {{ ($filters['salary_type'] ?? '') == 'hourly' ? 'selected' : '' }}>Hourly</option>
+                </select>
+            </div>
+
+            <div class="field-group mb-0">
+                <label class="field-label" for="filter_branch_id">Branch</label>
+                <select name="branch_id" id="filter_branch_id" class="field-input">
+                    @foreach($branches as $id => $name)
+                        <option value="{{ $id }}" {{ ($filters['branch_id'] ?? '') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="field-group mb-0">
+                <label class="field-label" for="filter_teacher_id">Teacher</label>
+                <select name="teacher_id" id="filter_teacher_id" class="field-input">
+                    @foreach($teacherFilterOptions as $id => $name)
+                        <option value="{{ $id }}" {{ ($filters['teacher_id'] ?? '') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="field-group mb-0">
+                <label class="field-label" for="filter_staff_id">Staff</label>
+                <select name="staff_id" id="filter_staff_id" class="field-input">
+                    @foreach($staffFilterOptions as $id => $name)
+                        <option value="{{ $id }}" {{ ($filters['staff_id'] ?? '') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="field-group mb-0">
+                <label class="field-label" for="filter_salary_month">Month</label>
+                <input type="month" name="salary_month" id="filter_salary_month" value="{{ $filters['salary_month'] ?? '' }}" class="field-input">
+            </div>
+
+            <div class="field-group mb-0">
+                <label class="field-label" for="filter_payment_status">Status</label>
+                <select name="payment_status" id="filter_payment_status" class="field-input">
+                    <option value="">All Status</option>
+                    <option value="paid" {{ ($filters['payment_status'] ?? '') == 'paid' ? 'selected' : '' }}>Paid</option>
+                    <option value="partial" {{ ($filters['payment_status'] ?? '') == 'partial' ? 'selected' : '' }}>Partial</option>
+                    <option value="due" {{ ($filters['payment_status'] ?? '') == 'due' ? 'selected' : '' }}>Due</option>
+                    <option value="cancelled" {{ ($filters['payment_status'] ?? '') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div class="action-row" style="justify-content:flex-start; gap:10px; margin-top:14px;">
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-filter"></i>
+                Apply Filters
+            </button>
+
+            <a href="{{ route('admin.salary-payments.index') }}" class="btn-ghost">
+                Clear
+            </a>
+        </div>
+    </form>
+</div>
+
 <div class="page-card">
     <div class="page-card-header">
         <p class="page-card-title">All Salary Payments</p>
@@ -61,6 +151,7 @@
                     <th>Slip</th>
                     <th>Employee</th>
                     <th>Type</th>
+                    <th>Pay Basis</th>
                     <th>Branch</th>
                     <th>Month</th>
                     <th>Net</th>
@@ -112,6 +203,16 @@
                             <span class="role-tag">
                                 {{ ucwords(str_replace('_', ' ', $payment->employee_type)) }}
                             </span>
+                        </td>
+
+                        <td>
+                            @if($payment->salary_type == 'hourly')
+                                <span class="code-pill">Hourly</span>
+                            @elseif($payment->salary_type == 'monthly')
+                                <span class="code-pill">Monthly</span>
+                            @else
+                                <span style="font-size:12px;color:#94A3B8;">-</span>
+                            @endif
                         </td>
 
                         <td>

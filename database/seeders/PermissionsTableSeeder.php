@@ -96,12 +96,6 @@ class PermissionsTableSeeder extends Seeder
             'enquiry_access',
             'enquiry_follow_up_create',
 
-            'admission_create',
-            'admission_edit',
-            'admission_show',
-            'admission_delete',
-            'admission_access',
-
             'fee_structure_create',
             'fee_structure_edit',
             'fee_structure_show',
@@ -193,6 +187,11 @@ class PermissionsTableSeeder extends Seeder
             'timetable_delete',
             'timetable_substitute',
 
+            'staff_timetable_access',
+            'staff_timetable_create',
+            'staff_timetable_edit',
+            'staff_timetable_delete',
+
             'homework_access',
             'homework_create',
             'homework_show',
@@ -215,6 +214,8 @@ class PermissionsTableSeeder extends Seeder
 
             'fee_installment_access',
             'fee_installment_create',
+            'fee_installment_edit',
+            'fee_installment_delete',
             'fee_installment_remind',
 
             'report_card_access',

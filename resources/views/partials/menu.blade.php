@@ -252,56 +252,15 @@
             </div>
         @endcanany
 
-        {{-- ADMISSION GROUP --}}
-        @canany(['enquiry_access', 'admission_access'])
-            @php
-                $admissionActive = request()->is('admin/enquiries*')
-                    || request()->is('admin/admissions*');
-            @endphp
-
-            <div x-data="{ open: {{ $admissionActive ? 'true' : 'false' }} }">
-                <button type="button"
-                        @click="open = !open"
-                        data-tooltip="Admission"
-                        class="nav-link nav-group-btn {{ $admissionActive ? 'active' : '' }}">
-
-                    <div class="nav-group-left">
-                        <i class="fas fa-user-check nav-icon"></i>
-                        <span class="nav-label">Admission</span>
-                    </div>
-
-                    <i class="fas fa-chevron-right chevron"
-                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
-                </button>
-
-                <div class="submenu"
-                     x-show="open"
-                     x-transition:enter="transition ease-out duration-150"
-                     x-transition:enter-start="opacity-0 -translate-y-1"
-                     x-transition:enter-end="opacity-100 translate-y-0"
-                     x-transition:leave="transition ease-in duration-100"
-                     x-transition:leave-start="opacity-100 translate-y-0"
-                     x-transition:leave-end="opacity-0 -translate-y-1">
-
-                    @can('enquiry_access')
-                        <a href="{{ route('admin.enquiries.index') }}"
-                           class="sub-link {{ request()->is('admin/enquiries*') ? 'active' : '' }}">
-                            <i class="fas fa-headset"></i>
-                            Enquiries
-                        </a>
-                    @endcan
-
-                    @can('admission_access')
-                        <a href="{{ route('admin.admissions.index') }}"
-                           class="sub-link {{ request()->is('admin/admissions*') ? 'active' : '' }}">
-                            <i class="fas fa-user-check"></i>
-                            Admissions
-                        </a>
-                    @endcan
-
-                </div>
-            </div>
-        @endcanany
+        {{-- ENQUIRIES --}}
+        @can('enquiry_access')
+            <a href="{{ route('admin.enquiries.index') }}"
+               data-tooltip="Enquiries"
+               class="nav-link {{ request()->is('admin/enquiries*') ? 'active' : '' }}">
+                <i class="fas fa-headset nav-icon"></i>
+                <span class="nav-label">Enquiries</span>
+            </a>
+        @endcan
 
         {{-- FINANCE GROUP --}}
         @canany(['fee_payment_access', 'fee_installment_access', 'expense_access', 'salary_payment_access', 'salary_report_access'])
@@ -388,7 +347,7 @@
         @endcanany
 
         {{-- ACADEMIC GROUP --}}
-        @canany(['exam_access', 'exam_type_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'timetable_substitute', 'homework_access', 'student_remark_access'])
+        @canany(['exam_access', 'exam_type_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'staff_timetable_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'timetable_substitute', 'homework_access', 'student_remark_access'])
             @php
                 $academicActive = request()->is('admin/exams*')
                     || request()->is('admin/exam-types*')
@@ -397,6 +356,7 @@
                     || request()->is('admin/student-attendances*')
                     || request()->is('admin/teacher-attendances*')
                     || request()->is('admin/staff-attendances*')
+                    || request()->is('admin/staff-timetables*')
                     || request()->is('admin/faculty-log-books*')
                     || request()->is('admin/extra-classes*')
                     || request()->is('admin/timetables*')
@@ -520,6 +480,14 @@
                            class="sub-link {{ request()->is('admin/staff-attendances*') ? 'active' : '' }}">
                             <i class="fas fa-user-clock"></i>
                             Staff Attendance
+                        </a>
+                    @endcan
+
+                    @can('staff_timetable_access')
+                        <a href="{{ route('admin.staff-timetables.index') }}"
+                           class="sub-link {{ request()->is('admin/staff-timetables*') ? 'active' : '' }}">
+                            <i class="fas fa-calendar-day"></i>
+                            Staff Timetable
                         </a>
                     @endcan
 

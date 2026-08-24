@@ -68,6 +68,7 @@ Route::resource('students', 'StudentsController');
 // Enquiries
 Route::delete('enquiries/destroy', 'EnquiriesController@massDestroy')->name('enquiries.massDestroy');
 Route::post('enquiries/{enquiry}/follow-ups', 'EnquiriesController@storeFollowUp')->name('enquiries.followUps.store');
+Route::post('enquiries/{enquiry}/convert', 'EnquiriesController@convert')->name('enquiries.convert');
 Route::resource('enquiries', 'EnquiriesController');
 
 // Fee Payments
@@ -138,6 +139,10 @@ Route::resource('timetable-substitutions', 'TimetableSubstitutionsController')
 Route::post('timetables/{timetable}/substitute', 'TimetablesController@substitute')->name('timetables.substitute');
 Route::resource('timetables', 'TimetablesController')->except(['show']);
 
+// Staff Duty Timetable
+Route::delete('staff-timetables/destroy', 'StaffTimetablesController@massDestroy')->name('staff-timetables.massDestroy');
+Route::resource('staff-timetables', 'StaffTimetablesController')->except(['show']);
+
 // Homework
 Route::delete('homeworks/destroy', 'HomeworksController@massDestroy')->name('homeworks.massDestroy');
 Route::delete('homeworks/media/{media}', 'HomeworksController@deleteMedia')->name('homeworks.media.destroy');
@@ -152,18 +157,13 @@ Route::delete('notices/destroy', 'NoticesController@massDestroy')->name('notices
 Route::delete('notices/media/{media}', 'NoticesController@deleteMedia')->name('notices.media.destroy');
 Route::resource('notices', 'NoticesController');
 
-// Admissions
-Route::delete('admissions/destroy', 'AdmissionsController@massDestroy')->name('admissions.massDestroy');
-Route::delete('admissions/media/{media}', 'AdmissionsController@deleteMedia')->name('admissions.deleteMedia');
-Route::resource('admissions', 'AdmissionsController');
-
 // Fee Structures
 Route::delete('fee-structures/destroy', 'FeeStructuresController@massDestroy')->name('fee-structures.massDestroy');
 Route::resource('fee-structures', 'FeeStructuresController');
 
 // Fee Installments
 Route::post('fee-installments/{fee_installment}/remind', 'FeeInstallmentsController@remind')->name('fee-installments.remind');
-Route::resource('fee-installments', 'FeeInstallmentsController')->only(['index', 'create', 'store']);
+Route::resource('fee-installments', 'FeeInstallmentsController')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
 // Report Cards
 Route::get('report-cards/export', 'ReportCardsController@export')->name('report-cards.export');

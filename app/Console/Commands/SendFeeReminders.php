@@ -21,12 +21,18 @@ class SendFeeReminders extends Command
             })
             ->get();
 
+        $sent = 0;
+
         foreach ($installments as $installment) {
-            $whatsapp->sendStudentGuardianMessage($installment->student, 'fee_due', 'Fee due reminder: '.$installment->title.' amount '.$installment->due_amount.' due on '.optional($installment->due_date)->format('d M Y'));
-            $installment->update(['reminded_at' => now()]);
+            $log = $whatsapp->sendStudentGuardianMessage($installment->student, 'fee_due', 'Fee due reminder: '.$installment->title.' amount '.$installment->due_amount.' due on '.optional($installment->due_date)->format('d M Y'));
+
+            if ($log->status === 'sent') {
+                $installment->update(['reminded_at' => now()]);
+                $sent++;
+            }
         }
 
-        $this->info("Processed {$installments->count()} fee reminders.");
+        $this->info("Processed {$installments->count()} fee reminders, {$sent} sent successfully.");
 
         return self::SUCCESS;
     }

@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateFeePaymentRequest;
 use App\Models\Batch;
 use App\Models\Branch;
 use App\Models\Course;
+use App\Models\FeeInstallment;
 use App\Models\FeePayment;
 use App\Models\FeeStructure;
 use App\Models\Staff;
@@ -130,6 +131,8 @@ class FeePaymentsController extends Controller
 
         $batchesByBranch = $this->batchesByBranch();
         $coursesByBatch = $this->coursesByBatch();
+        $studentDetails = $this->studentDetails($branchId);
+        $installmentsByStudent = $this->installmentsByStudent($branchId);
 
         return view('admin.feePayments.create', compact(
             'branches',
@@ -141,7 +144,9 @@ class FeePaymentsController extends Controller
             'paymentModes',
             'feeStructureData',
             'batchesByBranch',
-            'coursesByBatch'
+            'coursesByBatch',
+            'studentDetails',
+            'installmentsByStudent'
 
         ));
     }
@@ -167,6 +172,10 @@ class FeePaymentsController extends Controller
         $data = $this->preparePaymentData($data);
 
         $feePayment = FeePayment::create($data);
+
+        if ($feePayment->fee_installment_id) {
+            FeeInstallment::find($feePayment->fee_installment_id)?->recalculateFromPayments();
+        }
 
         if ($feePayment->student) {
             $whatsapp->sendStudentGuardianMessage(
@@ -254,6 +263,32 @@ class FeePaymentsController extends Controller
         $paymentModes = $this->paymentModes();
         $batchesByBranch = $this->batchesByBranch();
         $coursesByBatch = $this->coursesByBatch();
+        $studentDetails = $this->studentDetails($branchId);
+        $installmentsByStudent = $this->installmentsByStudent($branchId);
+
+        // The installment this payment is already linked to may have just become fully
+        // paid because of this very payment — still surface it so the edit form doesn't
+        // silently lose the current selection.
+        if ($feePayment->fee_installment_id && $feePayment->feeInstallment) {
+            $installment = $feePayment->feeInstallment;
+            $studentId = (string) $installment->student_id;
+            $existing = collect($installmentsByStudent[$studentId] ?? []);
+
+            if (! $existing->contains('id', $installment->id)) {
+                $installmentsByStudent[$studentId] = $existing->push([
+                    'id' => $installment->id,
+                    'name' => $installment->title . ' — Due ₹' . number_format($installment->due_amount, 0),
+                ])->values()->toArray();
+            }
+        }
+
+        $feeStructureData = FeeStructure::select('id', 'branch_id', 'course_id', 'batch_id', 'total_fee')
+            ->where('status', 'active')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
+            ->get()
+            ->keyBy('id');
 
         $feePayment->load([
             'branch',
@@ -261,6 +296,7 @@ class FeePaymentsController extends Controller
             'course',
             'batch',
             'feeStructure',
+            'feeInstallment',
             'collectedBy',
         ]);
 
@@ -273,8 +309,11 @@ class FeePaymentsController extends Controller
             'feeStructures',
             'users',
             'paymentModes',
+            'feeStructureData',
             'batchesByBranch',
-            'coursesByBatch'
+            'coursesByBatch',
+            'installmentsByStudent',
+            'studentDetails'
         ));
     }
 
@@ -300,7 +339,13 @@ class FeePaymentsController extends Controller
 
         $data = $this->preparePaymentData($data, $feePayment);
 
+        $previousInstallmentId = $feePayment->fee_installment_id;
+
         $feePayment->update($data);
+
+        foreach (array_filter(array_unique([$previousInstallmentId, $feePayment->fee_installment_id])) as $installmentId) {
+            FeeInstallment::find($installmentId)?->recalculateFromPayments();
+        }
 
         return redirect()->route('admin.fee-payments.index')->with('message', 'Fee payment updated successfully.');
     }
@@ -313,7 +358,13 @@ class FeePaymentsController extends Controller
 
         $this->checkFeePaymentAccess($feePayment);
 
+        $installmentId = $feePayment->fee_installment_id;
+
         $feePayment->delete();
+
+        if ($installmentId) {
+            FeeInstallment::find($installmentId)?->recalculateFromPayments();
+        }
 
         return back()->with('message', 'Fee payment deleted successfully.');
     }
@@ -514,6 +565,48 @@ class FeePaymentsController extends Controller
             'card' => 'Card',
             'other' => 'Other',
         ];
+    }
+
+    /**
+     * Branch/course/batch per student, keyed by student id, so the fee payment form can
+     * auto-fill the Student Mapping fields (and, in turn, the matching Fee Structure) instead
+     * of asking staff to re-select data that already lives on the Student record.
+     */
+    private function studentDetails(?int $branchId): array
+    {
+        return Student::with('user')
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+            })
+            ->get()
+            ->mapWithKeys(fn ($student) => [$student->id => [
+                'branch_id' => $student->branch_id,
+                'course_id' => $student->course_id,
+                'batch_id' => $student->batch_id,
+            ]])
+            ->toArray();
+    }
+
+    /**
+     * A student's not-yet-fully-paid installments, grouped by student_id, so the fee payment
+     * form can cascade its optional "Installment" select the same way it cascades Batch/Course
+     * off Branch — pick a student, only that student's outstanding installments show up.
+     */
+    private function installmentsByStudent(?int $branchId): array
+    {
+        return FeeInstallment::whereIn('status', ['pending', 'partial'])
+            ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
+                $branchId
+                    ? $query->whereHas('student', fn ($q) => $q->where('branch_id', $branchId))
+                    : $query->whereRaw('1 = 0');
+            })
+            ->get(['id', 'student_id', 'title', 'due_amount'])
+            ->groupBy('student_id')
+            ->map(fn ($installments) => $installments->map(fn ($installment) => [
+                'id' => $installment->id,
+                'name' => $installment->title . ' — Due ₹' . number_format($installment->due_amount, 0),
+            ])->values())
+            ->toArray();
     }
 
     private function getUserBranchId()

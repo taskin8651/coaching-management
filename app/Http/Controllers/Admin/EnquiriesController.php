@@ -10,12 +10,14 @@ use App\Http\Requests\UpdateEnquiryRequest;
 use App\Models\Branch;
 use App\Models\Course;
 use App\Models\Enquiry;
+use App\Models\Role;
 use App\Models\Staff;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnquiriesController extends Controller
@@ -245,7 +247,32 @@ class EnquiriesController extends Controller
             }
         }
 
+        // Staff can also convert an enquiry by simply picking "Converted" from the Status
+        // dropdown here — that must create the same student account as the dedicated
+        // "Convert to Student" button, not just flip the status text. Only short-circuit the
+        // status write when we're actually allowed (and about) to run that conversion, so a
+        // user without student_create still gets their plain status change saved as-is.
+        $justConverted = ($data['status'] ?? null) === 'converted'
+            && $enquiry->status !== 'converted'
+            && Gate::allows('student_create');
+
+        if ($justConverted) {
+            unset($data['status']);
+        }
+
         $enquiry->update($data);
+
+        if ($justConverted) {
+            $result = $this->createStudentFromEnquiry($enquiry);
+
+            return redirect()
+                ->route('admin.students.show', $result['student']->id)
+                ->with('message', sprintf(
+                    'Enquiry updated. Student account created. Login Email: %s, Password: %s.',
+                    $result['email'],
+                    $result['password']
+                ));
+        }
 
         return redirect()->route('admin.enquiries.index')->with('message', 'Enquiry updated successfully.');
     }
@@ -308,6 +335,102 @@ class EnquiriesController extends Controller
         ]);
 
         return back()->with('message', 'Follow-up added successfully.');
+    }
+
+    /**
+     * One-click Enquiry -> Student conversion: creates the login User + Student profile
+     * straight from the enquiry's captured data (no re-typing) and hands off to the new
+     * student's profile.
+     */
+    public function convert(Enquiry $enquiry)
+    {
+        abort_if(Gate::denies('student_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->checkEnquiryAccess($enquiry);
+
+        abort_if($enquiry->status === 'converted', Response::HTTP_UNPROCESSABLE_ENTITY, 'Enquiry is already converted.');
+
+        $result = $this->createStudentFromEnquiry($enquiry);
+
+        return redirect()
+            ->route('admin.students.show', $result['student']->id)
+            ->with('message', sprintf(
+                'Student account created. Login Email: %s, Password: %s.',
+                $result['email'],
+                $result['password']
+            ));
+    }
+
+    /**
+     * Creates the login User + Student profile from an enquiry's captured data and marks the
+     * enquiry converted. Shared by the explicit "Convert to Student" action and by update()
+     * when staff instead just flips the Status dropdown to Converted on the Edit form — both
+     * paths must produce the same account. Returns the new student plus the login email and
+     * default password so the caller can show them to staff (no WhatsApp send here).
+     */
+    private function createStudentFromEnquiry(Enquiry $enquiry): array
+    {
+        $defaultPassword = 'Student@123';
+
+        $user = User::create([
+            'name'      => $enquiry->student_name,
+            'email'     => $this->resolveUserEmail($enquiry),
+            'password'  => $defaultPassword,
+            'phone'     => $enquiry->phone,
+            'branch_id' => $enquiry->branch_id,
+        ]);
+
+        $roleId = Role::where('title', 'Student')->value('id');
+
+        if ($roleId) {
+            $user->roles()->syncWithoutDetaching([$roleId]);
+        }
+
+        $student = Student::create([
+            'user_id'         => $user->id,
+            'branch_id'       => $enquiry->branch_id,
+            'course_id'       => $enquiry->course_id,
+            'phone'           => $enquiry->phone,
+            'alternate_phone' => $enquiry->alternate_phone,
+            'school_name'     => $enquiry->school_name,
+            'class_name'      => $enquiry->class_name,
+            'status'          => 'active',
+        ]);
+
+        $enquiry->update(['status' => 'converted']);
+
+        return [
+            'student'  => $student,
+            'email'    => $user->email,
+            'password' => $defaultPassword,
+        ];
+    }
+
+    /**
+     * A real, unique email if the enquiry has one and it's free; otherwise a synthetic
+     * `<name>.<phone>@students.local` address, since Users require a unique, non-null email.
+     */
+    private function resolveUserEmail(Enquiry $enquiry): string
+    {
+        if ($enquiry->email && ! User::where('email', $enquiry->email)->exists()) {
+            return $enquiry->email;
+        }
+
+        $base = Str::slug($enquiry->student_name ?: 'student') ?: 'student';
+        $phoneDigits = preg_replace('/\D/', '', (string) $enquiry->phone);
+        $identifier = $phoneDigits ?: $enquiry->id;
+
+        $candidate = "{$base}.{$identifier}@students.local";
+        $suffix = 1;
+
+        while (User::where('email', $candidate)->exists()) {
+            $candidate = "{$base}.{$identifier}.{$suffix}@students.local";
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     private function checkEnquiryAccess(Enquiry $enquiry): void

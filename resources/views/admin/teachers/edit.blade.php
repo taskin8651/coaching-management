@@ -210,6 +210,37 @@
                 </div>
 
                 <div class="field-group">
+                    <label class="field-label" for="salary_type">Salary Type</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-toggle-on icon"></i>
+
+                        <select name="salary_type" id="salary_type" class="field-input">
+                            <option value="monthly" {{ old('salary_type', $teacher->salary_type) == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                            <option value="hourly" {{ old('salary_type', $teacher->salary_type) == 'hourly' ? 'selected' : '' }}>Hourly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="minute_rate">Minute Rate (₹/min)</label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-stopwatch icon"></i>
+
+                        <input type="number"
+                               step="0.01"
+                               name="minute_rate"
+                               id="minute_rate"
+                               value="{{ old('minute_rate', $teacher->minute_rate) }}"
+                               placeholder="Rate per lecture minute"
+                               class="field-input">
+                    </div>
+
+                    <p class="field-hint">Used only when Salary Type is Hourly.</p>
+                </div>
+
+                <div class="field-group">
                     <label class="field-label" for="joining_date">Joining Date</label>
 
                     <div class="input-icon-wrap">

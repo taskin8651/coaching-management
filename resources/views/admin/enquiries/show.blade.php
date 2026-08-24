@@ -23,6 +23,21 @@
     </div>
 
     <div class="show-actions">
+        @can('student_create')
+            @if($enquiry->status !== 'converted')
+                <form action="{{ route('admin.enquiries.convert', $enquiry->id) }}"
+                      method="POST"
+                      onsubmit="return confirm('Create a student account for {{ $enquiry->student_name }} with a default password?')">
+                    @csrf
+
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Convert to Student
+                    </button>
+                </form>
+            @endif
+        @endcan
+
         @can('enquiry_edit')
             <a href="{{ route('admin.enquiries.edit', $enquiry->id) }}" class="btn-primary">
                 <i class="fas fa-pencil-alt"></i>
