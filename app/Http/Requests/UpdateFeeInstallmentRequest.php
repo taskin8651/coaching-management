@@ -20,6 +20,7 @@ class UpdateFeeInstallmentRequest extends FormRequest
         return [
             'student_id' => ['required', 'exists:students,id'],
             'fee_structure_id' => ['nullable', 'exists:fee_structures,id'],
+            'fee_account_id' => ['nullable', 'exists:fee_accounts,id'],
             'title' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
             'paid_amount' => ['nullable', 'numeric', 'min:0'],

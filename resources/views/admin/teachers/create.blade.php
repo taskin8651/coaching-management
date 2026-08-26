@@ -443,12 +443,26 @@
 
 <script>
 const coursesByBranch = @json($coursesByBranch);
-const subjectsByBranch = @json($subjectsByBranch);
-const batchesByBranch = @json($batchesByBranch);
+const subjectsByBranchCourse = @json($subjectsByBranchCourse);
+const batchesByBranchCourse = @json($batchesByBranchCourse);
 const initialAssignments = @json($initialAssignments);
 
-function filteredList(map, branchId) {
-    return (branchId && map[branchId]) ? map[branchId] : [];
+function filteredCourses(branchId) {
+    return (branchId && coursesByBranch[branchId]) ? coursesByBranch[branchId] : [];
+}
+
+function filteredByCourse(map, branchId, courseId) {
+    const branchBucket = (branchId && map[branchId]) ? map[branchId] : {};
+    const common = branchBucket['all'] || [];
+    const specific = (courseId && branchBucket[courseId]) ? branchBucket[courseId] : [];
+
+    const seen = new Set();
+
+    return common.concat(specific).filter(function (item) {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+    });
 }
 
 function fillSelect(select, items, selectedId) {
@@ -467,13 +481,21 @@ function fillSelect(select, items, selectedId) {
     });
 }
 
+function refreshRowSubjectsAndBatches(row, subjectId, batchId) {
+    const branchId = document.getElementById('branch_id').value;
+    const courseSelect = row.querySelector('.assignment-course');
+    const courseId = courseSelect ? courseSelect.value : '';
+
+    fillSelect(row.querySelector('.assignment-subject'), filteredByCourse(subjectsByBranchCourse, branchId, courseId), subjectId);
+    fillSelect(row.querySelector('.assignment-batch'), filteredByCourse(batchesByBranchCourse, branchId, courseId), batchId);
+}
+
 function populateRow(row, assignment) {
     const branchId = document.getElementById('branch_id').value;
     assignment = assignment || {};
 
-    fillSelect(row.querySelector('.assignment-course'), filteredList(coursesByBranch, branchId), assignment.course_id);
-    fillSelect(row.querySelector('.assignment-subject'), filteredList(subjectsByBranch, branchId), assignment.subject_id);
-    fillSelect(row.querySelector('.assignment-batch'), filteredList(batchesByBranch, branchId), assignment.batch_id);
+    fillSelect(row.querySelector('.assignment-course'), filteredCourses(branchId), assignment.course_id);
+    refreshRowSubjectsAndBatches(row, assignment.subject_id, assignment.batch_id);
 }
 
 function buildRow(assignment) {
@@ -502,6 +524,10 @@ function buildRow(assignment) {
     `;
 
     populateRow(row, assignment);
+
+    row.querySelector('.assignment-course').addEventListener('change', function () {
+        refreshRowSubjectsAndBatches(row);
+    });
 
     return row;
 }

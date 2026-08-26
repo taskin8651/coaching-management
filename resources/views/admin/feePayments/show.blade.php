@@ -18,33 +18,80 @@
     </div>
 
     <div class="show-actions">
-        @can('fee_payment_edit')
-            <a href="{{ route('admin.fee-payments.edit', $feePayment->id) }}" class="btn-primary">
-                <i class="fas fa-pencil-alt"></i>
-                Edit Payment
-            </a>
-        @endcan
+        @if($feePayment->payment_status != 'cancelled')
+            @can('fee_payment_edit')
+                <a href="{{ route('admin.fee-payments.edit', $feePayment->id) }}" class="btn-primary">
+                    <i class="fas fa-pencil-alt"></i>
+                    Edit Payment
+                </a>
+            @endcan
+        @endif
 
         <button type="button" onclick="window.print()" class="btn-outline">
             <i class="fas fa-print"></i>
             Print
         </button>
 
-        @can('fee_payment_delete')
-            <form action="{{ route('admin.fee-payments.destroy', $feePayment->id) }}"
-                  method="POST"
-                  onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
-                @method('DELETE')
-                @csrf
-
-                <button type="submit" class="btn-danger">
-                    <i class="fas fa-trash-alt"></i>
-                    Delete
+        @can('fee_payment_cancel')
+            @if($feePayment->payment_status != 'cancelled')
+                <button type="button" class="btn-outline btn-outline-danger" onclick="document.getElementById('cancelPaymentModal').style.display='flex'">
+                    <i class="fas fa-ban"></i>
+                    Cancel
                 </button>
-            </form>
+            @endif
+        @endcan
+
+        @can('fee_payment_delete')
+            @if((float) $feePayment->paid_amount <= 0)
+                <form action="{{ route('admin.fee-payments.destroy', $feePayment->id) }}"
+                      method="POST"
+                      onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
+                    @method('DELETE')
+                    @csrf
+
+                    <button type="submit" class="btn-danger">
+                        <i class="fas fa-trash-alt"></i>
+                        Delete
+                    </button>
+                </form>
+            @endif
         @endcan
     </div>
 </div>
+
+@if($feePayment->payment_status == 'cancelled')
+    <div class="form-info-box mb-3" style="border-color:#EF4444;background:#FEF2F2;">
+        <p>
+            <i class="fas fa-ban"></i>
+            <strong>CANCELLED</strong> on {{ optional($feePayment->cancelled_at)->format('d M Y, H:i') }} by {{ $feePayment->cancelledBy->name ?? '-' }}.
+            Reason: {{ $feePayment->cancel_reason ?? '-' }}
+        </p>
+    </div>
+@endif
+
+@can('fee_payment_cancel')
+<div id="cancelPaymentModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;">
+    <div class="detail-card" style="max-width:420px;width:90%;">
+        <div class="detail-section-head">
+            <div class="detail-section-icon"><i class="fas fa-ban"></i></div>
+            <p class="detail-section-title">Cancel Payment</p>
+        </div>
+
+        <form method="POST" action="{{ route('admin.fee-payments.cancel', $feePayment->id) }}" class="detail-section-body">
+            @csrf
+            <div class="field-group">
+                <label class="field-label">Reason <span class="req">*</span></label>
+                <textarea name="cancel_reason" rows="3" required minlength="5" class="field-input" placeholder="Why is this payment being cancelled?"></textarea>
+            </div>
+
+            <div class="form-actions" style="margin-top:12px;">
+                <button type="submit" class="btn-danger"><i class="fas fa-ban"></i> Confirm Cancel</button>
+                <button type="button" class="btn-ghost" onclick="document.getElementById('cancelPaymentModal').style.display='none'">Close</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endcan
 
 <div class="show-grid">
 
@@ -152,6 +199,33 @@
                     <span class="detail-label">Payment Mode</span>
                     <span class="detail-value">
                         {{ ucwords(str_replace('_', ' ', $feePayment->payment_mode)) }}
+                        @if($feePayment->payment_mode == 'cheque' && $feePayment->cheque_number)
+                            — #{{ $feePayment->cheque_number }} ({{ $feePayment->cheque_bank_name }})
+                        @elseif($feePayment->payment_mode == 'upi' && $feePayment->upi_txn_ref)
+                            — {{ $feePayment->upi_txn_ref }}
+                        @elseif($feePayment->payment_mode == 'bank_transfer' && $feePayment->neft_rtgs_imps_utr)
+                            — UTR {{ $feePayment->neft_rtgs_imps_utr }} ({{ $feePayment->neft_rtgs_imps_bank_name }})
+                        @elseif($feePayment->payment_mode == 'card' && $feePayment->card_gateway_ref)
+                            — {{ $feePayment->card_gateway_ref }}
+                        @elseif($feePayment->payment_mode == 'other' && $feePayment->other_reference)
+                            — {{ $feePayment->other_reference }}
+                        @endif
+                    </span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Fee Account</span>
+                    <span class="detail-value">{{ $feePayment->feeAccount->name ?? '-' }}</span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">GST</span>
+                    <span class="detail-value">
+                        @if($feePayment->gst_applicable)
+                            {{ number_format($feePayment->gst_percent, 1) }}% (₹{{ number_format($feePayment->gst_amount, 2) }})
+                        @else
+                            Not applicable
+                        @endif
                     </span>
                 </div>
 
@@ -179,13 +253,26 @@
             <div class="detail-section-body">
                 <div class="detail-row">
                     <span class="detail-label">Student</span>
-                    <span class="detail-value">{{ $feePayment->student->user->name ?? '-' }}</span>
+                    <span class="detail-value">{{ $feePayment->student?->user?->name ?? $feePayment->eventEnrollment?->participantName() ?? '-' }}</span>
                 </div>
 
                 <div class="detail-row">
                     <span class="detail-label">Student Code</span>
-                    <span class="detail-value">{{ $feePayment->student->student_code ?? '-' }}</span>
+                    <span class="detail-value">{{ $feePayment->student?->student_code ?? '-' }}</span>
                 </div>
+
+                @if($feePayment->eventEnrollment)
+                    <div class="detail-row">
+                        <span class="detail-label">Event</span>
+                        <span class="detail-value">
+                            @can('event_show')
+                                <a href="{{ route('admin.events.show', $feePayment->eventEnrollment->event_id) }}">{{ $feePayment->eventEnrollment->event->name ?? '-' }}</a>
+                            @else
+                                {{ $feePayment->eventEnrollment->event->name ?? '-' }}
+                            @endcan
+                        </span>
+                    </div>
+                @endif
 
                 <div class="detail-row">
                     <span class="detail-label">Branch</span>
@@ -244,6 +331,46 @@
                 </div>
             </div>
         </div>
+
+        @if($feePayment->allocations->isNotEmpty())
+        <div class="detail-card mb-3">
+            <div class="detail-section-head">
+                <div class="detail-section-icon"><i class="fas fa-layer-group"></i></div>
+                <p class="detail-section-title">Allocated Installments</p>
+            </div>
+
+            <div class="detail-section-body">
+                @foreach($feePayment->allocations as $allocation)
+                    <div class="detail-row">
+                        <span class="detail-label">{{ $allocation->feeInstallment->title ?? '-' }}</span>
+                        <span class="detail-value">₹{{ number_format($allocation->amount, 2) }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        @if($feePayment->refunds->isNotEmpty())
+        <div class="detail-card mb-3">
+            <div class="detail-section-head">
+                <div class="detail-section-icon"><i class="fas fa-undo-alt"></i></div>
+                <p class="detail-section-title">Refunds Against This Payment</p>
+            </div>
+
+            <div class="detail-section-body">
+                @foreach($feePayment->refunds as $refund)
+                    <div class="detail-row">
+                        <span class="detail-label">₹{{ number_format($refund->amount, 2) }} — {{ optional($refund->refund_date)->format('d M Y') }}</span>
+                        @can('refund_show')
+                            <a href="{{ route('admin.refunds.show', $refund->id) }}" class="detail-value">{{ ucfirst($refund->status) }}</a>
+                        @else
+                            <span class="detail-value">{{ ucfirst($refund->status) }}</span>
+                        @endcan
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
 
         <div class="detail-card">
             <div class="detail-section-head">

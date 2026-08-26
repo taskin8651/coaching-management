@@ -148,4 +148,19 @@ public function guardianUser()
 {
     return $this->belongsTo(User::class, 'guardian_user_id');
 }
+
+public function feeLedgers()
+{
+    return $this->hasMany(StudentFeeLedger::class, 'student_id');
+}
+
+public function concessions()
+{
+    return $this->hasMany(Concession::class, 'student_id');
+}
+
+public function eventEnrollments()
+{
+    return $this->hasMany(EventEnrollment::class, 'student_id');
+}
 }

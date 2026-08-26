@@ -314,7 +314,11 @@
     <button type="button" class="btn btn-print" onclick="window.print()">Print / Save PDF</button>
 </div>
 
-<div class="invoice-wrap">
+<div class="invoice-wrap" style="position:relative;">
+
+    @if($feePayment->payment_status == 'cancelled')
+        <div style="position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-size:72px;font-weight:900;color:rgba(220,38,38,0.18);letter-spacing:6px;z-index:5;pointer-events:none;">CANCELLED</div>
+    @endif
 
     <div class="invoice-header">
         <div>
@@ -336,21 +340,27 @@
 
         <div class="top-grid">
             <div class="info-card">
-                <p class="info-title">Student Details</p>
+                <p class="info-title">{{ $feePayment->eventEnrollment ? 'Participant Details' : 'Student Details' }}</p>
 
                 <p class="info-line">
                     <strong>Name:</strong>
-                    {{ $feePayment->student->user->name ?? '-' }}
+                    {{ $feePayment->student?->user?->name ?? $feePayment->eventEnrollment?->participantName() ?? '-' }}
                 </p>
 
+                @if($feePayment->eventEnrollment)
+                <p class="info-line">
+                    <strong>Event:</strong>
+                    {{ $feePayment->eventEnrollment->event->name ?? '-' }}
+                </p>
+                @else
                 <p class="info-line">
                     <strong>Student Code:</strong>
-                    {{ $feePayment->student->student_code ?? '-' }}
+                    {{ $feePayment->student?->student_code ?? '-' }}
                 </p>
 
                 <p class="info-line">
                     <strong>Phone:</strong>
-                    {{ $feePayment->student->phone ?? '-' }}
+                    {{ $feePayment->student?->phone ?? '-' }}
                 </p>
 
                 <p class="info-line">
@@ -362,6 +372,7 @@
                     <strong>Batch:</strong>
                     {{ $feePayment->batch->name ?? '-' }}
                 </p>
+                @endif
             </div>
 
             <div class="info-card">
@@ -380,6 +391,11 @@
                 <p class="info-line">
                     <strong>Mode:</strong>
                     {{ ucwords(str_replace('_', ' ', $feePayment->payment_mode)) }}
+                </p>
+
+                <p class="info-line">
+                    <strong>Account:</strong>
+                    {{ $feePayment->feeAccount->name ?? '-' }}
                 </p>
 
                 <p class="info-line">
@@ -439,6 +455,13 @@
                 <strong>₹{{ number_format($feePayment->discount, 2) }}</strong>
             </div>
 
+            @if($feePayment->gst_applicable)
+            <div class="summary-row">
+                <span>GST ({{ number_format($feePayment->gst_percent, 1) }}%)</span>
+                <strong>₹{{ number_format($feePayment->gst_amount, 2) }}</strong>
+            </div>
+            @endif
+
             <div class="summary-row">
                 <span>Payable Amount</span>
                 <strong>₹{{ number_format($feePayment->payable_amount, 2) }}</strong>
@@ -464,6 +487,13 @@
             <div class="remarks-box">
                 <strong>Remarks:</strong>
                 {{ $feePayment->remarks }}
+            </div>
+        @endif
+
+        @if($feePayment->payment_status == 'cancelled')
+            <div class="remarks-box" style="border-color:#ef4444;color:#991b1b;">
+                <strong>CANCELLED</strong> on {{ optional($feePayment->cancelled_at)->format('d M Y, H:i') }} by {{ $feePayment->cancelledBy->name ?? '-' }}.
+                Reason: {{ $feePayment->cancel_reason ?? '-' }}
             </div>
         @endif
 

@@ -78,12 +78,8 @@
                         </td>
 
                         <td>
-                            <p class="table-main-text">{{ $feeStructure->title }}</p>
-                            <p class="table-sub-text">
-                                Admission: ₹{{ number_format($feeStructure->admission_fee, 0) }}
-                                |
-                                Tuition: ₹{{ number_format($feeStructure->tuition_fee, 0) }}
-                            </p>
+                            <p class="table-main-text">{{ $feeStructure->title }} <span class="table-sub-text">v{{ $feeStructure->version_no }}</span></p>
+                            <p class="table-sub-text">{{ $feeStructure->academic_year }}</p>
                         </td>
 
                         <td>{{ $feeStructure->branch->name ?? '-' }}</td>

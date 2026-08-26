@@ -263,12 +263,18 @@
         @endcan
 
         {{-- FINANCE GROUP --}}
-        @canany(['fee_payment_access', 'fee_installment_access', 'expense_access', 'salary_payment_access', 'salary_report_access'])
+        @canany(['fee_payment_access', 'fee_installment_access', 'expense_access', 'salary_payment_access', 'salary_report_access', 'fee_master_access', 'fee_account_access', 'concession_access', 'student_fee_ledger_access', 'refund_access', 'credit_access'])
             @php
                 $financeActive = request()->is('admin/fee-payments*')
                     || request()->is('admin/expenses*')
                     || request()->is('admin/fee-structures*')
-                    || request()->is('admin/salary-payments*');
+                    || request()->is('admin/salary-payments*')
+                    || request()->is('admin/fee-heads*')
+                    || request()->is('admin/fee-accounts*')
+                    || request()->is('admin/concessions*')
+                    || request()->is('admin/student-fee-ledgers*')
+                    || request()->is('admin/refunds*')
+                    || request()->is('admin/student-credits*');
             @endphp
 
             <div x-data="{ open: {{ $financeActive ? 'true' : 'false' }} }">
@@ -294,11 +300,59 @@
                      x-transition:leave="transition ease-in duration-100"
                      x-transition:leave-start="opacity-100 translate-y-0"
                      x-transition:leave-end="opacity-0 -translate-y-1">
+                     @can('fee_master_access')
+    <a href="{{ route('admin.fee-heads.index') }}"
+       class="sub-link {{ request()->is('admin/fee-heads*') ? 'active' : '' }}">
+        <i class="fas fa-tags"></i>
+        Fee Master
+    </a>
+@endcan
+
+                    @can('fee_account_access')
+    <a href="{{ route('admin.fee-accounts.index') }}"
+       class="sub-link {{ request()->is('admin/fee-accounts*') ? 'active' : '' }}">
+        <i class="fas fa-university"></i>
+        Fee Accounts
+    </a>
+@endcan
+
                      @can('fee_structure_access')
     <a href="{{ route('admin.fee-structures.index') }}"
        class="sub-link {{ request()->is('admin/fee-structures*') ? 'active' : '' }}">
         <i class="fas fa-list-alt"></i>
         Fee Structures
+    </a>
+@endcan
+
+                    @can('student_fee_ledger_access')
+    <a href="{{ route('admin.student-fee-ledgers.index') }}"
+       class="sub-link {{ request()->is('admin/student-fee-ledgers*') ? 'active' : '' }}">
+        <i class="fas fa-file-invoice-dollar"></i>
+        Student Fee Ledgers
+    </a>
+@endcan
+
+                    @can('refund_access')
+    <a href="{{ route('admin.refunds.index') }}"
+       class="sub-link {{ request()->is('admin/refunds*') ? 'active' : '' }}">
+        <i class="fas fa-undo-alt"></i>
+        Refunds
+    </a>
+@endcan
+
+                    @can('credit_access')
+    <a href="{{ route('admin.student-credits.index') }}"
+       class="sub-link {{ request()->is('admin/student-credits*') ? 'active' : '' }}">
+        <i class="fas fa-coins"></i>
+        Student Credits
+    </a>
+@endcan
+
+                    @can('concession_access')
+    <a href="{{ route('admin.concessions.index') }}"
+       class="sub-link {{ request()->is('admin/concessions*') ? 'active' : '' }}">
+        <i class="fas fa-percent"></i>
+        Concessions
     </a>
 @endcan
 
@@ -342,6 +396,55 @@
                         </a>
                     @endcan
 
+                </div>
+            </div>
+        @endcanany
+
+        {{-- EVENTS GROUP --}}
+        @canany(['event_access', 'external_contact_access'])
+            @php
+                $eventsActive = request()->is('admin/events*')
+                    || request()->is('admin/external-contacts*');
+            @endphp
+
+            <div x-data="{ open: {{ $eventsActive ? 'true' : 'false' }} }">
+                <button type="button"
+                        @click="open = !open"
+                        data-tooltip="Events"
+                        class="nav-link nav-group-btn {{ $eventsActive ? 'active' : '' }}">
+
+                    <div class="nav-group-left">
+                        <i class="fas fa-calendar-alt nav-icon"></i>
+                        <span class="nav-label">Events</span>
+                    </div>
+
+                    <i class="fas fa-chevron-right chevron"
+                       :style="open ? 'transform:rotate(90deg)' : ''"></i>
+                </button>
+
+                <div class="submenu"
+                     x-show="open"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
+                    @can('event_access')
+                        <a href="{{ route('admin.events.index') }}"
+                           class="sub-link {{ request()->is('admin/events*') ? 'active' : '' }}">
+                            <i class="fas fa-ticket-alt"></i>
+                            Events
+                        </a>
+                    @endcan
+
+                    @can('external_contact_access')
+                        <a href="{{ route('admin.external-contacts.index') }}"
+                           class="sub-link {{ request()->is('admin/external-contacts*') ? 'active' : '' }}">
+                            <i class="fas fa-address-book"></i>
+                            External Contacts
+                        </a>
+                    @endcan
                 </div>
             </div>
         @endcanany

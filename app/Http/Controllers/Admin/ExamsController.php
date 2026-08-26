@@ -351,15 +351,13 @@ class ExamsController extends Controller
         return response(null, Response::HTTP_NO_CONTENT);
     }
 
-    public function storeResults(StoreExamResultRequest $request, Exam $exam, WhatsappService $whatsapp)
+    public function storeResults(StoreExamResultRequest $request, Exam $exam)
     {
         abort_if(Gate::denies('exam_result_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         abort_if($this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $this->checkExamAccess($exam);
-
-        $savedResults = [];
 
         foreach ($request->results as $resultData) {
             $student = Student::find($resultData['student_id'] ?? null);
@@ -395,7 +393,7 @@ class ExamsController extends Controller
                 $status = $marksObtained >= $exam->passing_marks ? 'pass' : 'fail';
             }
 
-            $savedResults[] = ExamResult::updateOrCreate(
+            ExamResult::updateOrCreate(
                 [
                     'exam_id'    => $exam->id,
                     'student_id' => $resultData['student_id'],
@@ -413,31 +411,6 @@ class ExamsController extends Controller
         $this->generateRanks($exam);
 
         $exam->update(['status' => 'completed']);
-
-        foreach ($savedResults as $result) {
-            if ($exam->exam_type === 'Weekly Test' && $result->result_status !== 'absent') {
-                $whatsapp->sendWeeklyTestResult($result);
-
-                continue;
-            }
-
-            $result->loadMissing('student.user');
-            $studentName = $result->student->user->name ?? $result->student->student_code ?? 'Student';
-
-            $message = $result->result_status === 'absent'
-                ? sprintf('%s was marked absent for %s.', $studentName, $exam->title)
-                : sprintf(
-                    '%s scored %s/%s (%s%%) in %s. Result: %s.',
-                    $studentName,
-                    $result->marks_obtained,
-                    $result->total_marks,
-                    $result->percentage,
-                    $exam->title,
-                    ucfirst($result->result_status)
-                );
-
-            $whatsapp->sendStudentGuardianMessage($result->student, 'exam_result', $message);
-        }
 
         return back()->with('message', 'Exam results saved successfully.');
     }

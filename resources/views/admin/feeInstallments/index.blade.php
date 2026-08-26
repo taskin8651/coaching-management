@@ -150,6 +150,24 @@
                                     </form>
                                 @endcan
 
+                                @can('late_fee_apply')
+                                    @if($item->late_fee_enabled && $item->display_status == 'overdue')
+                                        @php $suggestedLateFee = $item->calculateSuggestedLateFee(); @endphp
+                                        <form method="POST"
+                                              action="{{ route('admin.fee-installments.applyLateFee', $item->id) }}"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Apply late fee of ₹{{ number_format($suggestedLateFee, 2) }}?')">
+                                            @csrf
+                                            <input type="hidden" name="amount" value="{{ $suggestedLateFee }}">
+
+                                            <button type="submit" class="btn-outline" style="color:#B91C1C;" {{ $suggestedLateFee <= 0 ? 'disabled' : '' }}>
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Late Fee ₹{{ number_format($suggestedLateFee, 0) }}
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endcan
+
                                 @can('fee_installment_edit')
                                     <a href="{{ route('admin.fee-installments.edit', $item->id) }}" class="btn-outline btn-outline-edit">
                                         <i class="fas fa-pencil-alt"></i>

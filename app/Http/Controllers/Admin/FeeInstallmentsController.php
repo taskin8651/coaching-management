@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
+use App\Http\Requests\ApplyLateFeeRequest;
 use App\Http\Requests\StoreFeeInstallmentRequest;
 use App\Http\Requests\UpdateFeeInstallmentRequest;
+use App\Models\FeeAccount;
 use App\Models\FeeInstallment;
 use App\Models\FeeStructure;
 use App\Models\Student;
 use App\Services\WhatsappService;
 use Gate;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class FeeInstallmentsController extends Controller
@@ -111,6 +114,32 @@ class FeeInstallmentsController extends Controller
         return back()->with('message', 'Fee reminder sent successfully.');
     }
 
+    public function applyLateFee(ApplyLateFeeRequest $request, FeeInstallment $feeInstallment)
+    {
+        $this->checkAccess($feeInstallment);
+
+        $increase = round((float) ($request->validated()['amount'] ?? $feeInstallment->calculateSuggestedLateFee()), 2);
+
+        abort_if($increase <= 0, Response::HTTP_UNPROCESSABLE_ENTITY, 'No late fee applicable for this installment.');
+
+        DB::transaction(function () use ($feeInstallment, $increase) {
+            $feeInstallment->update([
+                'amount' => $feeInstallment->amount + $increase,
+                'due_amount' => $feeInstallment->due_amount + $increase,
+                'late_fee_applied_amount' => $feeInstallment->late_fee_applied_amount + $increase,
+                'late_fee_applied_at' => now(),
+                'late_fee_applied_by_id' => auth()->id(),
+            ]);
+
+            if ($feeInstallment->ledger) {
+                $feeInstallment->ledger->update(['net_payable' => $feeInstallment->ledger->net_payable + $increase]);
+                $feeInstallment->ledger->recalculate();
+            }
+        });
+
+        return back()->with('message', 'Late fee of ₹' . number_format($increase, 2) . ' applied successfully.');
+    }
+
     private function checkAccess(FeeInstallment $feeInstallment): void
     {
         $scope = $this->erpScope();
@@ -134,6 +163,7 @@ class FeeInstallmentsController extends Controller
                 ->mapWithKeys(fn ($s) => [$s->id => $s->user->name ?? $s->student_code ?? 'Student #' . $s->id])
                 ->prepend(trans('global.pleaseSelect'), ''),
             'feeStructures' => FeeStructure::pluck('title', 'id')->prepend('Optional', ''),
+            'feeAccounts' => FeeAccount::where('status', 'active')->pluck('name', 'id')->prepend('Optional', ''),
         ];
     }
 

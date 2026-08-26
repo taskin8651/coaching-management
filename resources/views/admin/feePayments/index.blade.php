@@ -90,7 +90,9 @@
                         <td>
                             <div class="inline-flex-center">
                                 @php
-                                    $name = $payment->student->user->name ?? 'Student';
+                                    $name = $payment->student?->user?->name
+                                        ?? $payment->eventEnrollment?->participantName()
+                                        ?? 'Student';
                                     $colors = ['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6'];
                                     $color = $colors[$payment->id % count($colors)];
                                 @endphp
@@ -102,7 +104,11 @@
                                 <div>
                                     <p class="table-main-text">{{ $name }}</p>
                                     <p class="table-sub-text">
-                                        {{ $payment->student->student_code ?? '-' }}
+                                        @if($payment->eventEnrollment)
+                                            Event: {{ $payment->eventEnrollment->event->name ?? '-' }}
+                                        @else
+                                            {{ $payment->student?->student_code ?? '-' }}
+                                        @endif
                                     </p>
                                 </div>
                             </div>
@@ -163,19 +169,30 @@
                                     </a>
                                 @endcan
 
-                                @can('fee_payment_delete')
-                                    <form action="{{ route('admin.fee-payments.destroy', $payment->id) }}"
-                                          method="POST"
-                                          style="display:inline;"
-                                          onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
-                                        @method('DELETE')
-                                        @csrf
+                                @can('fee_payment_cancel')
+                                    @if($payment->payment_status != 'cancelled')
+                                        <a href="{{ route('admin.fee-payments.show', $payment->id) }}" class="btn-outline btn-outline-danger">
+                                            <i class="fas fa-ban"></i>
+                                            Cancel
+                                        </a>
+                                    @endif
+                                @endcan
 
-                                        <button type="submit" class="btn-outline btn-outline-danger">
-                                            <i class="fas fa-trash-alt"></i>
-                                            Delete
-                                        </button>
-                                    </form>
+                                @can('fee_payment_delete')
+                                    @if((float) $payment->paid_amount <= 0)
+                                        <form action="{{ route('admin.fee-payments.destroy', $payment->id) }}"
+                                              method="POST"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('{{ trans('global.areYouSure') }}')">
+                                            @method('DELETE')
+                                            @csrf
+
+                                            <button type="submit" class="btn-outline btn-outline-danger">
+                                                <i class="fas fa-trash-alt"></i>
+                                                Delete
+                                            </button>
+                                        </form>
+                                    @endif
                                 @endcan
                             </div>
                         </td>

@@ -115,8 +115,8 @@ class TeachersController extends Controller
             ->prepend('Select Batch', '');
 
         $coursesByBranch = $this->coursesByBranch();
-        $batchesByBranch = $this->batchesByBranch();
-        $subjectsByBranch = $this->subjectsByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+        $subjectsByBranchCourse = $this->subjectsByBranchCourse();
 
         return view('admin.teachers.create', compact(
             'users',
@@ -126,8 +126,8 @@ class TeachersController extends Controller
             'subjects',
             'batches',
             'coursesByBranch',
-            'batchesByBranch',
-            'subjectsByBranch'
+            'batchesByBranchCourse',
+            'subjectsByBranchCourse'
         ));
     }
 
@@ -247,8 +247,8 @@ class TeachersController extends Controller
 
         $assignments = $teacher->assignments->values();
         $coursesByBranch = $this->coursesByBranch();
-        $batchesByBranch = $this->batchesByBranch();
-        $subjectsByBranch = $this->subjectsByBranch();
+        $batchesByBranchCourse = $this->batchesByBranchCourse();
+        $subjectsByBranchCourse = $this->subjectsByBranchCourse();
 
         return view('admin.teachers.edit', compact(
             'teacher',
@@ -260,8 +260,8 @@ class TeachersController extends Controller
             'batches',
             'assignments',
             'coursesByBranch',
-            'batchesByBranch',
-            'subjectsByBranch'
+            'batchesByBranchCourse',
+            'subjectsByBranchCourse'
         ));
     }
 
