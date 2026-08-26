@@ -27,6 +27,13 @@
             'late_fee_max_amount' => $installment->late_fee_max_amount,
         ])->values()
         : (old('installments') ? collect(old('installments'))->values() : collect());
+
+    $feeHeadOptions = $feeHeads->map(fn ($h) => [
+        'id' => $h->id,
+        'name' => $h->name,
+        'gst_applicable' => (bool) $h->gst_applicable,
+        'default_gst_percent' => (float) $h->default_gst_percent,
+    ]);
 @endphp
 
 @if($hasLedgers)
@@ -252,7 +259,7 @@
 </style>
 
 <script>
-const feeHeads = @json($feeHeads->map(fn ($h) => ['id' => $h->id, 'name' => $h->name, 'gst_applicable' => (bool) $h->gst_applicable, 'default_gst_percent' => (float) $h->default_gst_percent]));
+const feeHeads = @json($feeHeadOptions);
 const feeAccounts = @json($feeAccounts);
 const initialItems = @json($initialItems);
 const initialInstallments = @json($initialInstallments);
