@@ -48,6 +48,7 @@ class PermissionRoleTableSeeder extends Seeder
             'extra_class_access', 'extra_class_create', 'extra_class_edit', 'extra_class_approve',
             'timetable_access', 'timetable_create', 'timetable_edit', 'timetable_delete', 'timetable_substitute',
             'staff_timetable_access', 'staff_timetable_create', 'staff_timetable_edit', 'staff_timetable_delete',
+            'holiday_access', 'holiday_create', 'holiday_edit', 'holiday_show', 'holiday_delete',
             'homework_access', 'homework_create', 'homework_show', 'homework_edit', 'homework_delete', 'homework_approve',
             'student_remark_access', 'student_remark_create', 'student_remark_approve',
             'maintenance_access', 'maintenance_create', 'maintenance_edit',
@@ -74,6 +75,7 @@ class PermissionRoleTableSeeder extends Seeder
             'refund_access', 'refund_show',
             'credit_access',
             'event_access', 'event_show',
+            'holiday_access', 'holiday_show',
         ]);
 
         $this->syncRole('Staff', [
@@ -95,6 +97,7 @@ class PermissionRoleTableSeeder extends Seeder
             'inventory_access', 'inventory_transaction_create',
             'staff_attendance_access',
             'staff_timetable_access',
+            'holiday_access', 'holiday_show',
             'salary_report_access', 'salary_payment_access', 'salary_payment_show',
         ]);
 
@@ -107,6 +110,7 @@ class PermissionRoleTableSeeder extends Seeder
             'refund_access', 'refund_show',
             'credit_access',
             'event_access', 'event_show',
+            'holiday_access', 'holiday_show',
             'exam_access', 'exam_show',
             'report_card_access',
             'study_material_access', 'study_material_show',
@@ -125,6 +129,7 @@ class PermissionRoleTableSeeder extends Seeder
             'refund_access', 'refund_show',
             'credit_access',
             'event_access', 'event_show',
+            'holiday_access', 'holiday_show',
             'exam_access', 'exam_show',
             'report_card_access',
             'study_material_access', 'study_material_show',

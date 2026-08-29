@@ -236,6 +236,12 @@ class PermissionsTableSeeder extends Seeder
             'salary_calculate',
             'salary_report_access',
 
+            'holiday_access',
+            'holiday_create',
+            'holiday_edit',
+            'holiday_show',
+            'holiday_delete',
+
             'timetable_access',
             'timetable_create',
             'timetable_edit',

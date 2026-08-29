@@ -165,6 +165,34 @@
                     @endif
                 </div>
 
+                <div class="field-group">
+                    <label class="field-label" for="weekly_off_day">
+                        Weekly Off Day
+                    </label>
+
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-calendar-week icon"></i>
+
+                        <select name="weekly_off_day"
+                                id="weekly_off_day"
+                                class="field-input {{ $errors->has('weekly_off_day') ? 'error' : '' }}">
+                            <option value="">Sunday (default)</option>
+                            @foreach(['0' => 'Sunday', '1' => 'Monday', '2' => 'Tuesday', '3' => 'Wednesday', '4' => 'Thursday', '5' => 'Friday', '6' => 'Saturday'] as $val => $label)
+                                <option value="{{ $val }}" {{ old('weekly_off_day', $branch->weekly_off_day) == $val ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if($errors->has('weekly_off_day'))
+                        <p class="field-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ $errors->first('weekly_off_day') }}
+                        </p>
+                    @else
+                        <p class="field-hint">Used to calculate working days for salary deductions.</p>
+                    @endif
+                </div>
+
             </div>
         </div>
 

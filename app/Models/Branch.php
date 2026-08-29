@@ -30,6 +30,7 @@ class Branch extends Model implements HasMedia
         'pincode',
         'manager_id',
         'status',
+        'weekly_off_day',
         'created_at',
         'updated_at',
     ];
@@ -121,5 +122,10 @@ public function studyMaterials()
 public function notices()
 {
     return $this->hasMany(Notice::class, 'branch_id');
+}
+
+public function holidays()
+{
+    return $this->hasMany(Holiday::class, 'branch_id');
 }
 }

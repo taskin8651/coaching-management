@@ -112,6 +112,10 @@ Route::resource('extra-classes', 'ExtraClassesController')->except(['show', 'des
 Route::get('salary-reports', 'SalaryReportsController@index')->name('salary-reports.index');
 Route::post('salary-reports/calculate', 'SalaryReportsController@calculate')->name('salary-reports.calculate');
 
+// Holidays
+Route::delete('holidays/destroy', 'HolidaysController@massDestroy')->name('holidays.massDestroy');
+Route::resource('holidays', 'HolidaysController');
+
 // WhatsApp
 Route::resource('whatsapp-settings', 'WhatsappSettingsController')->only(['index', 'create', 'store', 'edit', 'update']);
 Route::get('whatsapp-logs', 'WhatsappLogsController@index')->name('whatsapp-logs.index');

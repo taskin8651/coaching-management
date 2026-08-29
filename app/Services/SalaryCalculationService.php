@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class SalaryCalculationService
 {
+    public function __construct(private WorkingDaysCalculator $workingDaysCalculator)
+    {
+    }
+
     public function calculateTeacher(Teacher $teacher, string $salaryMonth): array
     {
         return $teacher->salary_type === 'hourly'
@@ -24,7 +28,8 @@ class SalaryCalculationService
     {
         $start = Carbon::parse($salaryMonth . '-01')->startOfMonth();
         $end = (clone $start)->endOfMonth();
-        $minuteRate = (float) ($teacher->minute_rate ?: (($teacher->salary ?: 0) / max(1, 26 * 60)));
+        $workingDays = $this->workingDaysCalculator->workingDays($teacher->branch_id, $start, $end);
+        $minuteRate = (float) ($teacher->minute_rate ?: (($teacher->salary ?: 0) / max(1, $workingDays * 60)));
 
         $logs = FacultyLogBook::where('teacher_id', $teacher->id)
             ->whereBetween('lecture_date', [$start->toDateString(), $end->toDateString()])
@@ -69,6 +74,7 @@ class SalaryCalculationService
             'salary_calculation_payload' => [
                 'salary_type' => 'hourly',
                 'minute_rate' => $minuteRate,
+                'working_days_in_month' => $workingDays,
                 'regular_log_ids' => $logs->pluck('id')->all(),
                 'extra_class_ids' => $approvedExtraClasses->pluck('id')->all(),
             ],
@@ -92,7 +98,7 @@ class SalaryCalculationService
 
         $grossSalary = (float) ($teacher->salary ?: 0);
         $extraAmount = (float) $approvedExtraClasses->sum('salary_amount');
-        $attendance = $this->absentDeduction($grossSalary, 'teacher_id', $teacher->id, $start, $end);
+        $attendance = $this->absentDeduction($grossSalary, 'teacher_id', $teacher->id, $start, $end, $teacher->branch_id);
         $netSalary = max($grossSalary + $extraAmount - $attendance['deduction_amount'], 0);
 
         return [
@@ -126,6 +132,7 @@ class SalaryCalculationService
                 'absent_days' => $attendance['absent_days'],
                 'half_days' => $attendance['half_days'],
                 'per_day_rate' => $attendance['per_day_rate'],
+                'working_days_in_month' => $attendance['working_days_in_month'],
                 'attendance_deduction' => $attendance['deduction_amount'],
             ],
         ];
@@ -215,7 +222,7 @@ class SalaryCalculationService
             ->get();
 
         $grossSalary = (float) ($staff->salary ?: 0);
-        $attendanceDeduction = $this->absentDeduction($grossSalary, 'staff_id', $staff->id, $start, $end);
+        $attendanceDeduction = $this->absentDeduction($grossSalary, 'staff_id', $staff->id, $start, $end, $staff->branch_id);
         $netSalary = max($grossSalary - $attendanceDeduction['deduction_amount'], 0);
 
         return [
@@ -248,6 +255,7 @@ class SalaryCalculationService
                 'absent_days' => $attendanceDeduction['absent_days'],
                 'half_days' => $attendanceDeduction['half_days'],
                 'per_day_rate' => $attendanceDeduction['per_day_rate'],
+                'working_days_in_month' => $attendanceDeduction['working_days_in_month'],
                 'attendance_deduction' => $attendanceDeduction['deduction_amount'],
             ],
         ];
@@ -295,11 +303,12 @@ class SalaryCalculationService
     }
 
     /**
-     * Monthly (flat-salary) employees still lose pay for days they were marked absent —
-     * a half_day counts as half an absence. Per-day rate assumes 26 working days a month,
-     * matching the same convention already used for the hourly minute-rate fallback above.
+     * Monthly (flat-salary) employees still lose pay for days they were marked absent — a
+     * half_day counts as half an absence. Per-day rate uses the branch's actual working-day
+     * count for the month (calendar days minus that branch's weekly-off day minus mandatory
+     * holidays — see WorkingDaysCalculator), not a fixed 26-day assumption.
      */
-    private function absentDeduction(float $monthlySalary, string $employeeColumn, int $employeeId, Carbon $start, Carbon $end): array
+    private function absentDeduction(float $monthlySalary, string $employeeColumn, int $employeeId, Carbon $start, Carbon $end, ?int $branchId): array
     {
         $absentDays = StaffAttendance::where($employeeColumn, $employeeId)
             ->where('status', 'absent')
@@ -311,12 +320,14 @@ class SalaryCalculationService
             ->whereBetween('attendance_date', [$start->toDateString(), $end->toDateString()])
             ->count();
 
-        $perDayRate = $monthlySalary / 26;
+        $workingDays = $this->workingDaysCalculator->workingDays($branchId, $start, $end);
+        $perDayRate = $monthlySalary / $workingDays;
         $deductibleDays = $absentDays + ($halfDays * 0.5);
 
         return [
             'absent_days' => $absentDays,
             'half_days' => $halfDays,
+            'working_days_in_month' => $workingDays,
             'per_day_rate' => round($perDayRate, 2),
             'deduction_amount' => round($deductibleDays * $perDayRate, 2),
         ];

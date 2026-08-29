@@ -450,7 +450,7 @@
         @endcanany
 
         {{-- ACADEMIC GROUP --}}
-        @canany(['exam_access', 'exam_type_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'staff_timetable_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'timetable_substitute', 'homework_access', 'student_remark_access'])
+        @canany(['exam_access', 'exam_type_access', 'report_card_access', 'study_material_access', 'student_batch_access', 'student_attendance_access', 'teacher_attendance_access', 'staff_attendance_access', 'staff_timetable_access', 'faculty_log_access', 'extra_class_access', 'timetable_access', 'timetable_substitute', 'homework_access', 'student_remark_access', 'holiday_access'])
             @php
                 $academicActive = request()->is('admin/exams*')
                     || request()->is('admin/exam-types*')
@@ -463,7 +463,8 @@
                     || request()->is('admin/faculty-log-books*')
                     || request()->is('admin/extra-classes*')
                     || request()->is('admin/timetables*')
-                    || request()->is('admin/timetable-substitutions*');
+                    || request()->is('admin/timetable-substitutions*')
+                    || request()->is('admin/holidays*');
             @endphp
 
             <div x-data="{ open: {{ $academicActive ? 'true' : 'false' }} }">
@@ -591,6 +592,14 @@
                            class="sub-link {{ request()->is('admin/staff-timetables*') ? 'active' : '' }}">
                             <i class="fas fa-calendar-day"></i>
                             Staff Timetable
+                        </a>
+                    @endcan
+
+                    @can('holiday_access')
+                        <a href="{{ route('admin.holidays.index') }}"
+                           class="sub-link {{ request()->is('admin/holidays*') ? 'active' : '' }}">
+                            <i class="fas fa-umbrella-beach"></i>
+                            Holidays
                         </a>
                     @endcan
 

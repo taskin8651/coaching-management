@@ -67,6 +67,11 @@ class StoreBranchRequest extends FormRequest
                 'required',
                 'in:active,inactive',
             ],
+            'weekly_off_day' => [
+                'nullable',
+                'integer',
+                'between:0,6',
+            ],
             'logo' => [
                 'nullable',
                 'image',
