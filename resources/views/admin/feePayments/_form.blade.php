@@ -361,6 +361,7 @@
 const feeStructures = @json($feeStructureData);
 const feeAccountsById = @json($feeAccounts);
 const installmentsByStudentGlobal = @json($installmentsByStudent);
+const allCourses = @json($courses);
 
 function installmentOptionsForCurrentStudent(selectedId) {
     const studentId = document.getElementById('student_id').value;
@@ -549,8 +550,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 batchSelect.value = details.batch_id;
                 batchSelect.dispatchEvent(new Event('change'));
             }
+
+            // course_id's <option> list is normally rebuilt from the SELECTED BATCH's own
+            // course (cascadeByParent above), so if this student has no batch assigned yet, or
+            // their own course_id doesn't match that batch's course, the option we need doesn't
+            // exist yet and setting .value silently does nothing. Make sure the option exists
+            // (adding it from the student's own course_id if missing) before selecting it — a
+            // student's course_id is authoritative regardless of batch assignment.
             if (details.course_id) {
-                courseSelect.value = details.course_id;
+                let courseOption = courseSelect.querySelector('option[value="' + details.course_id + '"]');
+
+                if (!courseOption && allCourses[details.course_id]) {
+                    courseOption = new Option(allCourses[details.course_id], details.course_id);
+                    courseSelect.appendChild(courseOption);
+                }
+
+                if (courseOption) {
+                    courseSelect.value = details.course_id;
+                }
             }
 
             const structureId = matchingFeeStructureId(details.branch_id, details.course_id, details.batch_id);
