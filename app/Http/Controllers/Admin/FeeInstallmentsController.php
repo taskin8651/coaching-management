@@ -118,26 +118,48 @@ class FeeInstallmentsController extends Controller
     {
         $this->checkAccess($feeInstallment);
 
-        $increase = round((float) ($request->validated()['amount'] ?? $feeInstallment->calculateSuggestedLateFee()), 2);
+        abort_if(
+            $feeInstallment->late_fee_applied_at,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'A late fee of ₹' . number_format($feeInstallment->late_fee_applied_amount, 2) . ' was already applied to this installment on ' . $feeInstallment->late_fee_applied_at->format('d M Y') . '.'
+        );
 
-        abort_if($increase <= 0, Response::HTTP_UNPROCESSABLE_ENTITY, 'No late fee applicable for this installment.');
+        $requestedAmount = $request->validated()['amount'] ?? null;
+        $appliedAmount = 0.0;
 
-        DB::transaction(function () use ($feeInstallment, $increase) {
-            $feeInstallment->update([
-                'amount' => $feeInstallment->amount + $increase,
-                'due_amount' => $feeInstallment->due_amount + $increase,
-                'late_fee_applied_amount' => $feeInstallment->late_fee_applied_amount + $increase,
+        DB::transaction(function () use ($feeInstallment, $requestedAmount, &$appliedAmount) {
+            // Re-check under a row lock: the abort_if() above ran before this transaction, so two
+            // near-simultaneous submits (double-click) could both pass it — only the lock here
+            // actually prevents both from applying.
+            $locked = FeeInstallment::whereKey($feeInstallment->id)->lockForUpdate()->firstOrFail();
+
+            abort_if(
+                $locked->late_fee_applied_at,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'A late fee was already applied to this installment.'
+            );
+
+            $increase = round((float) ($requestedAmount ?? $locked->calculateSuggestedLateFee()), 2);
+
+            abort_if($increase <= 0, Response::HTTP_UNPROCESSABLE_ENTITY, 'No late fee applicable for this installment.');
+
+            $appliedAmount = $increase;
+
+            $locked->update([
+                'amount' => $locked->amount + $increase,
+                'due_amount' => $locked->due_amount + $increase,
+                'late_fee_applied_amount' => $locked->late_fee_applied_amount + $increase,
                 'late_fee_applied_at' => now(),
                 'late_fee_applied_by_id' => auth()->id(),
             ]);
 
-            if ($feeInstallment->ledger) {
-                $feeInstallment->ledger->update(['net_payable' => $feeInstallment->ledger->net_payable + $increase]);
-                $feeInstallment->ledger->recalculate();
+            if ($locked->ledger) {
+                $locked->ledger->update(['net_payable' => $locked->ledger->net_payable + $increase]);
+                $locked->ledger->recalculate();
             }
         });
 
-        return back()->with('message', 'Late fee of ₹' . number_format($increase, 2) . ' applied successfully.');
+        return back()->with('message', 'Late fee of ₹' . number_format($appliedAmount, 2) . ' applied successfully.');
     }
 
     private function checkAccess(FeeInstallment $feeInstallment): void

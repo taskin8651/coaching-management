@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRefundRequest;
 use App\Http\Requests\UpdateRefundRequest;
 use App\Models\FeePayment;
+use App\Models\FeePaymentAllocation;
 use App\Models\Refund;
 use App\Models\Student;
 use App\Models\StudentCreditTransaction;
@@ -69,6 +70,16 @@ class RefundsController extends Controller
             );
 
             $data['fee_installment_id'] = $data['fee_installment_id'] ?? $payment->fee_installment_id;
+
+            if ($data['fee_installment_id']) {
+                $installmentRefundable = $this->refundableAmountForInstallment($payment, (int) $data['fee_installment_id']);
+
+                abort_if(
+                    (float) $data['amount'] > $installmentRefundable + 0.01,
+                    Response::HTTP_UNPROCESSABLE_ENTITY,
+                    'Refund amount exceeds what this payment actually put toward that installment (₹' . number_format($installmentRefundable, 2) . ').'
+                );
+            }
         } else {
             abort_if(
                 (float) $data['amount'] > (float) $ledger->advance_balance,
@@ -115,7 +126,36 @@ class RefundsController extends Controller
 
         $this->assertMutable($refund);
 
-        $refund->update($request->validated());
+        $data = $request->validated();
+        $amount = (float) $data['amount'];
+
+        if ($refund->fee_payment_id) {
+            $payment = FeePayment::find($refund->fee_payment_id);
+
+            abort_if(
+                $amount > $payment->refundableAmount(),
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'Refund amount exceeds what is refundable on this payment (₹' . number_format($payment->refundableAmount(), 2) . ').'
+            );
+
+            if ($refund->fee_installment_id) {
+                $installmentRefundable = $this->refundableAmountForInstallment($payment, $refund->fee_installment_id);
+
+                abort_if(
+                    $amount > $installmentRefundable + 0.01,
+                    Response::HTTP_UNPROCESSABLE_ENTITY,
+                    'Refund amount exceeds what this payment actually put toward that installment (₹' . number_format($installmentRefundable, 2) . ').'
+                );
+            }
+        } else {
+            abort_if(
+                $amount > (float) $refund->ledger->advance_balance,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                'Refund amount exceeds the student\'s advance/credit balance (₹' . number_format($refund->ledger->advance_balance, 2) . ').'
+            );
+        }
+
+        $refund->update($data);
 
         return redirect()->route('admin.refunds.index')->with('message', 'Refund updated successfully.');
     }
@@ -212,6 +252,29 @@ class RefundsController extends Controller
         });
 
         return back()->with('message', 'Refund marked as completed.');
+    }
+
+    /**
+     * A payment can be split (via FeePaymentAllocation) across several installments — the
+     * payment-level refundableAmount() alone doesn't stop a refund tagged to installment A from
+     * draining money that was actually allocated to installment B. This caps a refund to what
+     * this specific payment actually put toward the specific installment, minus refunds already
+     * completed against that same (payment, installment) pair.
+     */
+    private function refundableAmountForInstallment(FeePayment $payment, int $installmentId): float
+    {
+        $directAmount = $payment->fee_installment_id == $installmentId ? (float) $payment->paid_amount : 0;
+
+        $allocatedAmount = (float) FeePaymentAllocation::where('fee_payment_id', $payment->id)
+            ->where('fee_installment_id', $installmentId)
+            ->sum('amount');
+
+        $priorRefunded = (float) Refund::where('fee_payment_id', $payment->id)
+            ->where('fee_installment_id', $installmentId)
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        return max($directAmount + $allocatedAmount - $priorRefunded, 0);
     }
 
     private function formData(): array

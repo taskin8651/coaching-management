@@ -151,7 +151,7 @@
                                 @endcan
 
                                 @can('late_fee_apply')
-                                    @if($item->late_fee_enabled && $item->display_status == 'overdue')
+                                    @if($item->late_fee_enabled && $item->display_status == 'overdue' && ! $item->late_fee_applied_at)
                                         @php $suggestedLateFee = $item->calculateSuggestedLateFee(); @endphp
                                         <form method="POST"
                                               action="{{ route('admin.fee-installments.applyLateFee', $item->id) }}"

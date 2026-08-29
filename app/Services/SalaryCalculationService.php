@@ -152,6 +152,8 @@ class SalaryCalculationService
                 $payment->slip_no = $this->generateSlipNo();
             }
 
+            $this->preservePaymentRecord($payment, $data);
+
             $payment->fill($data);
             $payment->save();
 
@@ -275,11 +277,49 @@ class SalaryCalculationService
                 $payment->slip_no = $this->generateSlipNo();
             }
 
+            $this->preservePaymentRecord($payment, $data);
+
             $payment->fill($data);
             $payment->save();
 
             return $payment;
         });
+    }
+
+    /**
+     * calculateTeacher()/calculateStaff() always return paid_amount=0/payment_status='due' since
+     * they only compute what is OWED, not what has been PAID. Re-running "Calculate Salary" on a
+     * payment that was already recorded as paid/partial must not blow that away — so once a
+     * SalaryPayment row already exists, its actual payment-tracking fields are preserved here and
+     * due_amount/payment_status are re-derived against the freshly calculated net_salary instead
+     * of being overwritten with the calculator's due-only defaults.
+     */
+    private function preservePaymentRecord(SalaryPayment $payment, array &$data): void
+    {
+        if (! $payment->exists) {
+            return;
+        }
+
+        $paidAmount = (float) $payment->paid_amount;
+
+        $data['paid_amount'] = $paidAmount;
+        $data['payment_mode'] = $payment->payment_mode;
+        $data['payment_date'] = $payment->payment_date;
+        $data['paid_by_id'] = $payment->paid_by_id;
+        $data['remarks'] = $payment->remarks;
+
+        if ($payment->payment_status === 'cancelled') {
+            $data['payment_status'] = 'cancelled';
+            $data['due_amount'] = 0;
+
+            return;
+        }
+
+        $netSalary = (float) $data['net_salary'];
+        $data['due_amount'] = round(max($netSalary - $paidAmount, 0), 2);
+        $data['payment_status'] = $paidAmount >= $netSalary && $netSalary > 0
+            ? 'paid'
+            : ($paidAmount > 0 ? 'partial' : 'due');
     }
 
     public function payableMinutes(?string $scheduledStart, ?string $scheduledEnd, ?string $actualStart, ?string $actualEnd): array
