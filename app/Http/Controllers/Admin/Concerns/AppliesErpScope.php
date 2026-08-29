@@ -41,7 +41,7 @@ trait AppliesErpScope
                 ?? $staff->branch_id
                 ?? $teacher->branch_id
                 ?? $student->branch_id
-                ?? null;
+                ?? ($parentStudents->isNotEmpty() ? Student::find($parentStudents->first())?->branch_id : null);
         }
 
         return [

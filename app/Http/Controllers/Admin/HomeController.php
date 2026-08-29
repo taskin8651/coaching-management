@@ -11,6 +11,7 @@ use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\Expense;
 use App\Models\FeePayment;
+use App\Models\Holiday;
 use App\Models\Homework;
 use App\Models\Notice;
 use App\Models\SalaryPayment;
@@ -56,9 +57,13 @@ class HomeController extends Controller
         $homeworkQuery = $this->scopeAcademic(Homework::query(), $scope, $batchIds);
 
         $totalStudents = (clone $studentsQuery)->count();
-        $totalTeachers = $scope['is_student'] ? 0 : (clone $teachersQuery)->count();
+        $totalTeachers = ($scope['is_student'] || $scope['is_parent']) ? 0 : (clone $teachersQuery)->count();
         $activeBatches = (clone $batchesQuery)->where('status', 'active')->count();
-        $totalCourses = $scope['is_student'] ? (int) filled($scope['course_id']) : (clone $coursesQuery)->count();
+        $totalCourses = $scope['is_student']
+            ? (int) filled($scope['course_id'])
+            : ($scope['is_parent']
+                ? Student::whereIn('id', $studentIds ?? collect())->pluck('course_id')->filter()->unique()->count()
+                : (clone $coursesQuery)->count());
         $totalSubjects = (clone $subjectsQuery)->count();
         $newEnquiries = (clone $enquiriesQuery)->where('status', 'new')->count();
         $totalEnquiries = (clone $enquiriesQuery)->count();
@@ -79,7 +84,7 @@ class HomeController extends Controller
         $absentPercent = $attendanceTotalToday ? round(($absentToday / $attendanceTotalToday) * 100, 1) : 0;
 
         $expensesQuery = Expense::query()->where('status', 'paid');
-        $expensesQuery = ($scope['is_student'] || $scope['is_teacher'])
+        $expensesQuery = ($scope['is_student'] || $scope['is_teacher'] || $scope['is_parent'])
             ? $expensesQuery->whereRaw('1 = 0')
             : $this->scopeBranch($expensesQuery, $scope);
 
@@ -144,13 +149,28 @@ class HomeController extends Controller
             ->count();
 
         $examAverage = $this->examAverage($scope, $studentIds, $batchIds);
+        $examTrend = $this->examTrend($scope, $studentIds, $batchIds);
+
+        $upcomingHolidays = Holiday::query()
+            ->forBranchOrGlobal($scope['branch_id'])
+            ->whereDate('date', '>=', $today)
+            ->orderBy('date')
+            ->take(5)
+            ->get();
+
+        $holidaysThisMonth = Holiday::query()
+            ->forBranchOrGlobal($scope['branch_id'])
+            ->whereYear('date', now()->year)
+            ->whereMonth('date', now()->month)
+            ->get()
+            ->keyBy(fn ($holiday) => $holiday->date->day);
 
         $topCards = [
-            ['title' => $scope['is_student'] ? 'My Profile' : 'Total Students', 'value' => $scope['is_student'] ? 1 : $totalStudents, 'icon' => 'fas fa-users', 'tone' => 'blue', 'show' => true],
-            ['title' => 'Total Teachers', 'value' => $totalTeachers, 'icon' => 'fas fa-user-tie', 'tone' => 'green', 'show' => ! $scope['is_student']],
+            ['title' => $scope['is_student'] ? 'My Profile' : ($scope['is_parent'] ? 'My Children' : 'Total Students'), 'value' => $scope['is_student'] ? 1 : $totalStudents, 'icon' => 'fas fa-users', 'tone' => 'blue', 'show' => true],
+            ['title' => 'Total Teachers', 'value' => $totalTeachers, 'icon' => 'fas fa-user-tie', 'tone' => 'green', 'show' => ! $scope['is_student'] && ! $scope['is_parent']],
             ['title' => 'Active Batches', 'value' => $activeBatches, 'icon' => 'fas fa-users-rectangle', 'tone' => 'purple', 'show' => true],
             ['title' => 'Courses', 'value' => $totalCourses, 'icon' => 'fas fa-book-open', 'tone' => 'amber', 'show' => true],
-            ['title' => 'New Enquiries', 'value' => $newEnquiries, 'icon' => 'fas fa-circle-question', 'tone' => 'cyan', 'show' => ! $scope['is_student'] && ! $scope['is_teacher']],
+            ['title' => 'New Enquiries', 'value' => $newEnquiries, 'icon' => 'fas fa-circle-question', 'tone' => 'cyan', 'show' => ! $scope['is_student'] && ! $scope['is_teacher'] && ! $scope['is_parent']],
             ['title' => 'Fee Collected', 'value' => '₹' . number_format($feeCollected, 0), 'icon' => 'fas fa-indian-rupee-sign', 'tone' => 'emerald', 'show' => ! $scope['is_teacher']],
             ['title' => 'Pending Fees', 'value' => '₹' . number_format($pendingFees, 0), 'icon' => 'fas fa-wallet', 'tone' => 'orange', 'show' => ! $scope['is_teacher']],
             ['title' => 'Attendance Today', 'value' => $attendancePercent . '%', 'icon' => 'fas fa-calendar-check', 'tone' => 'pink', 'show' => true],
@@ -201,6 +221,9 @@ class HomeController extends Controller
             'recentMaterials',
             'pendingHomeworkCount',
             'examAverage',
+            'examTrend',
+            'upcomingHolidays',
+            'holidaysThisMonth',
             'activityFeed'
         ));
     }
@@ -213,6 +236,7 @@ class HomeController extends Controller
         $teacher = Teacher::where('user_id', $user->id)->first();
         $staff = Staff::where('user_id', $user->id)->first();
         $student = Student::where('user_id', $user->id)->first();
+        $parentStudentIds = Student::where('guardian_user_id', $user->id)->pluck('id');
         $managerBranch = Branch::where('manager_id', $user->id)->first();
 
         $isAdmin = (bool) $user->is_admin || $roles->contains('admin');
@@ -220,6 +244,7 @@ class HomeController extends Controller
         $isTeacher = $roles->contains('teacher');
         $isStaff = $roles->contains('staff');
         $isStudent = $roles->contains('student');
+        $isParent = $roles->contains('parent') || $parentStudentIds->isNotEmpty();
 
         $branchId = null;
 
@@ -228,20 +253,22 @@ class HomeController extends Controller
                 ?? $staff->branch_id
                 ?? $teacher->branch_id
                 ?? $student->branch_id
-                ?? null;
+                ?? ($parentStudentIds->isNotEmpty() ? Student::find($parentStudentIds->first())?->branch_id : null);
         }
 
         return [
-            'role_label' => $isAdmin ? 'Admin / Super Admin' : ($isManager ? 'Branch Manager' : ($isTeacher ? 'Teacher' : ($isStudent ? 'Student' : ($isStaff ? 'Staff' : 'User')))),
+            'role_label' => $isAdmin ? 'Admin / Super Admin' : ($isManager ? 'Branch Manager' : ($isTeacher ? 'Teacher' : ($isStudent ? 'Student' : ($isParent ? 'Parent' : ($isStaff ? 'Staff' : 'User'))))),
             'is_admin' => $isAdmin,
             'is_manager' => $isManager,
             'is_teacher' => $isTeacher,
             'is_staff' => $isStaff,
             'is_student' => $isStudent,
+            'is_parent' => $isParent,
             'branch_id' => $branchId,
             'teacher_id' => $teacher->id ?? null,
             'staff_id' => $staff->id ?? null,
             'student_id' => $student->id ?? null,
+            'parent_student_ids' => $parentStudentIds,
             'course_id' => $student->course_id ?? null,
             'batch_id' => $student->batch_id ?? null,
         ];
@@ -263,6 +290,18 @@ class HomeController extends Controller
                         ->pluck('batch_id')
                 );
             }
+
+            return $ids->unique()->values();
+        }
+
+        if ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) {
+            $ids = Student::whereIn('id', $scope['parent_student_ids'])->pluck('batch_id')->filter();
+
+            $ids = $ids->merge(
+                StudentBatch::whereIn('student_id', $scope['parent_student_ids'])
+                    ->where('status', 'active')
+                    ->pluck('batch_id')
+            );
 
             return $ids->unique()->values();
         }
@@ -293,6 +332,10 @@ class HomeController extends Controller
 
         if ($scope['is_student'] && $scope['student_id']) {
             return collect([$scope['student_id']]);
+        }
+
+        if ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) {
+            return $scope['parent_student_ids'];
         }
 
         if ($scope['is_teacher']) {
@@ -361,7 +404,7 @@ class HomeController extends Controller
             return $query;
         }
 
-        if ($scope['is_student'] || $scope['is_teacher']) {
+        if ($scope['is_student'] || $scope['is_teacher'] || $scope['is_parent']) {
             return $studentIds && $studentIds->isNotEmpty()
                 ? $query->whereIn('student_id', $studentIds)
                 : $query->whereRaw('1 = 0');
@@ -378,7 +421,7 @@ class HomeController extends Controller
             return $query;
         }
 
-        if (($scope['is_teacher'] || $scope['is_student']) && $batchIds && $batchIds->isNotEmpty()) {
+        if (($scope['is_teacher'] || $scope['is_student'] || $scope['is_parent']) && $batchIds && $batchIds->isNotEmpty()) {
             return $query->where(function ($q) use ($batchIds, $scope) {
                 $q->whereIn('batch_id', $batchIds);
 
@@ -403,7 +446,7 @@ class HomeController extends Controller
             return $query->where('teacher_id', $scope['teacher_id']);
         }
 
-        if (($scope['is_student'] || $scope['is_manager'] || $scope['is_staff']) && $batchIds && $batchIds->isNotEmpty()) {
+        if (($scope['is_student'] || $scope['is_parent'] || $scope['is_manager'] || $scope['is_staff']) && $batchIds && $batchIds->isNotEmpty()) {
             return $query->whereIn('batch_id', $batchIds);
         }
 
@@ -419,7 +462,7 @@ class HomeController extends Controller
         return $query->where(function ($q) use ($scope, $batchIds) {
             $q->where('target_audience', 'all');
 
-            if ($scope['is_student']) {
+            if ($scope['is_student'] || $scope['is_parent']) {
                 $q->orWhere('target_audience', 'students');
             } elseif ($scope['is_teacher']) {
                 $q->orWhere('target_audience', 'teachers');
@@ -445,7 +488,7 @@ class HomeController extends Controller
 
     private function scopeEnquiries(Builder $query, array $scope): Builder
     {
-        if ($scope['is_student'] || $scope['is_teacher']) {
+        if ($scope['is_student'] || $scope['is_teacher'] || $scope['is_parent']) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -466,7 +509,7 @@ class HomeController extends Controller
             return $query->where('staff_id', $scope['staff_id']);
         }
 
-        if ($scope['is_student']) {
+        if ($scope['is_student'] || $scope['is_parent']) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -518,5 +561,36 @@ class HomeController extends Controller
         }
 
         return round((float) $query->avg('percentage'), 1);
+    }
+
+    /**
+     * Real last-3-months average-percentage trend, same scoping rules as examAverage() — replaces
+     * what used to be a hardcoded Jan/Feb/Mar placeholder in the dashboard view.
+     */
+    private function examTrend(array $scope, ?Collection $studentIds, ?Collection $batchIds): Collection
+    {
+        return collect([2, 1, 0])->map(function ($monthsAgo) use ($scope, $studentIds, $batchIds) {
+            $month = now()->copy()->subMonths($monthsAgo);
+
+            $query = ExamResult::query()
+                ->whereHas('exam', fn ($q) => $q->whereYear('exam_date', $month->year)->whereMonth('exam_date', $month->month));
+
+            if ($scope['is_student'] && $scope['student_id']) {
+                $query->where('student_id', $scope['student_id']);
+            } elseif ($scope['is_teacher'] && $batchIds && $batchIds->isNotEmpty()) {
+                $query->whereHas('exam', fn ($q) => $q->whereIn('batch_id', $batchIds));
+            } elseif (! $scope['is_admin']) {
+                if ($studentIds && $studentIds->isNotEmpty()) {
+                    $query->whereIn('student_id', $studentIds);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+
+            return [
+                'label' => $month->format('M'),
+                'value' => round((float) $query->avg('percentage'), 1),
+            ];
+        });
     }
 }

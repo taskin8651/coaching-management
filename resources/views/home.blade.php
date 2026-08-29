@@ -33,7 +33,7 @@
     .wide-grid{display:grid;grid-template-columns:1.1fr 1.45fr 1.45fr;gap:14px;margin-bottom:14px}.bottom-grid{display:grid;grid-template-columns:2fr .95fr 1fr;gap:14px}
     .mini-table{width:100%;font-size:12px}.mini-table th{background:#f8fafc;color:#475569;text-align:left;padding:10px;font-weight:900}.mini-table td{padding:10px;border-top:1px solid #eef2f7;color:#334155}.status-pill-sm{font-size:10px;border-radius:999px;padding:5px 9px;font-weight:900}.live{background:#dcfce7;color:#15803d}.upcoming{background:#dbeafe;color:#2563eb}
     .exam-score{font-size:34px;font-weight:900;color:#0f172a}.score-box{padding:20px}.score-line{height:110px;display:flex;align-items:end;gap:16px;margin-top:12px}.score-month{flex:1;text-align:center}.score-bar{height:75px;border-left:2px solid #2563eb;border-top:2px solid #2563eb;transform:skewY(-12deg);border-radius:4px}
-    .calendar{padding:16px}.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:12px}.cal-day{padding:7px;border-radius:10px;color:#334155}.cal-active{background:#2563eb;color:#fff;font-weight:900}.portal-card{background:linear-gradient(180deg,#eef4ff,#fff)}
+    .calendar{padding:16px}.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:12px}.cal-day{padding:7px;border-radius:10px;color:#334155;position:relative}.cal-active{background:#2563eb;color:#fff;font-weight:900}.cal-day.cal-holiday{background:#fee2e2;color:#b91c1c;font-weight:800;cursor:help}.cal-day.cal-active.cal-holiday{background:#2563eb;color:#fff}.cal-day.cal-holiday::after{content:"";position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#ef4444}.cal-day.cal-active.cal-holiday::after{background:#fff}.portal-card{background:linear-gradient(180deg,#eef4ff,#fff)}
     .portal-meter{width:96px;height:96px;border-radius:50%;background:conic-gradient(#22c55e {{ $attendancePercent }}%,#e5e7eb 0);display:grid;place-items:center;margin:4px auto 16px;position:relative}.portal-meter:before{content:"";position:absolute;width:70px;height:70px;background:#fff;border-radius:50%}.portal-meter strong{position:relative;font-size:18px}
     .portal-row{display:flex;justify-content:space-between;background:#fff;border-radius:14px;padding:12px;margin-top:10px;font-size:12px;font-weight:800;color:#334155}.portal-btn{display:block;text-align:center;margin-top:14px;border:1px solid #2563eb;border-radius:12px;color:#2563eb;padding:11px;font-weight:900;text-decoration:none}
     @media(max-width:1500px){.metric-grid{grid-template-columns:repeat(4,1fr)}.ed-grid,.wide-grid,.bottom-grid{grid-template-columns:1fr 1fr}.right-only{grid-column:span 2}}
@@ -187,7 +187,11 @@
                 <div class="item-meta">Average Percentage</div>
                 <div class="exam-score">{{ $examAverage ?: 0 }}%</div>
                 <div class="metric-trend"><i class="fas fa-arrow-up"></i> scoped exam result average</div>
-                <div class="score-line"><div class="score-month"><div class="score-bar"></div><div class="bar-label">Jan</div></div><div class="score-month"><div class="score-bar" style="height:88px"></div><div class="bar-label">Feb</div></div><div class="score-month"><div class="score-bar" style="height:100px"></div><div class="bar-label">Mar</div></div></div>
+                <div class="score-line">
+                    @foreach($examTrend as $row)
+                        <div class="score-month"><div class="score-bar" style="height:{{ max(($row['value'] / 100) * 100, 4) }}px"></div><div class="bar-label">{{ $row['label'] }} · {{ $row['value'] }}%</div></div>
+                    @endforeach
+                </div>
             </div>
         </div>
 
@@ -203,6 +207,38 @@
         </div>
     </div>
 
+    @if($scope['is_admin'] || $scope['is_manager'])
+        <div class="ed-card" style="margin-bottom:14px;">
+            <div class="card-head"><p class="card-title">Finance Summary</p></div>
+            <div class="metric-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin:16px;margin-top:0;box-shadow:none;">
+                <div class="metric-card" style="box-shadow:none;">
+                    <div class="metric-top">
+                        <div class="metric-icon tone-emerald"><i class="fas fa-indian-rupee-sign"></i></div>
+                        <div><p class="metric-value">₹{{ number_format($feeCollected, 0) }}</p><p class="metric-label">Fee Collected</p></div>
+                    </div>
+                </div>
+                <div class="metric-card" style="box-shadow:none;">
+                    <div class="metric-top">
+                        <div class="metric-icon tone-orange"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div><p class="metric-value">₹{{ number_format($expenses, 0) }}</p><p class="metric-label">Expenses Paid</p></div>
+                    </div>
+                </div>
+                <div class="metric-card" style="box-shadow:none;">
+                    <div class="metric-top">
+                        <div class="metric-icon tone-purple"><i class="fas fa-hand-holding-dollar"></i></div>
+                        <div><p class="metric-value">₹{{ number_format($salaryPaid, 0) }}</p><p class="metric-label">Salary Paid @if($salaryDue > 0)<span style="color:#dc2626;">(₹{{ number_format($salaryDue, 0) }} due)</span>@endif</p></div>
+                    </div>
+                </div>
+                <div class="metric-card" style="box-shadow:none;">
+                    <div class="metric-top">
+                        <div class="metric-icon {{ $netBalance >= 0 ? 'tone-green' : 'tone-pink' }}"><i class="fas fa-scale-balanced"></i></div>
+                        <div><p class="metric-value">₹{{ number_format($netBalance, 0) }}</p><p class="metric-label">Net Balance</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="bottom-grid">
         <div class="ed-card">
             <div class="card-head"><p class="card-title">Today’s Classes / Timetable</p>@can('timetable_access')<a class="view-link" href="{{ route('admin.timetables.index') }}">View Full Timetable</a>@endcan</div>
@@ -217,14 +253,29 @@
         </div>
 
         <div class="ed-card">
-            <div class="card-head"><p class="card-title">Calendar</p></div>
+            <div class="card-head"><p class="card-title">Calendar</p>@can('holiday_access')<a class="view-link" href="{{ route('admin.holidays.index') }}">Holidays</a>@endcan</div>
             <div class="calendar">
                 <div style="text-align:center;font-weight:900;margin-bottom:12px">{{ now()->format('F Y') }}</div>
                 <div class="cal-grid">
                     @foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $day)<strong>{{ $day }}</strong>@endforeach
                     @for($i = 1; $i < $calendarStart->dayOfWeekIso; $i++)<span></span>@endfor
-                    @for($day = 1; $day <= $daysInMonth; $day++)<div class="cal-day {{ $day == now()->day ? 'cal-active' : '' }}">{{ $day }}</div>@endfor
+                    @for($day = 1; $day <= $daysInMonth; $day++)
+                        @php $dayHoliday = $holidaysThisMonth->get($day); @endphp
+                        <div class="cal-day {{ $day == now()->day ? 'cal-active' : '' }} {{ $dayHoliday ? 'cal-holiday' : '' }}" @if($dayHoliday) title="{{ $dayHoliday->name }}" @endif>{{ $day }}</div>
+                    @endfor
                 </div>
+
+                @if($upcomingHolidays->isNotEmpty())
+                    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #eef2f7;">
+                        <p style="font-size:11px;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px;">Upcoming Holidays</p>
+                        @foreach($upcomingHolidays->take(3) as $holiday)
+                            <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:6px 0;color:#334155;">
+                                <span>{{ $holiday->name }}</span>
+                                <strong style="color:#0f172a;white-space:nowrap;">{{ $holiday->date->format('d M') }}</strong>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -240,15 +291,15 @@
         </div>
     </div>
 
-    @if($scope['is_student'])
+    @if($scope['is_student'] || $scope['is_parent'])
         <div class="ed-card portal-card" style="margin-top:14px">
-            <div class="card-head"><p class="card-title"><i class="fas fa-graduation-cap"></i> Student Portal</p></div>
+            <div class="card-head"><p class="card-title"><i class="fas fa-graduation-cap"></i> {{ $scope['is_parent'] ? 'Parent Portal' : 'Student Portal' }}</p></div>
             <div class="portal-body">
                 <div class="portal-meter"><strong>{{ $attendancePercent }}%</strong></div>
                 <div class="portal-row"><span>Upcoming Exams</span><strong>{{ $upcomingExams->count() }}</strong></div>
                 <div class="portal-row"><span>Pending Homework</span><strong>{{ $pendingHomeworkCount }}</strong></div>
                 <div class="portal-row"><span>New Study Materials</span><strong>{{ $recentMaterials->count() }}</strong></div>
-                <a href="{{ route('admin.my-portal.index') }}" class="portal-btn">Go to Student Portal</a>
+                <a href="{{ route('admin.my-portal.index') }}" class="portal-btn">Go to {{ $scope['is_parent'] ? 'Parent' : 'Student' }} Portal</a>
             </div>
         </div>
     @endif

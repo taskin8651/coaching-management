@@ -74,6 +74,17 @@
         <div class="year-pill">Academic Year {{ now('Asia/Kolkata')->format('Y') }}-{{ now('Asia/Kolkata')->addYear()->format('y') }} <i class="fas fa-chevron-down ml-2"></i></div>
     </div>
 
+    @if($scope['is_parent'] && $children->count() > 1)
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:-10px 0 20px;">
+            @foreach($children as $child)
+                <a href="{{ route('admin.my-portal.index', ['student_id' => $child->id]) }}"
+                   style="padding:8px 16px;border-radius:10px;font-size:13px;font-weight:800;text-decoration:none;border:1px solid #dce6f5;{{ $portalStudent && $portalStudent->id == $child->id ? 'background:#0047bd;color:#fff;border-color:#0047bd;' : 'background:#fff;color:#0d2a55;' }}">
+                    {{ $child->user->name ?? 'Child #' . $child->id }}
+                </a>
+            @endforeach
+        </div>
+    @endif
+
     @if(! $portalStudent && $scope['is_teacher'])
         <div class="portal-stat-grid">
             @foreach($teacherStats as $stat)
@@ -109,6 +120,24 @@
                 </table>
             </div>
         </div>
+
+        @if($upcomingHolidays->isNotEmpty())
+            <div class="portal-card mb-3">
+                <div class="portal-card-head"><p class="portal-card-title">Upcoming Holidays</p></div>
+                <div class="notice-list" style="padding:6px 18px;">
+                    @foreach($upcomingHolidays as $holiday)
+                        <div class="notice-row">
+                            <div class="notice-icon"><i class="fas fa-umbrella-beach"></i></div>
+                            <div>
+                                <div class="notice-title">{{ $holiday->name }}</div>
+                                <div class="notice-desc">{{ $holiday->branch_id ? 'Branch Holiday' : 'Institute-wide' }} · {{ ucfirst($holiday->type) }}</div>
+                            </div>
+                            <div class="notice-date">{{ $formatDate($holiday->date) }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <div class="portal-grid">
             <div class="portal-card">
@@ -231,6 +260,24 @@
                 </div>
             </div>
         </div>
+
+        @if($upcomingHolidays->isNotEmpty())
+            <div class="portal-card mb-3">
+                <div class="portal-card-head"><p class="portal-card-title">Upcoming Holidays</p></div>
+                <div class="notice-list" style="padding:6px 18px;">
+                    @foreach($upcomingHolidays as $holiday)
+                        <div class="notice-row">
+                            <div class="notice-icon"><i class="fas fa-umbrella-beach"></i></div>
+                            <div>
+                                <div class="notice-title">{{ $holiday->name }}</div>
+                                <div class="notice-desc">{{ $holiday->branch_id ? 'Branch Holiday' : 'Institute-wide' }} · {{ ucfirst($holiday->type) }}</div>
+                            </div>
+                            <div class="notice-date">{{ $formatDate($holiday->date) }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <div class="portal-grid">
             <div class="portal-card">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Models\FacultyLogBook;
 use App\Models\FeeInstallment;
+use App\Models\Holiday;
 use App\Models\Homework;
 use App\Models\Notice;
 use App\Models\ReportCard;
@@ -31,7 +32,26 @@ class MyPortalController extends Controller
         abort_if(Gate::denies('my_portal_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $scope = $this->erpScope();
-        $studentIds = $this->visibleStudentIds($scope);
+        $allVisibleStudentIds = $this->visibleStudentIds($scope);
+
+        // A parent with more than one child was previously always shown their first child's
+        // profile while every list below (attendance/homework/fee/etc.) silently mixed rows from
+        // ALL their children with no "which child" column — confusing rather than useful. Instead,
+        // a parent now views one child at a time (switchable via ?student_id=), same as a student
+        // login already does.
+        $children = collect();
+
+        if ($scope['is_parent'] && $allVisibleStudentIds->isNotEmpty()) {
+            $children = Student::whereIn('id', $allVisibleStudentIds)->with('user')->get();
+            $requestedStudentId = (int) request('student_id');
+            $selectedStudentId = $allVisibleStudentIds->contains($requestedStudentId)
+                ? $requestedStudentId
+                : $allVisibleStudentIds->first();
+            $studentIds = collect([$selectedStudentId]);
+        } else {
+            $studentIds = $allVisibleStudentIds;
+        }
+
         $portalStudent = $studentIds->isNotEmpty()
             ? Student::with(['user', 'branch', 'course', 'batch.subjects', 'studentBatches.batch', 'studentBatches.subject'])
                 ->find($studentIds->first())
@@ -194,6 +214,13 @@ class MyPortalController extends Controller
             return ['slot' => $slot, 'days' => $days];
         });
 
+        $upcomingHolidays = Holiday::query()
+            ->forBranchOrGlobal($scope['branch_id'])
+            ->whereDate('date', '>=', $today)
+            ->orderBy('date')
+            ->take(5)
+            ->get();
+
         $portalStats = [
             ['label' => 'Attendance', 'value' => $attendancePercent . '%', 'note' => 'This Month', 'icon' => 'fa-calendar-check', 'color' => 'blue'],
             ['label' => 'Homework', 'value' => $homeworkPending, 'note' => 'Pending', 'icon' => 'fa-book-open', 'color' => 'green'],
@@ -243,6 +270,8 @@ class MyPortalController extends Controller
         return view('admin.myPortal.index', compact(
             'scope',
             'portalStudent',
+            'children',
+            'upcomingHolidays',
             'studentBatchIds',
             'studentSubjectIds',
             'portalStats',

@@ -468,6 +468,31 @@ function recalculateInstallments(structureTotal) {
     preview.style.color = Math.abs(allocated - structureTotal) > 1 ? '#DC2626' : '#166534';
 }
 
+/**
+ * Every field in a row is named e.g. "items[][fee_head_id]" with an empty bracket. PHP does NOT
+ * group empty-bracket fields by row — each occurrence of "items[]" (regardless of which sub-field
+ * it belongs to) just takes the next free top-level index in the "items" array. So one row's 4
+ * fields (fee_head_id, amount, gst_applicable, gst_percent) end up scattered across items[0],
+ * items[1], items[2], items[3] — each holding only ONE key — instead of all landing in items[0].
+ * Fix: after every add/remove/initial-load, rewrite every field's name with its row's real
+ * position so same-row fields always share one explicit index.
+ */
+function reindexRows(containerId, rowSelector, prefix) {
+    document.querySelectorAll('#' + containerId + ' ' + rowSelector).forEach(function (row, index) {
+        row.querySelectorAll('[name^="' + prefix + '["]').forEach(function (field) {
+            field.name = field.name.replace(new RegExp('^' + prefix + '\\[\\d*\\]'), prefix + '[' + index + ']');
+        });
+    });
+}
+
+function reindexItemRows() {
+    reindexRows('itemRows', '.item-row', 'items');
+}
+
+function reindexInstallmentRows() {
+    reindexRows('installmentRows', '.installment-row', 'installments');
+}
+
 function removeRow(button, containerId) {
     const wrapper = document.getElementById(containerId);
     const selector = containerId === 'itemRows' ? '.item-row' : '.installment-row';
@@ -478,16 +503,25 @@ function removeRow(button, containerId) {
     }
 
     button.closest(selector).remove();
+
+    if (containerId === 'itemRows') {
+        reindexItemRows();
+    } else {
+        reindexInstallmentRows();
+    }
+
     recalculateItems();
 }
 
 function addItemRow() {
     document.getElementById('itemRows').appendChild(buildItemRow());
+    reindexItemRows();
     recalculateItems();
 }
 
 function addInstallmentRow() {
     document.getElementById('installmentRows').appendChild(buildInstallmentRow());
+    reindexInstallmentRows();
     recalculateItems();
 }
 
@@ -495,9 +529,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const itemWrapper = document.getElementById('itemRows');
     const items = initialItems.length ? initialItems : [{}];
     items.forEach(item => itemWrapper.appendChild(buildItemRow(item)));
+    reindexItemRows();
 
     const installmentWrapper = document.getElementById('installmentRows');
     initialInstallments.forEach(installment => installmentWrapper.appendChild(buildInstallmentRow(installment)));
+    reindexInstallmentRows();
 
     recalculateItems();
 
