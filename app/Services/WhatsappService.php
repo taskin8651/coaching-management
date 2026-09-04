@@ -16,7 +16,7 @@ use Throwable;
 
 class WhatsappService
 {
-    private const BIOMETRIC_CHECK_IN_TEMPLATE = 'student_biometric_check_in_new_crm';
+    private const BIOMETRIC_CHECK_IN_TEMPLATE = 'student_biometric_check_in_crm_cl9_copy_1';
     private const WELCOME_TEMPLATE = 'karmayoga_welcome_message_crm';
     private const WEEKLY_TEST_RESULT_TEMPLATE = 'weekly_test_result_crm';
     private const WEEKLY_TEST_NOTIFICATION_TEMPLATE = 'weekly_test_notification_crm';
@@ -126,7 +126,7 @@ class WhatsappService
                     'data' => [
                         $studentName,
                         $branchName,
-                        $checkInTime->format('d F Y, h:i A'),
+                        $checkInTime->format('H:i'),
                     ],
                 ]);
 
