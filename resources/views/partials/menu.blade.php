@@ -270,6 +270,7 @@
                     || request()->is('admin/fee-structures*')
                     || request()->is('admin/salary-payments*')
                     || request()->is('admin/fee-heads*')
+                    || request()->is('admin/academic-years*')
                     || request()->is('admin/fee-accounts*')
                     || request()->is('admin/concessions*')
                     || request()->is('admin/student-fee-ledgers*')
@@ -305,6 +306,14 @@
        class="sub-link {{ request()->is('admin/fee-heads*') ? 'active' : '' }}">
         <i class="fas fa-tags"></i>
         Fee Master
+    </a>
+@endcan
+
+                    @can('fee_master_access')
+    <a href="{{ route('admin.academic-years.index') }}"
+       class="sub-link {{ request()->is('admin/academic-years*') ? 'active' : '' }}">
+        <i class="fas fa-calendar-alt"></i>
+        Academic Years
     </a>
 @endcan
 

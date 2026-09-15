@@ -134,10 +134,12 @@
                                 @endcan
 
                                 @can('exam_edit')
+                                    @unless($exam->isLockedForEditing())
                                     <a href="{{ route('admin.exams.edit', $exam->id) }}" class="btn-outline btn-outline-edit">
                                         <i class="fas fa-pencil-alt"></i>
                                         Edit
                                     </a>
+                                    @endunless
                                 @endcan
 
                                 @can('exam_delete')

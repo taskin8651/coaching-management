@@ -97,6 +97,11 @@ class Exam extends Model
         return $this->status ?: 'scheduled';
     }
 
+    public function isLockedForEditing(): bool
+    {
+        return $this->status === 'completed' || $this->display_status === 'completed';
+    }
+
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');

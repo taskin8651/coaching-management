@@ -435,11 +435,18 @@
 document.addEventListener('DOMContentLoaded', function () {
     const branchSelect = document.getElementById('branch_id');
     const courseSelect = document.getElementById('course_id');
+    const assignedToSelect = document.getElementById('assigned_to_id');
     const coursesByBranch = @json($coursesByBranch);
+    const usersByBranch = @json($usersByBranch);
 
     cascadeByParent(courseSelect, branchSelect, coursesByBranch, {
         placeholder: @json(trans('global.pleaseSelect')),
         keepValue: @json(old('course_id', $enquiry->course_id)),
+    });
+
+    cascadeByParent(assignedToSelect, branchSelect, usersByBranch, {
+        placeholder: @json(trans('global.pleaseSelect')),
+        keepValue: @json(old('assigned_to_id', $enquiry->assigned_to_id)),
     });
 });
 </script>

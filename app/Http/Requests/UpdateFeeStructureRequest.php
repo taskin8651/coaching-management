@@ -24,8 +24,6 @@ class UpdateFeeStructureRequest extends FormRequest
 
             'title' => ['required', 'string', 'max:255'],
             'academic_year' => ['required', 'string', 'max:20'],
-            'board' => ['nullable', 'string', 'max:100'],
-            'standard' => ['nullable', 'string', 'max:100'],
             'effective_from' => ['required', 'date'],
             'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
             'installment_allocation_override' => ['nullable', 'boolean'],

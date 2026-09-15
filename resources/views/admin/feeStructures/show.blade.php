@@ -105,7 +105,6 @@
                 <div class="detail-row"><span class="detail-label">Course</span><span class="detail-value">{{ $feeStructure->course->name ?? '-' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Batch</span><span class="detail-value">{{ $feeStructure->batch->name ?? 'All Batches' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Academic Year</span><span class="detail-value">{{ $feeStructure->academic_year }}</span></div>
-                <div class="detail-row"><span class="detail-label">Board / Standard</span><span class="detail-value">{{ $feeStructure->board ?? '-' }} {{ $feeStructure->standard ? '/ ' . $feeStructure->standard : '' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Effective</span><span class="detail-value">{{ optional($feeStructure->effective_from)->format('d M Y') }} — {{ optional($feeStructure->effective_to)->format('d M Y') ?? 'ongoing' }}</span></div>
                 <div class="detail-row"><span class="detail-label">Version</span><span class="detail-value">v{{ $feeStructure->version_no }}</span></div>
                 <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">{{ ucfirst($feeStructure->status) }}</span></div>

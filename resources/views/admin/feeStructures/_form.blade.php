@@ -69,9 +69,18 @@
 
             <div class="field-group">
                 <label class="field-label">Academic Year <span class="req">*</span></label>
-                <input type="text" name="academic_year" value="{{ old('academic_year', $isEdit ? $feeStructure->academic_year : '') }}"
-                       placeholder="Example: 2026-27" required
-                       class="field-input {{ $errors->has('academic_year') ? 'error' : '' }}">
+                <select name="academic_year" required class="field-input {{ $errors->has('academic_year') ? 'error' : '' }}">
+                    @foreach($academicYears as $value => $label)
+                        <option value="{{ $value }}" {{ old('academic_year', $isEdit ? $feeStructure->academic_year : $academicYears->keys()->skip(1)->first()) == $value ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+                @if($errors->has('academic_year'))
+                    <p class="field-error">{{ $errors->first('academic_year') }}</p>
+                @else
+                    <p class="field-hint">Manage this list from Fee Management > Academic Years.</p>
+                @endif
             </div>
 
             <div class="field-group">
@@ -100,16 +109,6 @@
                     @endforeach
                 </select>
                 <p class="field-hint">Empty means applicable for all batches of selected course.</p>
-            </div>
-
-            <div class="field-group">
-                <label class="field-label">Board / Program</label>
-                <input type="text" name="board" value="{{ old('board', $isEdit ? $feeStructure->board : '') }}" placeholder="Example: CBSE / ICSE" class="field-input">
-            </div>
-
-            <div class="field-group">
-                <label class="field-label">Standard / Class</label>
-                <input type="text" name="standard" value="{{ old('standard', $isEdit ? $feeStructure->standard : '') }}" placeholder="Example: Class 10" class="field-input">
             </div>
 
             <div class="field-group">
@@ -238,7 +237,7 @@
     align-items: end;
 }
 
-.item-row { grid-template-columns: 2fr 1fr 1fr 1fr 1fr 44px; }
+.item-row { grid-template-columns: 2fr 1fr 1fr 1fr 44px; }
 .installment-row { grid-template-columns: 1.6fr 1fr 1fr 1fr 1.4fr 44px; }
 
 .row-remove {
@@ -282,6 +281,10 @@ function feeAccountOptions(selectedId) {
 
 function buildItemRow(item) {
     item = item || {};
+    const selectedFeeHeadId = item.fee_head_id ?? (feeHeads[0] ? feeHeads[0].id : '');
+    const head = feeHeads.find(h => String(h.id) === String(selectedFeeHeadId));
+    const gstApplicable = head ? head.gst_applicable : (item.gst_applicable || false);
+    const gstPercent = head ? head.default_gst_percent : (item.gst_percent ?? 0);
     const row = document.createElement('div');
     row.className = 'item-row';
 
@@ -289,23 +292,17 @@ function buildItemRow(item) {
         <div class="field-group mb-0">
             <label class="field-label">Fee Head</label>
             <select name="items[][fee_head_id]" class="field-input item-fee-head" onchange="onFeeHeadChange(this)">
-                ${feeHeadOptions(item.fee_head_id)}
+                ${feeHeadOptions(selectedFeeHeadId)}
             </select>
         </div>
         <div class="field-group mb-0">
             <label class="field-label">Amount</label>
             <input type="number" step="0.01" min="0" name="items[][amount]" class="field-input item-amount" value="${item.amount ?? 0}" oninput="recalculateItems()">
         </div>
-        <div class="field-group mb-0">
-            <label class="field-label">GST?</label>
-            <select name="items[][gst_applicable]" class="field-input item-gst-applicable" onchange="recalculateItems()">
-                <option value="0" ${!item.gst_applicable ? 'selected' : ''}>No</option>
-                <option value="1" ${item.gst_applicable ? 'selected' : ''}>Yes</option>
-            </select>
-        </div>
+        <input type="hidden" name="items[][gst_applicable]" class="item-gst-applicable" value="${gstApplicable ? '1' : '0'}">
         <div class="field-group mb-0">
             <label class="field-label">GST %</label>
-            <input type="number" step="0.01" min="0" max="100" name="items[][gst_percent]" class="field-input item-gst-percent" value="${item.gst_percent ?? 0}" oninput="recalculateItems()">
+            <input type="number" step="0.01" min="0" max="100" name="items[][gst_percent]" class="field-input item-gst-percent" value="${gstPercent}" readonly>
         </div>
         <div class="field-group mb-0">
             <label class="field-label">Line Total</label>
@@ -317,15 +314,17 @@ function buildItemRow(item) {
     return row;
 }
 
+function applyFeeHeadGst(row, head) {
+    row.querySelector('.item-gst-applicable').value = head && head.gst_applicable ? '1' : '0';
+    row.querySelector('.item-gst-percent').value = head ? head.default_gst_percent : 0;
+}
+
 function onFeeHeadChange(select) {
     const headId = select.value;
     const head = feeHeads.find(h => String(h.id) === String(headId));
     const row = select.closest('.item-row');
 
-    if (head) {
-        row.querySelector('.item-gst-applicable').value = head.gst_applicable ? '1' : '0';
-        row.querySelector('.item-gst-percent').value = head.default_gst_percent;
-    }
+    applyFeeHeadGst(row, head);
 
     recalculateItems();
 }

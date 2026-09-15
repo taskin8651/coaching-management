@@ -97,136 +97,684 @@
     </div>
 </div>
 
+@php
+    $selectedExamTypes = collect($filters['exam_types'] ?? [])->map(fn ($value) => (string) $value)->all();
+    $selectedSubjectIds = collect($filters['subject_ids'] ?? [])->map(fn ($value) => (string) $value)->all();
+    $selectedStudentIds = collect($filters['student_ids'] ?? [])->map(fn ($value) => (string) $value)->all();
+@endphp
+
 <div class="page-card no-print" style="margin-bottom:16px;">
+
     <div class="page-card-header">
-        <p class="page-card-title">Filters</p>
+
+        <p class="page-card-title">
+            Report Card Data Sheet Filters
+        </p>
 
         <span class="page-card-note">
             <i class="fas fa-filter"></i>
-            Student / Teacher / Subject / Course / Date wise report dekhein
+            Batch -> Month/Date Range -> Test Type -> Subject -> Student
         </span>
+
     </div>
 
-    <form method="GET" action="{{ route('admin.report-cards.index') }}" style="padding:16px;">
-        <div class="admin-form-grid" style="grid-template-columns: repeat(5, 1fr); gap:12px;">
 
+    <form method="GET"
+          action="{{ route('admin.report-cards.index') }}"
+          style="padding:16px;">
+
+        {{-- ROW 1 : Batch + Month + Date Range --}}
+        <div class="admin-form-grid"
+             style="grid-template-columns: 1fr 1fr 2fr; gap:16px; margin-bottom:16px;">
+
+            {{-- Batch --}}
             <div class="field-group mb-0">
-                <label class="field-label" for="filter_student_id">Student</label>
-                <select name="student_id" id="filter_student_id" class="field-input">
-                    @foreach($students as $id => $name)
-                        <option value="{{ $id }}" {{ ($filters['student_id'] ?? '') == $id ? 'selected' : '' }}>
+
+                <label class="field-label" for="filter_batch_id">
+                    1. Batch
+                </label>
+
+                <select name="batch_id"
+                        id="filter_batch_id"
+                        class="field-input js-rc-batch">
+
+                    @foreach($batches as $id => $name)
+
+                        <option value="{{ $id }}"
+                            {{ ($filters['batch_id'] ?? '') == $id ? 'selected' : '' }}>
+
                             {{ $name }}
+
                         </option>
+
                     @endforeach
+
                 </select>
+
             </div>
 
+
+            {{-- Month --}}
             <div class="field-group mb-0">
-                <label class="field-label" for="filter_teacher_id">Teacher</label>
-                <select name="teacher_id" id="filter_teacher_id" class="field-input">
-                    @foreach($teachers as $id => $name)
-                        <option value="{{ $id }}" {{ ($filters['teacher_id'] ?? '') == $id ? 'selected' : '' }}>
-                            {{ $name }}
-                        </option>
-                    @endforeach
-                </select>
+
+                <label class="field-label" for="filter_report_month">
+                    2. Month
+                </label>
+
+                <input type="month"
+                       name="report_month"
+                       id="filter_report_month"
+                       value="{{ $filters['report_month'] ?? '' }}"
+                       class="field-input">
+
             </div>
 
-            <div class="field-group mb-0">
-                <label class="field-label" for="filter_subject_id">Subject</label>
-                <select name="subject_id" id="filter_subject_id" class="field-input">
-                    @foreach($subjects as $id => $name)
-                        <option value="{{ $id }}" {{ ($filters['subject_id'] ?? '') == $id ? 'selected' : '' }}>
-                            {{ $name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
 
+            {{-- Date Range --}}
             <div class="field-group mb-0">
-                <label class="field-label" for="filter_course_id">Course</label>
-                <select name="course_id" id="filter_course_id" class="field-input">
-                    @foreach($courses as $id => $name)
-                        <option value="{{ $id }}" {{ ($filters['course_id'] ?? '') == $id ? 'selected' : '' }}>
-                            {{ $name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
 
-            <div class="field-group mb-0">
-                <label class="field-label">Exam Date</label>
-                <div style="display:flex; gap:6px;">
-                    <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="field-input">
-                    <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="field-input">
+                <label class="field-label">
+                    Date Range
+                </label>
+
+                <div style="display:flex; gap:8px;">
+
+                    <input type="date"
+                           name="date_from"
+                           value="{{ $filters['date_from'] ?? '' }}"
+                           class="field-input"
+                           style="flex:1;">
+
+                    <input type="date"
+                           name="date_to"
+                           value="{{ $filters['date_to'] ?? '' }}"
+                           class="field-input"
+                           style="flex:1;">
+
                 </div>
+
             </div>
 
         </div>
 
-        <div class="action-row" style="justify-content:flex-start; gap:10px; margin-top:14px;">
-            <button type="submit" class="btn-primary">
+
+        {{-- ROW 2 : Test Type + Subject --}}
+        <div class="admin-form-grid"
+             style="grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+
+            {{-- Test Type --}}
+            <div class="field-group mb-0 border p-4 rounded-md border-blue-900">
+
+                <label class="field-label">
+                    3. Test Type
+                </label>
+
+                <div class="form-mini-actions" style="margin-bottom:8px;">
+
+                    <button type="button"
+                            class="btn-mini-primary"
+                            data-check-all="#filter_exam_types .role-checkbox-item">
+                        All
+                    </button>
+
+                    <button type="button"
+                            class="btn-mini-ghost"
+                            data-uncheck-all="#filter_exam_types .role-checkbox-item">
+                        None
+                    </button>
+
+                </div>
+
+
+                <div class="checkbox-grid "
+                     id="filter_exam_types">
+
+                    @foreach($testTypes as $value => $label)
+
+                        <label class="role-checkbox-item
+                            {{ in_array((string) $value, $selectedExamTypes, true) ? 'checked' : '' }}">
+
+                            <input type="checkbox"
+                                   name="exam_types[]"
+                                   value="{{ $value }}"
+                                   class="role-checkbox"
+                                   {{ in_array((string) $value, $selectedExamTypes, true) ? 'checked' : '' }}>
+
+                            <div class="check-icon"></div>
+
+                            <span class="checkbox-text">
+                                {{ $label }}
+                            </span>
+
+                        </label>
+
+                    @endforeach
+
+                </div>
+
+            </div>
+
+
+            {{-- Subject --}}
+            <div class="field-group mb-0 border p-4 rounded-md border-blue-900">
+
+                <label class="field-label">
+                    4. Subject
+                </label>
+
+                <div class="form-mini-actions" style="margin-bottom:8px;">
+
+                    <button type="button"
+                            class="btn-mini-primary"
+                            data-check-all="#filter_subject_ids .role-checkbox-item">
+                        All
+                    </button>
+
+                    <button type="button"
+                            class="btn-mini-ghost"
+                            data-uncheck-all="#filter_subject_ids .role-checkbox-item">
+                        None
+                    </button>
+
+                </div>
+
+
+                <div class="checkbox-grid js-rc-subjects"
+                     id="filter_subject_ids"
+                     data-selected-subjects='@json($selectedSubjectIds)'>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- ROW 3 : Student --}}
+        <div class="admin-form-grid border p-4 rounded-md border-blue-900"
+             style="grid-template-columns: 1fr; gap:16px;">
+
+            <div class="field-group mb-0">
+
+                <label class="field-label">
+                    5. Student
+                </label>
+
+
+                {{-- All Students --}}
+                <label class="field-label"
+                       style="
+                           margin-bottom:10px;
+                           display:flex;
+                           align-items:center;
+                           gap:8px;
+                           cursor:pointer;
+                       ">
+
+                  
+
+                </label>
+
+
+                <div class="form-mini-actions"
+                     style="margin-bottom:8px;">
+
+                    <button type="button"
+                            class="btn-mini-primary"
+                            data-check-all="#filter_student_ids .role-checkbox-item">
+                        All
+                    </button>
+
+                    <button type="button"
+                            class="btn-mini-ghost"
+                            data-uncheck-all="#filter_student_ids .role-checkbox-item">
+                        None
+                    </button>
+
+                </div>
+
+
+                <div class="checkbox-grid js-rc-students"
+                     id="filter_student_ids"
+                     data-selected-students='@json($selectedStudentIds)'>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- ACTIONS --}}
+        <div class="action-row"
+             style="
+                 justify-content:flex-start;
+                 gap:10px;
+                 margin-top:16px;
+                 padding-top:14px;
+                 border-top:1px solid #eee;
+             ">
+
+            <button type="submit"
+                    class="btn-primary">
+
                 <i class="fas fa-filter"></i>
                 Apply Filters
+
             </button>
 
-            <a href="{{ route('admin.report-cards.index') }}" class="btn-ghost">
-                Clear
-            </a>
-        </div>
-    </form>
-</div>
 
+            <a href="{{ route('admin.report-cards.index') }}"
+               class="btn-ghost">
+
+                Clear
+
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
 @can('report_card_create')
+
     <div class="page-card no-print" style="margin-bottom:16px;">
+
         <div class="page-card-header">
-            <p class="page-card-title">Generate Report Cards</p>
+
+            <p class="page-card-title">
+                Create Report Card Data Sheet
+            </p>
 
             <span class="page-card-note">
                 <i class="fas fa-file-alt"></i>
-                Select an exam (with results entered) to generate report cards
+                Same flow: Batch -> Month/Date Range -> Test Type -> Subject -> Student
             </span>
+
         </div>
+
 
         <div style="padding:16px;">
-            <form method="POST" action="{{ route('admin.report-cards.generate') }}">
+
+            <form method="POST"
+                  action="{{ route('admin.report-cards.generate') }}">
+
                 @csrf
 
-                <div class="action-row" style="justify-content:flex-start; gap:12px;">
-                    <div class="input-icon-wrap" style="max-width:420px;">
-                        <i class="fas fa-clipboard-list icon"></i>
 
-                        <select name="exam_id"
+                {{-- ROW 1 : BATCH + MONTH + DATE RANGE --}}
+                <div class="admin-form-grid"
+                     style="
+                        grid-template-columns:1fr 1fr 2fr;
+                        gap:16px;
+                        margin-bottom:16px;
+                     ">
+
+                    {{-- 1. Batch --}}
+                    <div class="field-group mb-0">
+
+                        <label class="field-label"
+                               for="generate_batch_id">
+
+                            1. Batch
+                            <span class="req">*</span>
+
+                        </label>
+
+                        <select name="batch_id"
+                                id="generate_batch_id"
                                 required
-                                class="field-input {{ $errors->has('exam_id') ? 'error' : '' }}">
-                            @foreach($exams as $id => $label)
-                                <option value="{{ $id }}" {{ old('exam_id') == $id ? 'selected' : '' }}>
-                                    {{ $label }}
+                                class="field-input js-rc-batch {{ $errors->has('batch_id') ? 'error' : '' }}">
+
+                            @foreach($batches as $id => $name)
+
+                                <option value="{{ $id }}"
+                                    {{ old('batch_id', $filters['batch_id'] ?? '') == $id ? 'selected' : '' }}>
+
+                                    {{ $name }}
+
                                 </option>
+
                             @endforeach
+
                         </select>
+
                     </div>
 
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-sync-alt"></i>
-                        Generate
-                    </button>
+
+                    {{-- 2. Month --}}
+                    <div class="field-group mb-0">
+
+                        <label class="field-label"
+                               for="generate_report_month">
+
+                            2. Month
+
+                        </label>
+
+                        <input type="month"
+                               name="report_month"
+                               id="generate_report_month"
+                               value="{{ old('report_month', $filters['report_month'] ?? '') }}"
+                               class="field-input">
+
+                    </div>
+
+
+                    {{-- Date Range --}}
+                    <div class="field-group mb-0">
+
+                        <label class="field-label">
+                            Date Range
+                        </label>
+
+                        <div style="display:flex; gap:8px;">
+
+                            <input type="date"
+                                   name="date_from"
+                                   value="{{ old('date_from', $filters['date_from'] ?? '') }}"
+                                   class="field-input"
+                                   style="flex:1;">
+
+                            <input type="date"
+                                   name="date_to"
+                                   value="{{ old('date_to', $filters['date_to'] ?? '') }}"
+                                   class="field-input"
+                                   style="flex:1;">
+
+                        </div>
+
+                    </div>
+
                 </div>
 
-                @if($errors->has('exam_id'))
-                    <p class="field-error" style="margin-top:8px;">
+
+                {{-- TEST TYPE + SUBJECT + STUDENT BORDER --}}
+                <div style="
+                    border:1px solid #e5e7eb;
+                    border-radius:10px;
+                    padding:16px;
+                    margin-bottom:16px;
+                    background:#fff;
+                ">
+
+                    {{-- Section Header --}}
+                    <div style="
+                        display:flex;
+                        align-items:center;
+                        gap:8px;
+                        margin-bottom:16px;
+                        padding-bottom:12px;
+                        border-bottom:1px solid #eee;
+                    ">
+
+                        <i class="fas fa-filter"
+                           style="font-size:13px;">
+                        </i>
+
+                        <strong style="font-size:13px;">
+                            Test Type, Subject & Student Selection
+                        </strong>
+
+                    </div>
+
+
+                    {{-- ROW 2 : TEST TYPE + SUBJECT --}}
+                    <div class="admin-form-grid"
+                         style="
+                            grid-template-columns:1fr 1fr;
+                            gap:16px;
+                            margin-bottom:16px;
+                         ">
+
+
+                        {{-- 3. Test Type --}}
+                        <div class="field-group mb-0 border p-4 rounded-md border-blue-900">
+
+                            <label class="field-label">
+                                3. Test Type
+                            </label>
+
+
+                            <div class="form-mini-actions"
+                                 style="
+                                    margin-bottom:8px;
+                                    display:flex;
+                                    justify-content:flex-end;
+                                    gap:6px;
+                                 ">
+
+                                <button type="button"
+                                        class="btn-mini-primary"
+                                        data-check-all="#generate_exam_types .role-checkbox-item">
+
+                                    All
+
+                                </button>
+
+                                <button type="button"
+                                        class="btn-mini-ghost"
+                                        data-uncheck-all="#generate_exam_types .role-checkbox-item">
+
+                                    None
+
+                                </button>
+
+                            </div>
+
+
+                            <div class="checkbox-grid"
+                                 id="generate_exam_types">
+
+                                @php
+                                    $selectedExamTypes = collect(
+                                        old('exam_types', $filters['exam_types'] ?? [])
+                                    )
+                                    ->map(fn ($v) => (string) $v)
+                                    ->all();
+                                @endphp
+
+
+                                @foreach($testTypes as $value => $label)
+
+                                    <label class="role-checkbox-item
+                                        {{ in_array((string) $value, $selectedExamTypes, true) ? 'checked' : '' }}">
+
+                                        <input type="checkbox"
+                                               name="exam_types[]"
+                                               value="{{ $value }}"
+                                               class="role-checkbox"
+                                               {{ in_array((string) $value, $selectedExamTypes, true) ? 'checked' : '' }}>
+
+                                        <div class="check-icon"></div>
+
+                                        <span class="checkbox-text">
+                                            {{ $label }}
+                                        </span>
+
+                                    </label>
+
+                                @endforeach
+
+                            </div>
+
+                        </div>
+
+
+                        {{-- 4. Subject --}}
+                        <div class="field-group mb-0 border p-4 rounded-md border-blue-900">
+
+                            <label class="field-label">
+                                4. Subject
+                            </label>
+
+
+                            <div class="form-mini-actions"
+                                 style="
+                                    margin-bottom:8px;
+                                    display:flex;
+                                    justify-content:flex-end;
+                                    gap:6px;
+                                 ">
+
+                                <button type="button"
+                                        class="btn-mini-primary"
+                                        data-check-all="#generate_subject_ids .role-checkbox-item">
+
+                                    All
+
+                                </button>
+
+                                <button type="button"
+                                        class="btn-mini-ghost"
+                                        data-uncheck-all="#generate_subject_ids .role-checkbox-item">
+
+                                    None
+
+                                </button>
+
+                            </div>
+
+
+                            <div class="checkbox-grid js-rc-subjects"
+                                 id="generate_subject_ids"
+                                 data-selected-subjects='@json(
+                                    collect(old('subject_ids', $filters['subject_ids'] ?? []))
+                                    ->map(fn($v) => (string)$v)
+                                    ->all()
+                                 )'>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- 5. STUDENT --}}
+                    <div class="admin-form-grid"
+                         style="
+                            grid-template-columns:1fr;
+                            gap:16px;
+                         ">
+
+                        <div class="field-group mb-0 border p-4 rounded-md border-blue-900">
+
+                            <label class="field-label">
+                                5. Student
+                            </label>
+
+
+                            {{-- All Students --}}
+                            <label class="field-label"
+                                   style="
+                                        margin-bottom:10px;
+                                        display:flex;
+                                        align-items:center;
+                                        gap:8px;
+                                        cursor:pointer;
+                                   ">
+
+                                <input type="checkbox"
+                                       name="all_students"
+                                       value="1"
+                                       class="js-rc-all-students"
+                                       {{ old('all_students', $filters['all_students'] ?? true) ? 'checked' : '' }}>
+
+                                <span>
+                                    All Select
+                                </span>
+
+                            </label>
+
+
+                            <div class="form-mini-actions"
+                                 style="
+                                    margin-bottom:8px;
+                                    display:flex;
+                                    justify-content:flex-end;
+                                    gap:6px;
+                                 ">
+
+                                <button type="button"
+                                        class="btn-mini-primary"
+                                        data-check-all="#generate_student_ids .role-checkbox-item">
+
+                                    All
+
+                                </button>
+
+                                <button type="button"
+                                        class="btn-mini-ghost"
+                                        data-uncheck-all="#generate_student_ids .role-checkbox-item">
+
+                                    None
+
+                                </button>
+
+                            </div>
+
+
+                            {{-- Students --}}
+                            <div class="checkbox-grid js-rc-students"
+                                 id="generate_student_ids"
+                                 data-selected-students='@json(
+                                    collect(old('student_ids', $filters['student_ids'] ?? []))
+                                    ->map(fn($v) => (string)$v)
+                                    ->all()
+                                 )'>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {{-- ACTION --}}
+                <div class="action-row"
+                     style="
+                        justify-content:flex-start;
+                        gap:12px;
+                        margin-top:14px;
+                        padding-top:14px;
+                        border-top:1px solid #eee;
+                     ">
+
+                    <button type="submit"
+                            class="btn-primary">
+
+                        <i class="fas fa-sync-alt"></i>
+
+                        Create / Update Data Sheet
+
+                    </button>
+
+                </div>
+
+
+                {{-- ERROR --}}
+                @if($errors->any())
+
+                    <p class="field-error"
+                       style="margin-top:8px;">
+
                         <i class="fas fa-exclamation-circle"></i>
-                        {{ $errors->first('exam_id') }}
+
+                        {{ $errors->first() }}
+
                     </p>
-                @elseif($exams->count() <= 1)
-                    <p class="field-hint" style="margin-top:8px;">
-                        <i class="fas fa-info-circle"></i>
-                        No completed exam with results found yet. Enter results for an exam first.
-                    </p>
+
                 @endif
+
             </form>
+
         </div>
+
     </div>
+
 @endcan
 
 <div id="rcGraphView" style="display:none;">
@@ -280,6 +828,7 @@
                 <tr>
                     <th>Student</th>
                     <th>Exam</th>
+                    <th>Batch</th>
                     <th>Subject / Course</th>
                     <th>Marks</th>
                     <th>Percentage</th>
@@ -322,6 +871,8 @@
                                 @endif
                             </p>
                         </td>
+
+                        <td>{{ $card->exam->batch->name ?? $card->batch->name ?? '-' }}</td>
 
                         <td>
                             <p class="table-main-text">{{ $card->exam->subject->name ?? '-' }}</p>
@@ -426,6 +977,81 @@ document.addEventListener('DOMContentLoaded', function () {
     const listView = document.getElementById('rcListView');
     const graphView = document.getElementById('rcGraphView');
     const toggleBtn = document.getElementById('rcViewToggleBtn');
+    const reportCardOptions = @json($filterOptions);
+    const selectedSubjectIds = @json($selectedSubjectIds);
+    const selectedStudentIds = @json($selectedStudentIds);
+
+    function checkboxHtml(items, selectedIds, fieldName) {
+        return (items || []).map(function (item) {
+            const id = String(item.id);
+            const checked = selectedIds.includes(id) ? 'checked' : '';
+            return `
+                <label class="role-checkbox-item ${checked ? 'checked' : ''}">
+                    <input type="checkbox" name="${fieldName}" value="${item.id}" class="role-checkbox" ${checked}>
+                    <div class="check-icon"></div>
+                    <span class="checkbox-text">${item.name}</span>
+                </label>
+            `;
+        }).join('');
+    }
+
+    function bindCheckboxCardBehavior(root) {
+        root.querySelectorAll('.role-checkbox-item').forEach(function (item) {
+            const checkbox = item.querySelector('input[type=checkbox]');
+            if (!checkbox) return;
+
+            item.classList.toggle('checked', checkbox.checked);
+
+            item.onclick = function (event) {
+                event.preventDefault();
+                checkbox.checked = !checkbox.checked;
+                item.classList.toggle('checked', checkbox.checked);
+            };
+        });
+    }
+
+    function syncReportCardSelector(root) {
+        const batchSelect = root.querySelector('.js-rc-batch');
+        const subjectGrid = root.querySelector('.js-rc-subjects');
+        const studentGrid = root.querySelector('.js-rc-students');
+        const allStudents = root.querySelector('.js-rc-all-students');
+
+        if (!batchSelect || !subjectGrid || !studentGrid) {
+            return;
+        }
+
+        const batchId = batchSelect.value || '';
+        const selectedSubjects = JSON.parse(subjectGrid.dataset.selectedSubjects || '[]');
+        const selectedStudents = JSON.parse(studentGrid.dataset.selectedStudents || '[]');
+
+        subjectGrid.innerHTML = checkboxHtml(reportCardOptions.subjectsByBatch[batchId] || [], selectedSubjects, 'subject_ids[]');
+        studentGrid.innerHTML = checkboxHtml(reportCardOptions.studentsByBatch[batchId] || [], selectedStudents, 'student_ids[]');
+        bindCheckboxCardBehavior(root);
+
+        if (allStudents) {
+            const disableStudentGrid = allStudents.checked;
+            studentGrid.style.opacity = disableStudentGrid ? '0.7' : '1';
+            studentGrid.style.pointerEvents = disableStudentGrid ? 'none' : 'auto';
+            allStudents.onchange = function () {
+                const studentGridNow = root.querySelector('.js-rc-students');
+                const disableNow = this.checked;
+                studentGridNow.style.opacity = disableNow ? '0.7' : '1';
+                studentGridNow.style.pointerEvents = disableNow ? 'none' : 'auto';
+            };
+        }
+    }
+
+    document.querySelectorAll('form').forEach(function (form) {
+        if (!form.querySelector('.js-rc-batch')) {
+            return;
+        }
+
+        syncReportCardSelector(form);
+
+        form.querySelector('.js-rc-batch').addEventListener('change', function () {
+            syncReportCardSelector(form);
+        });
+    });
 
     let chartsReady = false;
 

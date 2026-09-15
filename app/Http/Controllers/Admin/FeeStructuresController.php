@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFeeStructureRequest;
 use App\Http\Requests\UpdateFeeStructureRequest;
+use App\Models\AcademicYear;
 use App\Models\Batch;
 use App\Models\Branch;
 use App\Models\Course;
@@ -21,6 +22,7 @@ use App\Models\Teacher;
 use Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class FeeStructuresController extends Controller
@@ -73,7 +75,9 @@ class FeeStructuresController extends Controller
             $this->validateBranchData($data, $branchId);
         }
 
-        $this->assertItemGstBelongsToFeeHead($data['items']);
+        $this->assertAcademicYearIsAvailable($data['academic_year'] ?? null);
+        $this->assertBatchFeeStructureIsAvailable($data['batch_id'] ?? null);
+        $this->assertItemsBelongToFeeHead($data['items']);
 
         $feeStructure = DB::transaction(function () use ($data) {
             $feeStructure = FeeStructure::create($this->structureAttributes($data) + [
@@ -123,7 +127,7 @@ class FeeStructuresController extends Controller
 
         $hasLedgers = $feeStructure->ledgers()->exists();
 
-        return view('admin.feeStructures.edit', $this->formData() + compact('feeStructure', 'hasLedgers'));
+        return view('admin.feeStructures.edit', $this->formData($feeStructure) + compact('feeStructure', 'hasLedgers'));
     }
 
     public function update(UpdateFeeStructureRequest $request, FeeStructure $feeStructure)
@@ -144,7 +148,9 @@ class FeeStructuresController extends Controller
             $this->validateBranchData($data, $branchId);
         }
 
-        $this->assertItemGstBelongsToFeeHead($data['items']);
+        $this->assertAcademicYearIsAvailable($data['academic_year'] ?? null, $feeStructure);
+        $this->assertBatchFeeStructureIsAvailable($data['batch_id'] ?? null, $feeStructure);
+        $this->assertItemsBelongToFeeHead($data['items']);
 
         $hasLedgers = $feeStructure->ledgers()->exists();
 
@@ -375,8 +381,6 @@ class FeeStructuresController extends Controller
             'batch_id' => $data['batch_id'] ?? null,
             'title' => $data['title'],
             'academic_year' => $data['academic_year'],
-            'board' => $data['board'] ?? null,
-            'standard' => $data['standard'] ?? null,
             'effective_from' => $data['effective_from'],
             'effective_to' => $data['effective_to'] ?? null,
             'installment_allocation_override' => (bool) ($data['installment_allocation_override'] ?? false),
@@ -391,10 +395,15 @@ class FeeStructuresController extends Controller
         $feeStructure->items()->delete();
         $feeStructure->installmentTemplates()->delete();
 
+        $feeHeads = FeeHead::whereIn('id', collect($data['items'])->pluck('fee_head_id')->unique())
+            ->get(['id', 'gst_applicable', 'default_gst_percent'])
+            ->keyBy('id');
+
         foreach (array_values($data['items']) as $index => $item) {
+            $feeHead = $feeHeads->get($item['fee_head_id']);
             $amount = (float) $item['amount'];
-            $gstApplicable = (bool) ($item['gst_applicable'] ?? false);
-            $gstPercent = $gstApplicable ? (float) ($item['gst_percent'] ?? 0) : 0;
+            $gstApplicable = (bool) ($feeHead?->gst_applicable ?? false);
+            $gstPercent = $gstApplicable ? (float) ($feeHead?->default_gst_percent ?? 0) : 0;
             $gstAmount = $gstApplicable ? round($amount * $gstPercent / 100, 2) : 0;
 
             $feeStructure->items()->create([
@@ -449,7 +458,7 @@ class FeeStructuresController extends Controller
         );
     }
 
-    private function assertItemGstBelongsToFeeHead(array $items): void
+    private function assertItemsBelongToFeeHead(array $items): void
     {
         $feeHeadIds = collect($items)->pluck('fee_head_id')->unique();
 
@@ -460,9 +469,10 @@ class FeeStructuresController extends Controller
         );
     }
 
-    private function formData(): array
+    private function formData(?FeeStructure $feeStructure = null): array
     {
         $branchId = $this->getUserBranchId();
+        $excludedBatchIds = $this->feeStructureBatchIds($feeStructure);
 
         $branches = Branch::where('status', 'active')
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
@@ -482,6 +492,7 @@ class FeeStructuresController extends Controller
             ->when(! auth()->user()->is_admin, function ($query) use ($branchId) {
                 $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
             })
+            ->when($excludedBatchIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $excludedBatchIds))
             ->pluck('name', 'id')
             ->prepend('All Batches / Optional', '');
 
@@ -495,15 +506,101 @@ class FeeStructuresController extends Controller
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
 
+        $academicYears = AcademicYear::where('status', 'active')
+            ->orderByDesc('is_current')
+            ->orderByDesc('name')
+            ->pluck('name', 'name')
+            ->prepend(trans('global.pleaseSelect'), '');
+
+        if ($feeStructure && $feeStructure->academic_year && ! $academicYears->has($feeStructure->academic_year)) {
+            $academicYears->put($feeStructure->academic_year, $feeStructure->academic_year);
+        }
+
         return [
             'branches' => $branches,
             'courses' => $courses,
             'batches' => $batches,
+            'academicYears' => $academicYears,
             'feeHeads' => $feeHeads,
             'feeAccounts' => $feeAccounts,
             'coursesByBranch' => $this->coursesByBranch(),
-            'batchesByBranchCourse' => $this->batchesByBranchCourse(),
+            'batchesByBranchCourse' => $this->availableBatchesByBranchCourse($feeStructure),
         ];
+    }
+
+    private function feeStructureBatchIds(?FeeStructure $currentFeeStructure = null)
+    {
+        return FeeStructure::whereNotNull('batch_id')
+            ->when($currentFeeStructure, function ($query) use ($currentFeeStructure) {
+                $rootId = $currentFeeStructure->root_fee_structure_id ?? $currentFeeStructure->id;
+
+                $query->where('id', '!=', $rootId)
+                    ->where(function ($q) use ($rootId) {
+                        $q->whereNull('root_fee_structure_id')
+                            ->orWhere('root_fee_structure_id', '!=', $rootId);
+                    });
+            })
+            ->pluck('batch_id')
+            ->unique()
+            ->values();
+    }
+
+    private function availableBatchesByBranchCourse(?FeeStructure $feeStructure = null): array
+    {
+        $excludedBatchIds = $this->feeStructureBatchIds($feeStructure);
+
+        return $this->scopeBatchQuery(Batch::where('status', 'active'))
+            ->when($excludedBatchIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $excludedBatchIds))
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id', 'course_id'])
+            ->groupBy(fn ($batch) => $batch->branch_id ?: 'none')
+            ->map(function ($branchBatches) {
+                return $branchBatches
+                    ->groupBy(fn ($batch) => $batch->course_id ?: 'all')
+                    ->map(fn ($batches) => $batches->map(fn ($batch) => [
+                        'id' => $batch->id,
+                        'name' => $batch->name,
+                        'course_id' => $batch->course_id,
+                    ])->values())
+                    ->toArray();
+            })
+            ->toArray();
+    }
+
+    private function assertBatchFeeStructureIsAvailable($batchId, ?FeeStructure $currentFeeStructure = null): void
+    {
+        if (empty($batchId)) {
+            return;
+        }
+
+        $alreadyExists = $this->feeStructureBatchIds($currentFeeStructure)
+            ->map(fn ($id) => (string) $id)
+            ->contains((string) $batchId);
+
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'batch_id' => 'Fee structure for this batch already exists.',
+            ]);
+        }
+    }
+
+    private function assertAcademicYearIsAvailable(?string $academicYear, ?FeeStructure $currentFeeStructure = null): void
+    {
+        if (! $academicYear) {
+            throw ValidationException::withMessages([
+                'academic_year' => 'Please select an academic year.',
+            ]);
+        }
+
+        if ($currentFeeStructure && $currentFeeStructure->academic_year === $academicYear) {
+            return;
+        }
+
+        if (! AcademicYear::where('name', $academicYear)->where('status', 'active')->exists()) {
+            throw ValidationException::withMessages([
+                'academic_year' => 'Selected academic year is not active.',
+            ]);
+        }
     }
 
     private function checkAccess(FeeStructure $feeStructure): void

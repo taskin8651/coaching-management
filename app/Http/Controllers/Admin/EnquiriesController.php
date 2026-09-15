@@ -18,6 +18,7 @@ use App\Models\User;
 use Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnquiriesController extends Controller
@@ -110,8 +111,9 @@ class EnquiriesController extends Controller
 
         $sources = $this->sources();
         $coursesByBranch = $this->coursesByBranch();
+        $usersByBranch = $this->assignableUsersByBranch();
 
-        return view('admin.enquiries.create', compact('branches', 'courses', 'users', 'sources', 'coursesByBranch'));
+        return view('admin.enquiries.create', compact('branches', 'courses', 'users', 'sources', 'coursesByBranch', 'usersByBranch'));
     }
 
     public function store(StoreEnquiryRequest $request)
@@ -135,6 +137,8 @@ class EnquiriesController extends Controller
                 abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
             }
         }
+
+        $this->assertValidAssigneeForBranch($data['assigned_to_id'] ?? null, $data['branch_id'] ?? null);
 
         Enquiry::create($data);
 
@@ -217,10 +221,11 @@ class EnquiriesController extends Controller
 
         $sources = $this->sources();
         $coursesByBranch = $this->coursesByBranch();
+        $usersByBranch = $this->assignableUsersByBranch($enquiry);
 
         $enquiry->load(['branch', 'course', 'assignedTo']);
 
-        return view('admin.enquiries.edit', compact('enquiry', 'branches', 'courses', 'users', 'sources', 'coursesByBranch'));
+        return view('admin.enquiries.edit', compact('enquiry', 'branches', 'courses', 'users', 'sources', 'coursesByBranch', 'usersByBranch'));
     }
 
     public function update(UpdateEnquiryRequest $request, Enquiry $enquiry)
@@ -246,6 +251,8 @@ class EnquiriesController extends Controller
                 abort_if(! $course, Response::HTTP_FORBIDDEN, 'Invalid course for your branch.');
             }
         }
+
+        $this->assertValidAssigneeForBranch($data['assigned_to_id'] ?? null, $data['branch_id'] ?? null);
 
         // Staff can also convert an enquiry by simply picking "Converted" from the Status
         // dropdown here — that must create the same student account as the dedicated
@@ -496,6 +503,52 @@ class EnquiriesController extends Controller
             'WhatsApp' => 'WhatsApp',
             'Other' => 'Other',
         ];
+    }
+
+    private function assignableUsersByBranch(?Enquiry $enquiry = null): array
+    {
+        $usersByBranch = $this->usersByBranch();
+
+        if (! auth()->user()->is_admin) {
+            $branchId = $this->getUserBranchId();
+            $usersByBranch = $branchId ? [$branchId => $usersByBranch[$branchId] ?? []] : [];
+        }
+
+        if ($enquiry && $enquiry->assigned_to_id && $enquiry->branch_id) {
+            $bucket = collect($usersByBranch[$enquiry->branch_id] ?? []);
+
+            if (! $bucket->contains('id', $enquiry->assigned_to_id) && $enquiry->assignedTo) {
+                $usersByBranch[$enquiry->branch_id] = $bucket
+                    ->push(['id' => $enquiry->assignedTo->id, 'name' => $enquiry->assignedTo->name])
+                    ->values()
+                    ->toArray();
+            }
+        }
+
+        return $usersByBranch;
+    }
+
+    private function assertValidAssigneeForBranch($assignedToId, $branchId): void
+    {
+        if (empty($assignedToId)) {
+            return;
+        }
+
+        if (empty($branchId)) {
+            throw ValidationException::withMessages([
+                'assigned_to_id' => 'Please select a branch before assigning this enquiry.',
+            ]);
+        }
+
+        $assignableUserIds = collect($this->assignableUsersByBranch()[$branchId] ?? [])
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id);
+
+        if (! $assignableUserIds->contains((string) $assignedToId)) {
+            throw ValidationException::withMessages([
+                'assigned_to_id' => 'Selected assignee does not belong to the selected branch.',
+            ]);
+        }
     }
 
     private function isStaff(): bool

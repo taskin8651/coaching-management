@@ -60,6 +60,9 @@ class MyPortalController extends Controller
         $visibleBatchIds = $this->visibleBatchIds($scope, $studentIds);
         $studentBatchIds = $visibleBatchIds->filter()->unique()->values();
         $studentSubjectIds = $this->visibleSubjectIds($portalStudent, $studentBatchIds);
+        $studentSubjectAssignments = $portalStudent
+            ? $portalStudent->studentBatches->where('status', 'active')->whereNotNull('subject_id')
+            : collect();
         $today = Carbon::today('Asia/Kolkata');
         $monthStart = $today->copy()->startOfMonth();
         $monthEnd = $today->copy()->endOfMonth();
@@ -174,6 +177,19 @@ class MyPortalController extends Controller
 
         $upcomingExams = \App\Models\Exam::query()
             ->when($studentBatchIds->isNotEmpty(), fn ($q) => $q->whereIn('batch_id', $studentBatchIds), fn ($q) => $q->whereRaw('1 = 0'))
+            ->where(function ($q) use ($studentSubjectAssignments) {
+                $q->whereNull('subject_id');
+
+                $studentSubjectAssignments->each(function ($assignment) use ($q) {
+                    $q->orWhere(function ($assignedExam) use ($assignment) {
+                        $assignedExam->where('subject_id', $assignment->subject_id)
+                            ->where(function ($batchExam) use ($assignment) {
+                                $batchExam->whereNull('batch_id')
+                                    ->orWhere('batch_id', $assignment->batch_id);
+                            });
+                    });
+                });
+            })
             ->whereDate('exam_date', '>=', $today->toDateString())
             ->where('status', '!=', 'cancelled')
             ->count();

@@ -167,6 +167,10 @@ Route::resource('notices', 'NoticesController');
 Route::delete('fee-heads/destroy', 'FeeHeadsController@massDestroy')->name('fee-heads.massDestroy');
 Route::resource('fee-heads', 'FeeHeadsController');
 
+// Academic Years
+Route::delete('academic-years/destroy', 'AcademicYearsController@massDestroy')->name('academic-years.massDestroy');
+Route::resource('academic-years', 'AcademicYearsController')->except(['show']);
+
 // Fee Accounts
 Route::delete('fee-accounts/destroy', 'FeeAccountsController@massDestroy')->name('fee-accounts.massDestroy');
 Route::resource('fee-accounts', 'FeeAccountsController');

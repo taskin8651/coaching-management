@@ -40,17 +40,7 @@ class ExamsController extends Controller
             $student = Student::where('user_id', auth()->id())->first();
 
             if ($student) {
-                $exams->where(function ($query) use ($student) {
-                    $query->where(function ($q) use ($student) {
-                        $q->whereNull('branch_id')->orWhere('branch_id', $student->branch_id);
-                    })
-                    ->where(function ($q) use ($student) {
-                        $q->whereNull('course_id')->orWhere('course_id', $student->course_id);
-                    })
-                    ->where(function ($q) use ($student) {
-                        $q->whereNull('batch_id')->orWhere('batch_id', $student->batch_id);
-                    });
-                });
+                $this->scopeExamsVisibleToStudent($exams, $student);
             } else {
                 $exams->whereRaw('1 = 0');
             }
@@ -146,14 +136,7 @@ class ExamsController extends Controller
 
         $exam = Exam::create($data);
 
-        $students = Student::query()
-            ->when($exam->branch_id, fn ($q) => $q->where('branch_id', $exam->branch_id))
-            ->when($exam->course_id, fn ($q) => $q->where('course_id', $exam->course_id))
-            ->when($exam->batch_id, fn ($q) => $q->where(function ($qq) use ($exam) {
-                $qq->where('batch_id', $exam->batch_id)
-                    ->orWhereHas('studentBatches', fn ($bq) => $bq->where('batch_id', $exam->batch_id)->where('status', 'active'));
-            }))
-            ->get();
+        $students = $this->studentsEligibleForExam($exam)->get();
 
         foreach ($students as $student) {
             if ($exam->exam_type === 'Weekly Test') {
@@ -178,13 +161,7 @@ class ExamsController extends Controller
 
         $exam->load(['branch', 'course', 'batch', 'subject', 'results.student.user']);
 
-        $students = Student::with(['user'])
-            ->when($exam->branch_id, fn ($q) => $q->where('branch_id', $exam->branch_id))
-            ->when($exam->course_id, fn ($q) => $q->where('course_id', $exam->course_id))
-            ->when($exam->batch_id, fn ($q) => $q->where(function ($qq) use ($exam) {
-                $qq->where('batch_id', $exam->batch_id)
-                    ->orWhereHas('studentBatches', fn ($bq) => $bq->where('batch_id', $exam->batch_id)->where('status', 'active'));
-            }));
+        $students = $this->studentsEligibleForExam($exam)->with(['user']);
 
         $selfAssessment = null;
 
@@ -255,6 +232,7 @@ class ExamsController extends Controller
         abort_if($this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $this->checkExamAccess($exam);
+        $this->abortIfExamLockedForEditing($exam);
 
         $branchId = $this->getUserBranchId();
         $assignmentIds = $this->getTeacherAssignmentIds();
@@ -297,6 +275,7 @@ class ExamsController extends Controller
         abort_if($this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $this->checkExamAccess($exam);
+        $this->abortIfExamLockedForEditing($exam);
 
         $data = $request->validated();
 
@@ -359,10 +338,16 @@ class ExamsController extends Controller
 
         $this->checkExamAccess($exam);
 
+        $eligibleStudentIds = $this->studentsEligibleForExam($exam)->pluck('id')->map(fn ($id) => (int) $id);
+
         foreach ($request->results as $resultData) {
             $student = Student::find($resultData['student_id'] ?? null);
 
             if (! $student) {
+                continue;
+            }
+
+            if (! $eligibleStudentIds->contains((int) $student->id)) {
                 continue;
             }
 
@@ -424,14 +409,7 @@ class ExamsController extends Controller
         if ($this->isStudent()) {
             $student = Student::where('user_id', auth()->id())->first();
 
-            abort_if(
-                ! $student ||
-                ($exam->branch_id && $exam->branch_id != $student->branch_id) ||
-                ($exam->course_id && $exam->course_id != $student->course_id) ||
-                ($exam->batch_id && $exam->batch_id != $student->batch_id),
-                Response::HTTP_FORBIDDEN,
-                '403 Forbidden'
-            );
+            abort_if(! $student || ! $this->studentCanSeeExam($student, $exam), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
             return;
         }
@@ -452,6 +430,15 @@ class ExamsController extends Controller
         $branchId = $this->getUserBranchId();
 
         abort_if(! $branchId || $exam->branch_id != $branchId, Response::HTTP_FORBIDDEN, '403 Forbidden');
+    }
+
+    private function abortIfExamLockedForEditing(Exam $exam): void
+    {
+        abort_if(
+            $exam->isLockedForEditing(),
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'Completed tests cannot be edited.'
+        );
     }
 
     private function validateBranchAcademicData(array $data, $branchId): void
@@ -499,6 +486,100 @@ class ExamsController extends Controller
             $result->update(['rank' => $rank]);
             $rank++;
         }
+    }
+
+    private function studentsEligibleForExam(Exam $exam)
+    {
+        return Student::query()
+            ->when($exam->branch_id, fn ($q) => $q->where('branch_id', $exam->branch_id))
+            ->when($exam->course_id, fn ($q) => $q->where('course_id', $exam->course_id))
+            ->when($exam->batch_id, fn ($q) => $q->where(function ($qq) use ($exam) {
+                $qq->where('batch_id', $exam->batch_id)
+                    ->orWhereHas('studentBatches', fn ($bq) => $bq->where('batch_id', $exam->batch_id)->where('status', 'active'));
+            }))
+            ->when($exam->subject_id, fn ($q) => $q->whereHas('studentBatches', function ($sq) use ($exam) {
+                $sq->where('status', 'active')
+                    ->where('subject_id', $exam->subject_id)
+                    ->when($exam->batch_id, fn ($bq) => $bq->where('batch_id', $exam->batch_id));
+            }));
+    }
+
+    private function scopeExamsVisibleToStudent($exams, Student $student): void
+    {
+        $activeAssignments = $student->studentBatches()
+            ->where('status', 'active')
+            ->whereNotNull('subject_id')
+            ->get(['batch_id', 'subject_id']);
+
+        $visibleBatchIds = $student->studentBatches()
+            ->where('status', 'active')
+            ->pluck('batch_id')
+            ->push($student->batch_id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $exams->where(function ($query) use ($student, $visibleBatchIds, $activeAssignments) {
+            $query->where(function ($q) use ($student) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $student->branch_id);
+            })
+            ->where(function ($q) use ($student) {
+                $q->whereNull('course_id')->orWhere('course_id', $student->course_id);
+            })
+            ->where(function ($q) use ($visibleBatchIds) {
+                $q->whereNull('batch_id');
+
+                if ($visibleBatchIds->isNotEmpty()) {
+                    $q->orWhereIn('batch_id', $visibleBatchIds);
+                }
+            })
+            ->where(function ($q) use ($activeAssignments) {
+                $q->whereNull('subject_id');
+
+                $activeAssignments->each(function ($assignment) use ($q) {
+                    $q->orWhere(function ($assignedExam) use ($assignment) {
+                        $assignedExam->where('subject_id', $assignment->subject_id)
+                            ->where(function ($batchExam) use ($assignment) {
+                                $batchExam->whereNull('batch_id')
+                                    ->orWhere('batch_id', $assignment->batch_id);
+                            });
+                    });
+                });
+            });
+        });
+    }
+
+    private function studentCanSeeExam(Student $student, Exam $exam): bool
+    {
+        if ($exam->branch_id && $exam->branch_id != $student->branch_id) {
+            return false;
+        }
+
+        if ($exam->course_id && $exam->course_id != $student->course_id) {
+            return false;
+        }
+
+        if ($exam->batch_id) {
+            $isInBatch = (int) $student->batch_id === (int) $exam->batch_id
+                || $student->studentBatches()
+                    ->where('status', 'active')
+                    ->where('batch_id', $exam->batch_id)
+                    ->exists();
+
+            if (! $isInBatch) {
+                return false;
+            }
+        }
+
+        if (! $exam->subject_id) {
+            return true;
+        }
+
+        return $student->studentBatches()
+            ->where('status', 'active')
+            ->where('subject_id', $exam->subject_id)
+            ->when($exam->batch_id, fn ($q) => $q->where('batch_id', $exam->batch_id))
+            ->exists();
     }
 
     private function examTypes(): array

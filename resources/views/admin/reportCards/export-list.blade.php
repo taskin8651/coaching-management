@@ -1,6 +1,6 @@
 <table>
     <tr>
-        @foreach(['Student', 'Student Code', 'Exam', 'Exam Type', 'Exam Date', 'Subject', 'Course', 'Marks Obtained', 'Total Marks', 'Percentage', 'Grade', 'Result', 'Rank', 'Parent Status'] as $heading)
+        @foreach(['Student', 'Student Code', 'Exam', 'Exam Type', 'Exam Date', 'Batch', 'Subject', 'Course', 'Marks Obtained', 'Total Marks', 'Percentage', 'Grade', 'Result', 'Rank', 'Parent Status'] as $heading)
             <td style="background-color:#2563EB;color:#FFFFFF;font-weight:bold;border:1px solid #1E40AF;">{{ $heading }}</td>
         @endforeach
     </tr>
@@ -21,6 +21,7 @@
             <td style="border:1px solid #CBD5E1;">{{ $card->exam->title ?? '-' }}</td>
             <td style="border:1px solid #CBD5E1;">{{ $card->exam->exam_type ?? '-' }}</td>
             <td style="border:1px solid #CBD5E1;">{{ optional($card->exam->exam_date ?? null)->format('d M Y') ?? '-' }}</td>
+            <td style="border:1px solid #CBD5E1;">{{ $card->exam->batch->name ?? $card->batch->name ?? '-' }}</td>
             <td style="border:1px solid #CBD5E1;">{{ $card->exam->subject->name ?? '-' }}</td>
             <td style="border:1px solid #CBD5E1;">{{ $card->exam->course->name ?? '-' }}</td>
             <td style="border:1px solid #CBD5E1;">{{ $card->marks_obtained ?? 0 }}</td>
@@ -33,7 +34,7 @@
         </tr>
     @empty
         <tr>
-            <td style="border:1px solid #CBD5E1;" colspan="14">No report cards found for the selected filters.</td>
+            <td style="border:1px solid #CBD5E1;" colspan="15">No report cards found for the selected filters.</td>
         </tr>
     @endforelse
 </table>

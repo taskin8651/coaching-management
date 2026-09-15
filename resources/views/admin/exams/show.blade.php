@@ -19,10 +19,12 @@
 
     <div class="show-actions">
         @can('exam_edit')
+            @unless($exam->isLockedForEditing())
             <a href="{{ route('admin.exams.edit', $exam->id) }}" class="btn-primary">
                 <i class="fas fa-pencil-alt"></i>
                 Edit Exam
             </a>
+            @endunless
         @endcan
     </div>
 </div>
