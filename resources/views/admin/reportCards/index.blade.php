@@ -15,24 +15,13 @@
     .rc-metric-label{font-size:11.5px;color:#64748b;font-weight:700;margin:4px 0 0;text-transform:uppercase;letter-spacing:.03em}
     .rc-metric-sub{font-size:11px;color:#94a3b8;margin:3px 0 0}
 
-    .rc-chart-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-bottom:16px}
-    .rc-chart-card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 10px 28px rgba(15,23,42,.045);overflow:hidden}
-    .rc-chart-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #eef2f7}
-    .rc-chart-title{font-size:14px;font-weight:900;margin:0;color:#0f172a}
-    .rc-chart-body{padding:18px;min-height:230px;display:flex;align-items:center;justify-content:center}
-    .rc-empty{font-size:13px;color:#94a3b8;text-align:center;padding:30px 0}
-
-    .rc-legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 18px 18px}
-    .rc-legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#334155;font-weight:700}
-    .rc-legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block}
-
-    @media(max-width:1100px){.rc-metric-grid{grid-template-columns:repeat(2,1fr)}.rc-chart-grid{grid-template-columns:1fr}}
+    @media(max-width:1100px){.rc-metric-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:600px){.rc-metric-grid{grid-template-columns:1fr}}
 
     @media print {
         #sidebar, #main-header, #sidebar-overlay, .no-print { display: none !important; }
         #main-content { margin: 0 !important; padding: 0 !important; }
-        #rcListView, #rcGraphView { display: block !important; margin-bottom: 16px; }
+        #rcListView { display: block !important; margin-bottom: 16px; }
         .admin-content { padding: 0 !important; }
     }
 </style>
@@ -46,19 +35,6 @@
         <p class="admin-page-subtitle">
             Generated result summaries, parent visibility and publish status
         </p>
-    </div>
-
-    <div class="action-row no-print" style="gap:10px;">
-        <button type="button" id="rcViewToggleBtn" class="btn-outline">
-            <i class="fas fa-chart-pie"></i>
-            Show Graph
-        </button>
-
-        <a href="{{ route('admin.report-cards.export') }}{{ request()->getQueryString() ? '?'.request()->getQueryString() : '' }}"
-           class="btn-primary">
-            <i class="fas fa-file-excel"></i>
-            Export Excel (List + Graph)
-        </a>
     </div>
 </div>
 
@@ -112,40 +88,6 @@
         <button class="btn-primary" type="submit"><i class="fas fa-eye"></i> Preview Report</button>
     </form>
 </div>
-<div id="rcGraphView" style="display:none;">
-    <div class="rc-chart-grid">
-        <div class="rc-chart-card">
-            <div class="rc-chart-head">
-                <p class="rc-chart-title">Pass vs Fail</p>
-                <span class="page-card-note"><i class="fas fa-chart-pie"></i> by passing marks</span>
-            </div>
-
-            <div class="rc-chart-body">
-                @if($summary['pass_count'] + $summary['fail_count'] > 0)
-                    <canvas id="rcPassFailChart" height="200"></canvas>
-                @else
-                    <p class="rc-empty">No result data available yet.</p>
-                @endif
-            </div>
-        </div>
-
-        <div class="rc-chart-card">
-            <div class="rc-chart-head">
-                <p class="rc-chart-title">Grade Distribution</p>
-                <span class="page-card-note"><i class="fas fa-chart-bar"></i> across report cards</span>
-            </div>
-
-            <div class="rc-chart-body">
-                @if($summary['total'])
-                    <canvas id="rcGradeChart" height="200"></canvas>
-                @else
-                    <p class="rc-empty">No report cards found.</p>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
-
 <div id="rcListView">
 <div class="page-card">
     <div class="page-card-header">
@@ -299,107 +241,12 @@
 
 @section('scripts')
 @parent
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
 $(function () {
     initAdminDataTable('.datatable-ReportCards', {
         searchPlaceholder: 'Search report cards...',
         infoText: 'Showing _START_–_END_ of _TOTAL_ report cards'
     });
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    const listView = document.getElementById('rcListView');
-    const graphView = document.getElementById('rcGraphView');
-    const toggleBtn = document.getElementById('rcViewToggleBtn');
-    let chartsReady = false;
-
-    function initCharts() {
-        if (chartsReady || typeof Chart === 'undefined') {
-            return;
-        }
-
-        chartsReady = true;
-
-        const passCount = {{ $summary['pass_count'] }};
-        const failCount = {{ $summary['fail_count'] }};
-        const passFailCanvas = document.getElementById('rcPassFailChart');
-
-        if (passFailCanvas && (passCount + failCount) > 0) {
-            new Chart(passFailCanvas, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Pass', 'Fail'],
-                    datasets: [{
-                        data: [passCount, failCount],
-                        backgroundColor: ['#16a34a', '#ef4444'],
-                        borderWidth: 0,
-                    }]
-                },
-                options: {
-                    cutout: '68%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 12, weight: '600' } } }
-                    }
-                }
-            });
-        }
-
-        const gradeLabels = @json($summary['grade_counts']->keys());
-        const gradeValues = @json($summary['grade_counts']->values());
-        const gradeCanvas = document.getElementById('rcGradeChart');
-
-        if (gradeCanvas && gradeLabels.length) {
-            new Chart(gradeCanvas, {
-                type: 'bar',
-                data: {
-                    labels: gradeLabels,
-                    datasets: [{
-                        label: 'Report Cards',
-                        data: gradeValues,
-                        backgroundColor: '#2563eb',
-                        borderRadius: 6,
-                        maxBarThickness: 46,
-                    }]
-                },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
-            });
-        }
-    }
-
-    const VIEW_STORAGE_KEY = 'reportCards.view';
-
-    function showGraphView() {
-        if (!listView || !graphView) return;
-        listView.style.display = 'none';
-        graphView.style.display = '';
-        initCharts();
-        toggleBtn.innerHTML = '<i class="fas fa-list"></i> Show List';
-        localStorage.setItem(VIEW_STORAGE_KEY, 'graph');
-    }
-
-    function showListView() {
-        if (!listView || !graphView) return;
-        graphView.style.display = 'none';
-        listView.style.display = '';
-        toggleBtn.innerHTML = '<i class="fas fa-chart-pie"></i> Show Graph';
-        localStorage.setItem(VIEW_STORAGE_KEY, 'list');
-    }
-
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', function () {
-            const isGraphShown = graphView.style.display !== 'none';
-            isGraphShown ? showListView() : showGraphView();
-        });
-    }
-    if (localStorage.getItem(VIEW_STORAGE_KEY) === 'graph') {
-        showGraphView();
-    }
 });
 </script>
 @endsection
