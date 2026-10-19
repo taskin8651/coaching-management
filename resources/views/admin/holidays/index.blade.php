@@ -35,7 +35,7 @@
     </div>
     <div class="stat-card">
         <p class="stat-label">This Month</p>
-        <p class="stat-value">{{ $holidays->filter(fn ($h) => $h->date && $h->date->isSameMonth(now()))->count() }}</p>
+        <p class="stat-value">{{ $holidays->filter(fn ($h) => $h->start_date && $h->end_date && $h->start_date->lte(now()->endOfMonth()) && $h->end_date->gte(now()->startOfMonth()))->count() }}</p>
     </div>
 </div>
 
@@ -79,8 +79,8 @@
                 <tr>
                     <th style="width:40px;"></th>
                     <th>ID</th>
-                    <th>Date</th>
-                    <th>Day</th>
+                    <th>From - To</th>
+                    <th>Duration</th>
                     <th>Name</th>
                     <th>Branch</th>
                     <th>Type</th>
@@ -96,8 +96,13 @@
                     <tr data-entry-id="{{ $holiday->id }}">
                         <td></td>
                         <td><span class="id-text">#{{ $loop->iteration }}</span></td>
-                        <td>{{ optional($holiday->date)->format('d M Y') }}</td>
-                        <td>{{ optional($holiday->date)->format('l') }}</td>
+                        <td>
+                            {{ optional($holiday->start_date)->format('d M Y') }}
+                            @if($holiday->end_date && !$holiday->start_date?->isSameDay($holiday->end_date))
+                                - {{ $holiday->end_date->format('d M Y') }}
+                            @endif
+                        </td>
+                        <td>{{ $holiday->start_date && $holiday->end_date ? ($holiday->start_date->diffInDays($holiday->end_date) + 1) . ' day(s)' : '-' }}</td>
                         <td>
                             <p class="table-main-text">{{ $holiday->name }}</p>
                             @if($holiday->description)
@@ -159,9 +164,15 @@
         'month' => $m,
         'view' => 'calendar',
     ], fn ($v) => $v !== null && $v !== ''));
-    $holidaysByDay = $holidays
-        ->filter(fn ($h) => $h->date && $h->date->format('Y-m') === $calMonth->format('Y-m'))
-        ->groupBy(fn ($h) => $h->date->day);
+    $holidaysByDay = collect();
+    foreach ($holidays as $holiday) {
+        if (!$holiday->start_date || !$holiday->end_date) continue;
+        $from = $holiday->start_date->copy()->max($calMonth->copy()->startOfMonth());
+        $to = $holiday->end_date->copy()->min($calMonth->copy()->endOfMonth());
+        foreach (\Illuminate\Support\CarbonPeriod::create($from, $to) as $holidayDay) {
+            $holidaysByDay->put($holidayDay->day, $holidaysByDay->get($holidayDay->day, collect())->push($holiday));
+        }
+    }
     $leadingBlanks = $calMonth->dayOfWeek;
 @endphp
 

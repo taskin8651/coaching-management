@@ -232,8 +232,8 @@ class MyPortalController extends Controller
 
         $upcomingHolidays = Holiday::query()
             ->forBranchOrGlobal($scope['branch_id'])
-            ->whereDate('date', '>=', $today)
-            ->orderBy('date')
+            ->whereRaw('COALESCE(end_date, date) >= ?', [$today])
+            ->orderByRaw('COALESCE(start_date, date)')
             ->take(5)
             ->get();
 

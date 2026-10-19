@@ -132,7 +132,7 @@
                                 <div class="notice-title">{{ $holiday->name }}</div>
                                 <div class="notice-desc">{{ $holiday->branch_id ? 'Branch Holiday' : 'Institute-wide' }} · {{ ucfirst($holiday->type) }}</div>
                             </div>
-                            <div class="notice-date">{{ $formatDate($holiday->date) }}</div>
+                            <div class="notice-date">{{ $formatDate($holiday->start_date) }}@if(!$holiday->start_date->isSameDay($holiday->end_date)) - {{ $formatDate($holiday->end_date) }}@endif</div>
                         </div>
                     @endforeach
                 </div>
@@ -272,7 +272,7 @@
                                 <div class="notice-title">{{ $holiday->name }}</div>
                                 <div class="notice-desc">{{ $holiday->branch_id ? 'Branch Holiday' : 'Institute-wide' }} · {{ ucfirst($holiday->type) }}</div>
                             </div>
-                            <div class="notice-date">{{ $formatDate($holiday->date) }}</div>
+                            <div class="notice-date">{{ $formatDate($holiday->start_date) }}@if(!$holiday->start_date->isSameDay($holiday->end_date)) - {{ $formatDate($holiday->end_date) }}@endif</div>
                         </div>
                     @endforeach
                 </div>

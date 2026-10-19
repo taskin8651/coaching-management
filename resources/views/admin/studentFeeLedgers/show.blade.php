@@ -199,7 +199,13 @@
                                 </td>
                                 <td>
                                     @can('fee_payment_show')
-                                        @foreach($installment->payments as $payment)
+                                        @php
+                                            $installmentPayments = $installment->payments
+                                                ->merge($installment->allocations->pluck('feePayment'))
+                                                ->filter()
+                                                ->unique('id');
+                                        @endphp
+                                        @foreach($installmentPayments as $payment)
                                             <a href="{{ route('admin.fee-payments.show', $payment->id) }}" class="code-pill" style="display:inline-block;margin:2px;">
                                                 {{ $payment->receipt_no }}
                                             </a>

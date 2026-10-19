@@ -29,11 +29,18 @@ class WorkingDaysCalculator
             ->map(fn ($d) => $d->toDateString());
 
         $holidayDates = Holiday::query()
-            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->whereRaw('COALESCE(start_date, date) <= ?', [$end->toDateString()])
+            ->whereRaw('COALESCE(end_date, date) >= ?', [$start->toDateString()])
             ->mandatory()
             ->forBranchOrGlobal($branchId)
-            ->pluck('date')
-            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+            ->get(['date', 'start_date', 'end_date'])
+            ->flatMap(function ($holiday) use ($start, $end) {
+                $holidayStart = Carbon::parse($holiday->start_date ?? $holiday->date)->max($start);
+                $holidayEnd = Carbon::parse($holiday->end_date ?? $holiday->date)->min($end);
+
+                return collect(CarbonPeriod::create($holidayStart, $holidayEnd))
+                    ->map(fn ($date) => $date->toDateString());
+            })
             ->unique();
 
         $excludedDates = $weeklyOffDates->merge($holidayDates)->unique();

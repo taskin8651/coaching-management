@@ -153,17 +153,23 @@ class HomeController extends Controller
 
         $upcomingHolidays = Holiday::query()
             ->forBranchOrGlobal($scope['branch_id'])
-            ->whereDate('date', '>=', $today)
-            ->orderBy('date')
+            ->whereRaw('COALESCE(end_date, date) >= ?', [$today])
+            ->orderByRaw('COALESCE(start_date, date)')
             ->take(5)
             ->get();
 
         $holidaysThisMonth = Holiday::query()
             ->forBranchOrGlobal($scope['branch_id'])
-            ->whereYear('date', now()->year)
-            ->whereMonth('date', now()->month)
+            ->whereRaw('COALESCE(start_date, date) <= ?', [now()->endOfMonth()->toDateString()])
+            ->whereRaw('COALESCE(end_date, date) >= ?', [now()->startOfMonth()->toDateString()])
             ->get()
-            ->keyBy(fn ($holiday) => $holiday->date->day);
+            ->flatMap(function ($holiday) {
+                $from = \Illuminate\Support\Carbon::parse($holiday->start_date ?? $holiday->date)->max(now()->startOfMonth());
+                $to = \Illuminate\Support\Carbon::parse($holiday->end_date ?? $holiday->date)->min(now()->endOfMonth());
+
+                return collect(\Illuminate\Support\CarbonPeriod::create($from, $to))
+                    ->mapWithKeys(fn ($day) => [$day->day => $holiday]);
+            });
 
         $topCards = [
             ['title' => $scope['is_student'] ? 'My Profile' : ($scope['is_parent'] ? 'My Children' : 'Total Students'), 'value' => $scope['is_student'] ? 1 : $totalStudents, 'icon' => 'fas fa-users', 'tone' => 'blue', 'show' => true],

@@ -22,9 +22,15 @@
             </div>
 
             <div class="field-group">
-                <label class="field-label">Date <span class="req">*</span></label>
-                <input type="date" name="date" value="{{ $val('date', request('date')) ? \Illuminate\Support\Carbon::parse($val('date', request('date')))->format('Y-m-d') : '' }}" required class="field-input {{ $errors->has('date') ? 'error' : '' }}">
-                @if($errors->has('date')) <p class="field-error">{{ $errors->first('date') }}</p> @endif
+                <label class="field-label">From <span class="req">*</span></label>
+                <input type="date" name="start_date" id="holiday_start_date" value="{{ $val('start_date', request('date')) ? \Illuminate\Support\Carbon::parse($val('start_date', request('date')))->format('Y-m-d') : '' }}" required class="field-input {{ $errors->has('start_date') ? 'error' : '' }}">
+                @if($errors->has('start_date')) <p class="field-error">{{ $errors->first('start_date') }}</p> @endif
+            </div>
+
+            <div class="field-group">
+                <label class="field-label">To <span class="req">*</span></label>
+                <input type="date" name="end_date" id="holiday_end_date" value="{{ $val('end_date', request('date')) ? \Illuminate\Support\Carbon::parse($val('end_date', request('date')))->format('Y-m-d') : '' }}" required min="{{ $val('start_date', request('date')) ? \Illuminate\Support\Carbon::parse($val('start_date', request('date')))->format('Y-m-d') : '' }}" class="field-input {{ $errors->has('end_date') ? 'error' : '' }}">
+                @if($errors->has('end_date')) <p class="field-error">{{ $errors->first('end_date') }}</p> @endif
             </div>
 
             <div class="field-group">
@@ -59,6 +65,14 @@
     </div>
 
 </div>
+
+<script>
+document.getElementById('holiday_start_date').addEventListener('change', function () {
+    const endDate = document.getElementById('holiday_end_date');
+    endDate.min = this.value;
+    if (endDate.value && endDate.value < this.value) endDate.value = this.value;
+});
+</script>
 
 <div class="form-actions">
     <button type="submit" class="btn-primary"><i class="fas fa-check"></i> {{ trans('global.save') }}</button>

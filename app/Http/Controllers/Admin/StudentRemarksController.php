@@ -23,6 +23,9 @@ class StudentRemarksController extends Controller
         abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $this->validated($request);
+        // Unchecked HTML checkboxes are omitted from the request, so normalize explicitly
+        // to prevent the database's default value (true) from making hidden remarks visible.
+        $data['visible_to_parent'] = $request->boolean('visible_to_parent');
         $data['created_by_id'] = auth()->id();
 
         $canApprove = Gate::allows('student_remark_approve');

@@ -6,7 +6,7 @@
 
 <div class="admin-page-head">
     <div>
-        <a href="{{ route('admin.refunds.index') }}" class="admin-back-link">← {{ trans('global.back_to_list') }}</a>
+        <a href="{{ route('admin.refunds.index') }}" class="admin-back-link">&lt;- {{ trans('global.back_to_list') }}</a>
         <h2 class="admin-page-title">Request Refund</h2>
         <p class="admin-page-subtitle">Against a specific payment, or from the student's advance/credit balance</p>
     </div>
@@ -21,7 +21,7 @@
                 <div class="form-card-icon"><i class="fas fa-undo-alt"></i></div>
                 <div>
                     <p class="form-card-title">Refund Details</p>
-                    <p class="form-card-subtitle">Approval required before completion — money only moves once marked Completed</p>
+                    <p class="form-card-subtitle">Approval required before completion. Money only moves once marked Completed.</p>
                 </div>
             </div>
 
@@ -39,7 +39,7 @@
                 <div class="field-group">
                     <label class="field-label">Originating Payment</label>
                     <select name="fee_payment_id" id="fee_payment_id" class="field-input {{ $errors->has('fee_payment_id') ? 'error' : '' }}">
-                        <option value="">None — refund from advance/credit balance</option>
+                        <option value="">None - refund from advance/credit balance</option>
                     </select>
                     @if($errors->has('fee_payment_id'))
                         <p class="field-error">{{ $errors->first('fee_payment_id') }}</p>
@@ -51,7 +51,7 @@
                 <div class="field-group" id="installmentGroup" style="display:none;">
                     <label class="field-label">Installment</label>
                     <select name="fee_installment_id" id="fee_installment_id" class="field-input"></select>
-                    <p class="field-hint">This payment was split across multiple installments — choose which one this refund reverses.</p>
+                    <p class="field-hint">This payment was split across multiple installments. Choose which one this refund reverses.</p>
                 </div>
 
                 <div class="field-group">
@@ -116,6 +116,10 @@
 
 <script>
 const paymentsByStudent = @json($paymentsByStudent);
+const advanceBalances = @json($advanceBalances);
+const oldStudentId = @json((string) old('student_id', ''));
+const oldPaymentId = @json((string) old('fee_payment_id', ''));
+const oldInstallmentId = @json((string) old('fee_installment_id', ''));
 
 function fillSelect(select, items, placeholder, valueKey, labelKey) {
     select.innerHTML = '';
@@ -123,39 +127,86 @@ function fillSelect(select, items, placeholder, valueKey, labelKey) {
     items.forEach(item => select.appendChild(new Option(item[labelKey], item[valueKey])));
 }
 
-function onStudentChange() {
-    const studentId = document.getElementById('student_id').value;
+function onStudentChange(restoreOldSelection = false) {
+    const studentSelect = document.getElementById('student_id');
+    const studentId = studentSelect.value;
     const payments = paymentsByStudent[studentId] || [];
     const paymentSelect = document.getElementById('fee_payment_id');
 
-    fillSelect(paymentSelect, payments, 'None — refund from advance/credit balance', 'id', 'name');
-    onPaymentChange();
+    fillSelect(paymentSelect, payments, 'None - refund from advance/credit balance', 'id', 'name');
+    if (restoreOldSelection && String(studentId) === String(oldStudentId) && oldPaymentId) {
+        if (!payments.some(payment => String(payment.id) === String(oldPaymentId))) {
+            paymentSelect.appendChild(new Option('Previously selected receipt is no longer eligible', oldPaymentId));
+        }
+        paymentSelect.value = oldPaymentId;
+    }
+    onPaymentChange(restoreOldSelection);
 }
 
-function onPaymentChange() {
+function onPaymentChange(restoreOldSelection = false) {
     const studentId = document.getElementById('student_id').value;
     const paymentId = document.getElementById('fee_payment_id').value;
     const payments = paymentsByStudent[studentId] || [];
-    const payment = payments.find(p => String(p.id) === String(paymentId));
+    const payment = payments.find(item => String(item.id) === String(paymentId));
     const installmentGroup = document.getElementById('installmentGroup');
     const installmentSelect = document.getElementById('fee_installment_id');
-    const hint = document.getElementById('refundableHint');
 
-    if (payment && payment.installments && payment.installments.length > 1) {
-        installmentGroup.style.display = '';
-        fillSelect(installmentSelect, payment.installments, 'Select installment', 'id', 'name');
+    if (payment && payment.fee_account_id) {
+        const accountSelect = document.querySelector('[name="fee_account_id"]');
+        const accountId = String(payment.fee_account_id);
+        if (![...accountSelect.options].some(option => option.value === accountId)) {
+            accountSelect.appendChild(new Option(payment.fee_account_name || 'Receipt account', accountId));
+        }
+        accountSelect.value = accountId;
+    }
+
+    if (payment && payment.installments && payment.installments.length) {
+        fillSelect(installmentSelect, payment.installments, payment.installments.length > 1 ? 'Select installment' : 'Receipt installment', 'id', 'name');
+        installmentGroup.style.display = payment.installments.length > 1 ? '' : 'none';
+        installmentSelect.required = payment.installments.length > 1;
+        if (payment.installments.length === 1) {
+            installmentSelect.value = payment.installments[0].id;
+        } else if (restoreOldSelection && String(studentId) === String(oldStudentId) && String(payment.id) === String(oldPaymentId)) {
+            installmentSelect.value = oldInstallmentId;
+        }
     } else {
         installmentGroup.style.display = 'none';
+        installmentSelect.required = false;
         installmentSelect.innerHTML = '';
     }
 
-    hint.innerText = payment ? ('Refundable on this payment: ₹' + payment.refundable.toFixed(2)) : '';
+    updateRefundableAmount();
+}
+
+function updateRefundableAmount() {
+    const studentId = document.getElementById('student_id').value;
+    const paymentId = document.getElementById('fee_payment_id').value;
+    const payments = paymentsByStudent[studentId] || [];
+    const payment = payments.find(item => String(item.id) === String(paymentId));
+    const installmentSelect = document.getElementById('fee_installment_id');
+    const hint = document.getElementById('refundableHint');
+    const amountInput = document.getElementById('amount');
+    let available = payment
+        ? Number(payment.refundable || 0)
+        : (paymentId ? 0 : Number(advanceBalances[studentId] || 0));
+    if (payment && payment.installments && payment.installments.length > 1) {
+        const installment = payment.installments.find(item => String(item.id) === String(installmentSelect.value));
+        available = installment ? Math.min(available, Number(installment.refundable || 0)) : 0;
+    } else if (payment && payment.installments && payment.installments.length === 1) {
+        available = Math.min(available, Number(payment.installments[0].refundable || 0));
+    }
+
+    amountInput.max = available.toFixed(2);
+    hint.innerText = payment
+        ? 'Refundable on this receipt: Rs. ' + available.toFixed(2)
+        : (paymentId ? 'This receipt is no longer eligible for a refund.' : 'Available advance/credit: Rs. ' + available.toFixed(2));
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('student_id').addEventListener('change', onStudentChange);
-    document.getElementById('fee_payment_id').addEventListener('change', onPaymentChange);
-    onStudentChange();
+    document.getElementById('student_id').addEventListener('change', () => onStudentChange(false));
+    document.getElementById('fee_payment_id').addEventListener('change', () => onPaymentChange(false));
+    document.getElementById('fee_installment_id').addEventListener('change', updateRefundableAmount);
+    onStudentChange(true);
 });
 </script>
 

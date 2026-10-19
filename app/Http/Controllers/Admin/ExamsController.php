@@ -389,6 +389,9 @@ class ExamsController extends Controller
                     'percentage'     => round($percentage, 2),
                     'result_status'  => $status,
                     'remarks'        => $resultData['remarks'] ?? null,
+                    'overall_remark' => $resultData['overall_remark'] ?? null,
+                    'remark_user_id' => auth()->id(),
+                    'remark_updated_at' => now(),
                 ]
             );
         }

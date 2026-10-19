@@ -146,7 +146,7 @@ class FeePayment extends Model
      * 0 for a cancelled payment (already voided, refunding it too would double-book the
      * reversal), otherwise whatever this payment actually applied toward fees — paid_amount
      * MINUS whatever part of it became advance/credit (see StudentCreditTransaction,
-     * source=overpayment) — minus whatever has already been refunded (completed refunds only).
+     * source=overpayment) minus reserved or completed refunds (rejected/cancelled are excluded).
      * The credit-attributed portion is deliberately excluded here: if still unspent it remains
      * refundable via the separate "refund from advance/credit balance" path (fee_payment_id
      * null), which checks against the ledger's advance_balance instead. If it's already been
@@ -154,7 +154,7 @@ class FeePayment extends Model
      * first reversing that application — a known, accepted limitation rather than an attempt to
      * silently net two different transactions together.
      */
-    public function refundableAmount(): float
+    public function refundableAmount(?int $ignoreRefundId = null): float
     {
         if ($this->payment_status === 'cancelled') {
             return 0;
@@ -167,7 +167,13 @@ class FeePayment extends Model
 
         $collectable = max((float) $this->paid_amount - $creditGenerated, 0);
 
-        return max($collectable - (float) $this->refunds()->where('status', 'completed')->sum('amount'), 0);
+        $reservedRefunds = (float) $this->refunds()
+            ->where('approval_status', '!=', 'rejected')
+            ->where('status', '!=', 'cancelled')
+            ->when($ignoreRefundId, fn ($query) => $query->where('id', '!=', $ignoreRefundId))
+            ->sum('amount');
+
+        return max($collectable - $reservedRefunds, 0);
     }
 
     public function creditTransactions()

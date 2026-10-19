@@ -229,6 +229,7 @@ Route::delete('external-contacts/destroy', 'ExternalContactsController@massDestr
 Route::resource('external-contacts', 'ExternalContactsController');
 
 // Report Cards
+Route::get('report-cards/preview', 'ReportCardsController@preview')->name('report-cards.preview');
 Route::get('report-cards/export', 'ReportCardsController@export')->name('report-cards.export');
 Route::post('report-cards/generate', 'ReportCardsController@generate')->name('report-cards.generate');
 Route::post('report-cards/{report_card}/publish', 'ReportCardsController@publish')->name('report-cards.publish');

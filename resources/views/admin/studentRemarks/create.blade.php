@@ -281,6 +281,7 @@
             <div class="form-card-body">
 
                 <label class="role-checkbox-item {{ old('visible_to_parent', 1) ? 'checked' : '' }}" style="max-width:360px;">
+                    <input type="hidden" name="visible_to_parent" value="0">
                     <input type="checkbox"
                            name="visible_to_parent"
                            value="1"

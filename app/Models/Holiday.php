@@ -13,6 +13,8 @@ class Holiday extends Model
         'branch_id',
         'name',
         'date',
+        'start_date',
+        'end_date',
         'type',
         'description',
         'created_by_id',
@@ -20,6 +22,8 @@ class Holiday extends Model
 
     protected $casts = [
         'date' => 'date',
+        'start_date' => 'date',
+        'end_date' => 'date',
     ];
 
     public function branch()

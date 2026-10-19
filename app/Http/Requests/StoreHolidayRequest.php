@@ -20,7 +20,8 @@ class StoreHolidayRequest extends FormRequest
         return [
             'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
             'name' => ['required', 'string', 'max:255'],
-            'date' => ['required', 'date'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'type' => ['required', 'in:mandatory,optional'],
             'description' => ['nullable', 'string'],
         ];

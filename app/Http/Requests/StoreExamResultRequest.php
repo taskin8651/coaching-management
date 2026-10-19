@@ -24,6 +24,7 @@ class StoreExamResultRequest extends FormRequest
             'results.*.marks_obtained' => ['nullable', 'numeric', 'min:0'],
             'results.*.result_status'  => ['required', 'in:pass,fail,absent'],
             'results.*.remarks'        => ['nullable', 'string'],
+            'results.*.overall_remark' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

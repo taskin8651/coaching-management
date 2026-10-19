@@ -271,7 +271,7 @@
                         @foreach($upcomingHolidays->take(3) as $holiday)
                             <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:6px 0;color:#334155;">
                                 <span>{{ $holiday->name }}</span>
-                                <strong style="color:#0f172a;white-space:nowrap;">{{ $holiday->date->format('d M') }}</strong>
+                                <strong style="color:#0f172a;white-space:nowrap;">{{ $holiday->start_date->format('d M') }}@if(!$holiday->start_date->isSameDay($holiday->end_date)) - {{ $holiday->end_date->format('d M') }}@endif</strong>
                             </div>
                         @endforeach
                     </div>

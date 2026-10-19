@@ -122,7 +122,8 @@
                         <th>Code</th>
                         <th>Marks Obtained</th>
                         <th>Status</th>
-                        <th>Remarks</th>
+                        <th>Subject Remark</th>
+                        <th>Overall Remark</th>
                     </tr>
                 </thead>
 
@@ -165,7 +166,10 @@
                                        name="results[{{ $index }}][remarks]"
                                        value="{{ old('results.' . $index . '.remarks', $result->remarks ?? '') }}"
                                        class="field-input"
-                                       placeholder="Remarks">
+                                       placeholder="Subject remark">
+                            </td>
+                            <td>
+                                <textarea name="results[{{ $index }}][overall_remark]" class="field-input" rows="2" placeholder="Overall remark for this student and test">{{ old('results.' . $index . '.overall_remark', $result->overall_remark ?? '') }}</textarea>
                             </td>
                         </tr>
                     @endforeach
@@ -197,7 +201,8 @@
                     <th>Marks</th>
                     <th>Percentage</th>
                     <th>Status</th>
-                    <th>Remarks</th>
+                    <th>Subject Remark</th>
+                    <th>Overall Remark</th>
                 </tr>
             </thead>
 
@@ -235,10 +240,11 @@
                         <td>
                             {{ $result->remarks ?? '-' }}
                         </td>
+                        <td>{{ $result->overall_remark ?? '-' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6">No result entered yet.</td>
+                        <td colspan="7">No result entered yet.</td>
                     </tr>
                 @endforelse
             </tbody>

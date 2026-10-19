@@ -45,6 +45,7 @@ class StudentFeeLedgersController extends Controller
             'installments.items.feeHead',
             'installments.feeAccount',
             'installments.payments.feeAccount',
+            'installments.allocations.feePayment',
             'credits.feeInstallment',
             'credits.feePayment',
             'refunds.feeAccount',

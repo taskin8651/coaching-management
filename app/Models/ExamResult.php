@@ -27,6 +27,9 @@ class ExamResult extends Model
         'result_status',
         'rank',
         'remarks',
+        'overall_remark',
+        'remark_user_id',
+        'remark_updated_at',
         'created_at',
         'updated_at',
     ];
@@ -39,6 +42,11 @@ class ExamResult extends Model
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    public function remarkAuthor()
+    {
+        return $this->belongsTo(User::class, 'remark_user_id');
     }
 
     protected function serializeDate(DateTimeInterface $date)

@@ -25,6 +25,52 @@ class ReportCardsController extends Controller
 {
     use AppliesErpScope;
 
+    public function preview(Request $request)
+    {
+        abort_if(Gate::denies('report_card_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'student_id' => ['nullable', 'integer', 'exists:students,id'],
+            'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+
+        $student = null;
+        if (! empty($data['student_id'])) {
+            $student = $this->scopeStudentQuery(Student::with('user')->whereKey($data['student_id']))->firstOrFail();
+        }
+
+        $results = ExamResult::with(['exam.subject', 'exam.batch', 'exam.course', 'student.user', 'remarkAuthor'])
+            ->where(function ($query) {
+                $query->where(function ($remarks) {
+                    $remarks->whereNotNull('remarks')->whereRaw("TRIM(remarks) <> ''");
+                })->orWhere(function ($remarks) {
+                    $remarks->whereNotNull('overall_remark')->whereRaw("TRIM(overall_remark) <> ''");
+                });
+            })
+            ->whereHas('exam', function ($query) use ($data) {
+                $this->scopeBranchQuery($query)
+                    ->where('status', 'completed')
+                    ->when(! empty($data['batch_id']), fn ($q) => $q->where('batch_id', $data['batch_id']))
+                    ->when(! empty($data['date_from']), fn ($q) => $q->whereDate('exam_date', '>=', $data['date_from']))
+                    ->when(! empty($data['date_to']), fn ($q) => $q->whereDate('exam_date', '<=', $data['date_to']));
+            })
+            ->whereHas('student', fn ($query) => $this->scopeStudentQuery($query))
+            ->when($student, fn ($q) => $q->where('student_id', $student->id))
+            ->orderBy('student_id')
+            ->orderBy('exam_id')
+            ->get();
+
+        abort_if($results->isEmpty(), Response::HTTP_NOT_FOUND, 'No test results with saved remarks match this report.');
+
+        if (! $student && $results->pluck('student_id')->unique()->count() === 1) {
+            $student = $results->first()->student;
+        }
+
+        return view('admin.reportCards.preview', compact('results', 'student', 'data'));
+    }
+
     public function index(Request $request)
     {
         abort_if(Gate::denies('report_card_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');

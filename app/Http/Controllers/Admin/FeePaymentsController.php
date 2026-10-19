@@ -23,6 +23,7 @@ use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\ReceiptNumberService;
+use App\Services\StudentFeeLedgerAssignmentService;
 use App\Services\WhatsappService;
 use Gate;
 use Illuminate\Http\Request;
@@ -87,7 +88,7 @@ class FeePaymentsController extends Controller
         return view('admin.feePayments.create', $this->formData());
     }
 
-    public function store(StoreFeePaymentRequest $request, WhatsappService $whatsapp, ReceiptNumberService $receiptNumbers)
+    public function store(StoreFeePaymentRequest $request, WhatsappService $whatsapp, ReceiptNumberService $receiptNumbers, StudentFeeLedgerAssignmentService $ledgerAssignment)
     {
         abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -115,8 +116,17 @@ class FeePaymentsController extends Controller
 
         $data = $this->preparePaymentData($data, null, $receiptNumbers);
 
-        $feePayment = DB::transaction(function () use ($data, $allocateMultiple) {
+        $feePayment = DB::transaction(function () use ($data, $allocateMultiple, $ledgerAssignment) {
             $feePayment = FeePayment::create($data);
+
+            $ledger = null;
+            if (! empty($data['student_id']) && ! empty($data['fee_structure_id'])) {
+                $student = Student::find($data['student_id']);
+                $structure = FeeStructure::with(['items', 'installmentTemplates'])->find($data['fee_structure_id']);
+                if ($student && $structure) {
+                    $ledger = $ledgerAssignment->ensureLedger($structure, $student, auth()->id());
+                }
+            }
 
             if ($allocateMultiple) {
                 $this->applyAllocations($feePayment, $data['allocations'] ?? []);
@@ -126,6 +136,8 @@ class FeePaymentsController extends Controller
                 if ($installment) {
                     $this->recalculateAndCreditExcess($feePayment, $installment);
                 }
+            } elseif ($ledger) {
+                $this->applyAllocations($feePayment, $this->allocationsForLedger($ledger, (float) $feePayment->paid_amount));
             }
 
             return $feePayment;
@@ -186,7 +198,9 @@ class FeePaymentsController extends Controller
         $excess = round((float) $feePayment->paid_amount - $allocatedTotal, 2);
 
         if ($excess > 0) {
-            $ledger = StudentFeeLedger::where('student_id', $feePayment->student_id)->where('status', 'active')->latest('id')->first();
+            $ledger = StudentFeeLedger::where('student_id', $feePayment->student_id)
+                ->when($feePayment->fee_structure_id, fn ($q) => $q->where('fee_structure_id', $feePayment->fee_structure_id))
+                ->where('status', 'active')->latest('id')->first();
 
             if ($ledger) {
                 StudentCreditTransaction::create([
@@ -203,6 +217,30 @@ class FeePaymentsController extends Controller
                 $ledger->recalculate();
             }
         }
+    }
+
+    /** Allocate a payment against the oldest unpaid installments on the student's ledger. */
+    private function allocationsForLedger(StudentFeeLedger $ledger, float $amount): array
+    {
+        $remaining = max($amount, 0);
+        $allocations = [];
+
+        foreach ($ledger->installments()->where('due_amount', '>', 0)->orderBy('due_date')->orderBy('id')->get() as $installment) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $allocated = min($remaining, (float) $installment->due_amount);
+            if ($allocated > 0) {
+                $allocations[] = [
+                    'fee_installment_id' => $installment->id,
+                    'amount' => round($allocated, 2),
+                ];
+                $remaining = round($remaining - $allocated, 2);
+            }
+        }
+
+        return $allocations;
     }
 
     /**
@@ -307,7 +345,7 @@ class FeePaymentsController extends Controller
         return view('admin.feePayments.edit', $formData + compact('feePayment'));
     }
 
-    public function update(UpdateFeePaymentRequest $request, FeePayment $feePayment)
+    public function update(UpdateFeePaymentRequest $request, FeePayment $feePayment, StudentFeeLedgerAssignmentService $ledgerAssignment)
     {
         abort_if($this->isTeacher() || $this->isStudent(), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
@@ -342,7 +380,7 @@ class FeePaymentsController extends Controller
         $previousInstallmentId = $feePayment->fee_installment_id;
         $previousAllocatedInstallmentIds = $feePayment->allocations()->pluck('fee_installment_id')->unique()->all();
 
-        DB::transaction(function () use ($feePayment, $data, $allocateMultiple, $previousInstallmentId, $previousAllocatedInstallmentIds) {
+        DB::transaction(function () use ($feePayment, $data, $allocateMultiple, $previousInstallmentId, $previousAllocatedInstallmentIds, $ledgerAssignment) {
             // Undo whatever this payment previously contributed before re-applying — the simplest
             // correct way to handle an edit that might switch between single/multi allocation, or
             // change amounts enough to change whether an overpayment credit applies. Only the
@@ -354,6 +392,15 @@ class FeePaymentsController extends Controller
 
             $feePayment->update($data);
 
+            $ledger = null;
+            if (! empty($data['student_id']) && ! empty($data['fee_structure_id'])) {
+                $student = Student::find($data['student_id']);
+                $structure = FeeStructure::with(['items', 'installmentTemplates'])->find($data['fee_structure_id']);
+                if ($student && $structure) {
+                    $ledger = $ledgerAssignment->ensureLedger($structure, $student, auth()->id());
+                }
+            }
+
             if ($allocateMultiple) {
                 $this->applyAllocations($feePayment, $data['allocations'] ?? []);
             } elseif ($feePayment->fee_installment_id) {
@@ -362,12 +409,15 @@ class FeePaymentsController extends Controller
                 if ($installment) {
                     $this->recalculateAndCreditExcess($feePayment, $installment);
                 }
+            } elseif ($ledger) {
+                $this->applyAllocations($feePayment, $this->allocationsForLedger($ledger, (float) $feePayment->paid_amount));
             }
 
             $touched = array_unique(array_filter(array_merge(
                 [$previousInstallmentId],
                 $previousAllocatedInstallmentIds,
-                [$feePayment->fee_installment_id]
+                [$feePayment->fee_installment_id],
+                $feePayment->allocations()->pluck('fee_installment_id')->all()
             )));
 
             foreach ($touched as $installmentId) {
@@ -377,7 +427,9 @@ class FeePaymentsController extends Controller
             // Ensure the ledger reflects the deleted overpayment credit even when this edit no
             // longer produces an excess itself (the two methods above only recalculate the ledger
             // when a fresh excess exists).
-            $ledger = StudentFeeLedger::where('student_id', $feePayment->student_id)->where('status', 'active')->latest('id')->first();
+            $ledger = StudentFeeLedger::where('student_id', $feePayment->student_id)
+                ->when($feePayment->fee_structure_id, fn ($q) => $q->where('fee_structure_id', $feePayment->fee_structure_id))
+                ->where('status', 'active')->latest('id')->first();
             $ledger?->recalculate();
         });
 
@@ -469,7 +521,9 @@ class FeePaymentsController extends Controller
             StudentCreditTransaction::where('fee_payment_id', $feePayment->id)->where('source', 'overpayment')->delete();
 
             if ($hadOverpaymentCredit || empty($touchedInstallmentIds)) {
-                $ledger = StudentFeeLedger::where('student_id', $feePayment->student_id)->where('status', 'active')->latest('id')->first();
+                $ledger = StudentFeeLedger::where('student_id', $feePayment->student_id)
+                    ->when($feePayment->fee_structure_id, fn ($q) => $q->where('fee_structure_id', $feePayment->fee_structure_id))
+                    ->where('status', 'active')->latest('id')->first();
                 $ledger?->recalculate();
             }
         });
@@ -501,6 +555,21 @@ class FeePaymentsController extends Controller
 
     private function prepareStudentAndStructureData(array $data): array
     {
+        if (! empty($data['fee_installment_id'])) {
+            $installment = FeeInstallment::find($data['fee_installment_id']);
+
+            if ($installment) {
+                abort_if(
+                    ! empty($data['student_id']) && (int) $data['student_id'] !== (int) $installment->student_id,
+                    Response::HTTP_UNPROCESSABLE_ENTITY,
+                    'Selected installment does not belong to the selected student.'
+                );
+
+                $data['student_id'] = $data['student_id'] ?? $installment->student_id;
+                $data['fee_structure_id'] = $data['fee_structure_id'] ?? $installment->fee_structure_id;
+            }
+        }
+
         if (! empty($data['student_id'])) {
             $student = Student::find($data['student_id']);
 

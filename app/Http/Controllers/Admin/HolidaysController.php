@@ -35,10 +35,13 @@ class HolidaysController extends Controller
         }
 
         if ($request->filled('month')) {
-            $holidays->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$request->input('month')]);
+            $monthStart = \Illuminate\Support\Carbon::createFromFormat('Y-m', $request->input('month'))->startOfMonth()->toDateString();
+            $monthEnd = \Illuminate\Support\Carbon::createFromFormat('Y-m', $request->input('month'))->endOfMonth()->toDateString();
+            $holidays->whereRaw('COALESCE(start_date, date) <= ?', [$monthEnd])
+                ->whereRaw('COALESCE(end_date, date) >= ?', [$monthStart]);
         }
 
-        $holidays = $holidays->orderBy('date')->get();
+        $holidays = $holidays->orderByRaw('COALESCE(start_date, date)')->get();
 
         $branches = Branch::where('status', 'active')
             ->when(! $scope['is_admin'], fn ($q) => $scope['branch_id'] ? $q->where('id', $scope['branch_id']) : $q->whereRaw('1 = 0'))
@@ -66,6 +69,7 @@ class HolidaysController extends Controller
         }
 
         $data['created_by_id'] = auth()->id();
+        $data['date'] = $data['start_date'];
 
         Holiday::create($data);
 
@@ -97,6 +101,7 @@ class HolidaysController extends Controller
         $this->checkManageAccess($holiday);
 
         $data = $request->validated();
+        $data['date'] = $data['start_date'];
         $scope = $this->erpScope();
 
         if (! $scope['is_admin']) {

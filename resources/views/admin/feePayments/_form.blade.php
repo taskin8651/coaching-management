@@ -283,36 +283,6 @@
         </div>
     </div>
 
-    {{-- GST --}}
-    <div class="form-card" style="grid-column: 1 / -1;">
-        <div class="form-card-header">
-            <div class="form-card-icon"><i class="fas fa-file-invoice"></i></div>
-            <div>
-                <p class="form-card-title">GST</p>
-                <p class="form-card-subtitle">Confirm GST for this payment, if applicable — not auto-calculated</p>
-            </div>
-        </div>
-
-        <div class="form-card-body">
-            <div class="field-group">
-                <label class="field-label">
-                    <input type="checkbox" name="gst_applicable" value="1" id="gst_applicable" {{ $val('gst_applicable') ? 'checked' : '' }}>
-                    Apply GST to this payment
-                </label>
-            </div>
-
-            <div class="field-group">
-                <label class="field-label">GST %</label>
-                <input type="number" step="0.01" min="0" max="100" name="gst_percent" id="gst_percent" value="{{ $val('gst_percent', 0) }}" class="field-input">
-            </div>
-
-            <div class="field-group">
-                <label class="field-label">GST Amount</label>
-                <input type="number" step="0.01" min="0" name="gst_amount" id="gst_amount" value="{{ $val('gst_amount', 0) }}" class="field-input">
-            </div>
-        </div>
-    </div>
-
     {{-- LIVE CALCULATION --}}
     <div class="form-card" style="grid-column: 1 / -1;">
         <div class="form-card-header">
@@ -473,12 +443,6 @@ function toggleModeFields() {
     });
 }
 
-function toggleGstFields() {
-    const on = document.getElementById('gst_applicable').checked;
-    document.getElementById('gst_percent').closest('.field-group').style.display = on ? '' : 'none';
-    document.getElementById('gst_amount').closest('.field-group').style.display = on ? '' : 'none';
-}
-
 document.addEventListener('DOMContentLoaded', function () {
     ['total_fee', 'discount', 'paid_amount'].forEach(function (id) {
         const el = document.getElementById(id);
@@ -528,13 +492,40 @@ document.addEventListener('DOMContentLoaded', function () {
     const studentDetails = @json($studentDetails);
     const studentSelect = document.getElementById('student_id');
 
+    function filterFeeStructures(branchId, courseId, batchId) {
+        if (!feeStructureSelect) return;
+
+        Array.from(feeStructureSelect.options).forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            const structure = feeStructures[option.value];
+            option.hidden = !structure
+                || String(structure.branch_id ?? '') !== String(branchId ?? '')
+                || String(structure.course_id ?? '') !== String(courseId ?? '')
+                || String(structure.batch_id ?? '') !== String(batchId ?? '');
+        });
+
+        const selected = feeStructures[feeStructureSelect.value];
+        if (selected && (
+            String(selected.branch_id ?? '') !== String(branchId ?? '')
+            || String(selected.course_id ?? '') !== String(courseId ?? '')
+            || String(selected.batch_id ?? '') !== String(batchId ?? '')
+        )) {
+            feeStructureSelect.value = '';
+        }
+    }
+
     function matchingFeeStructureId(branchId, courseId, batchId) {
-        return Object.keys(feeStructures).find(function (id) {
-            const structure = feeStructures[id];
+        const exactStructure = Object.entries(feeStructures).find(function ([, structure]) {
             return String(structure.branch_id) === String(branchId)
                 && String(structure.course_id) === String(courseId)
                 && String(structure.batch_id) === String(batchId);
         });
+
+        return exactStructure ? exactStructure[0] : null;
     }
 
     if (studentSelect) {
@@ -570,17 +561,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
+            filterFeeStructures(details.branch_id, details.course_id, details.batch_id);
             const structureId = matchingFeeStructureId(details.branch_id, details.course_id, details.batch_id);
-            if (structureId && feeStructureSelect) {
-                feeStructureSelect.value = structureId;
-                applyFeeStructure();
+            if (feeStructureSelect) {
+                feeStructureSelect.value = structureId || '';
+                if (structureId) {
+                    applyFeeStructure();
+                }
             }
         });
+
+        // Scope structures on initial load too, so edit forms and validation redirects show
+        // only structures mapped to the currently selected student's branch/course/batch.
+        if (studentSelect.value && studentDetails[studentSelect.value]) {
+            studentSelect.dispatchEvent(new Event('change'));
+        }
     }
 
     document.getElementById('payment_mode').addEventListener('change', toggleModeFields);
-    document.getElementById('gst_applicable').addEventListener('change', toggleGstFields);
-
     const allocateCheckbox = document.getElementById('allocate_multiple');
 
     if (allocateCheckbox) {
@@ -595,7 +593,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     toggleModeFields();
-    toggleGstFields();
     updateFeePreview();
 });
 </script>
