@@ -18,6 +18,47 @@ class StudentRemarksController extends Controller
 
     public function index() { abort_if(Gate::denies('student_remark_access'), Response::HTTP_FORBIDDEN, '403 Forbidden'); $remarks = StudentRemark::with(['student.user','teacher.user','createdBy','approvedBy']); $scope = $this->erpScope(); if ($scope['is_student'] && $scope['student_id']) { $remarks->where('student_id', $scope['student_id'])->where('visible_to_parent', true)->where('approval_status', 'approved'); } elseif ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) { $remarks->whereIn('student_id', $scope['parent_student_ids'])->where('visible_to_parent', true)->where('approval_status', 'approved'); } elseif ($scope['is_teacher'] && $scope['teacher_id']) { $remarks->where('teacher_id', $scope['teacher_id']); } elseif (! $scope['is_admin']) { $remarks->whereHas('student', fn ($q) => $this->scopeStudentQuery($q)); } $remarks = $remarks->latest()->get(); return view('admin.studentRemarks.index', compact('remarks')); }
     public function create() { abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden'); return view('admin.studentRemarks.create', $this->formData()); }
+    public function edit(StudentRemark $studentRemark)
+    {
+        abort_if(Gate::denies('student_remark_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->authorizeRemarkAccess($studentRemark);
+
+        return view('admin.studentRemarks.edit', array_merge($this->formData(), ['studentRemark' => $studentRemark->load('media')]));
+    }
+
+    public function update(Request $request, StudentRemark $studentRemark, WhatsappService $whatsapp)
+    {
+        abort_if(Gate::denies('student_remark_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->authorizeRemarkAccess($studentRemark);
+
+        $data = $this->validated($request);
+        $data['visible_to_parent'] = $request->boolean('visible_to_parent');
+        $wasVisibleAndApproved = $studentRemark->visible_to_parent && $studentRemark->approval_status === 'approved';
+        $studentRemark->update($data);
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $studentRemark->addMedia($file)->toMediaCollection('remark_attachments');
+            }
+        }
+
+        if (! $wasVisibleAndApproved && $studentRemark->visible_to_parent && $studentRemark->approval_status === 'approved') {
+            $whatsapp->sendStudentGuardianMessage($studentRemark->student, 'remark', ucfirst($studentRemark->remark_type).' remark updated: '.$studentRemark->remark);
+        }
+
+        return redirect()->route('admin.student-remarks.index')->with('message', 'Remark updated successfully.');
+    }
+
+    private function authorizeRemarkAccess(StudentRemark $studentRemark): void
+    {
+        $scope = $this->erpScope();
+        if (! $scope['is_admin']) {
+            abort_if(! $this->scopeStudentQuery(Student::query())->where('id', $studentRemark->student_id)->exists(), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        }
+    }
+
     public function store(Request $request, WhatsappService $whatsapp)
     {
         abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
