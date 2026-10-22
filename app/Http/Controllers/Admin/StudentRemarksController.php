@@ -59,6 +59,16 @@ class StudentRemarksController extends Controller
         }
     }
 
+    public function destroy(StudentRemark $studentRemark)
+    {
+        abort_if(Gate::denies('student_remark_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $this->authorizeRemarkAccess($studentRemark);
+        $studentRemark->delete();
+
+        return redirect()->route('admin.student-remarks.index')->with('message', 'Remark deleted successfully.');
+    }
+
     public function store(Request $request, WhatsappService $whatsapp)
     {
         abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');

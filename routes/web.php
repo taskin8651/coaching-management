@@ -156,7 +156,7 @@ Route::post('homeworks/{homework}/approve', 'HomeworksController@approve')->name
 Route::resource('homeworks', 'HomeworksController')->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 // Student Remarks
 Route::post('student-remarks/{student_remark}/approve', 'StudentRemarksController@approve')->name('student-remarks.approve');
-Route::resource('student-remarks', 'StudentRemarksController')->only(['index', 'create', 'store', 'edit', 'update']);
+Route::resource('student-remarks', 'StudentRemarksController')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
 // Notices
 Route::delete('notices/destroy', 'NoticesController@massDestroy')->name('notices.massDestroy');
