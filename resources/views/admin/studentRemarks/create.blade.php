@@ -81,7 +81,7 @@
                             <option value="">Select Teacher</option>
 
                             @foreach($teachers as $id => $name)
-                                <option value="{{ $id }}" {{ old('teacher_id') == $id ? 'selected' : '' }}>
+                                <option value="{{ $id }}" {{ old('teacher_id', $defaultTeacherId) == $id ? 'selected' : '' }}>
                                     {{ $name }}
                                 </option>
                             @endforeach

@@ -34,6 +34,11 @@ class StudentRemarksController extends Controller
         $this->authorizeRemarkAccess($studentRemark);
 
         $data = $this->validated($request);
+        $scope = $this->erpScope();
+        if ($scope['is_teacher']) {
+            abort_if(! $scope['teacher_id'], Response::HTTP_FORBIDDEN, '403 Forbidden');
+            $data['teacher_id'] = $scope['teacher_id'];
+        }
         $data['visible_to_parent'] = $request->boolean('visible_to_parent');
         $wasVisibleAndApproved = $studentRemark->visible_to_parent && $studentRemark->approval_status === 'approved';
         $studentRemark->update($data);
@@ -74,6 +79,11 @@ class StudentRemarksController extends Controller
         abort_if(Gate::denies('student_remark_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $data = $this->validated($request);
+        $scope = $this->erpScope();
+        if ($scope['is_teacher']) {
+            abort_if(! $scope['teacher_id'], Response::HTTP_FORBIDDEN, '403 Forbidden');
+            $data['teacher_id'] = $scope['teacher_id'];
+        }
         // Unchecked HTML checkboxes are omitted from the request, so normalize explicitly
         // to prevent the database's default value (true) from making hidden remarks visible.
         $data['visible_to_parent'] = $request->boolean('visible_to_parent');
@@ -129,6 +139,32 @@ class StudentRemarksController extends Controller
         return back()->with('message', 'Remark approved successfully.');
     }
 
-    private function formData(): array { return ['students'=>$this->scopeStudentQuery(Student::with('user'))->get()->mapWithKeys(fn($s)=>[$s->id=>$s->user->name ?? $s->student_code ?? 'Student #'.$s->id])->prepend(trans('global.pleaseSelect'),''),'teachers'=>$this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn($t)=>[$t->id=>$t->user->name ?? 'Teacher #'.$t->id])->prepend('Optional','')]; }
+    private function formData(): array
+    {
+        $scope = $this->erpScope();
+        $teacherQuery = Teacher::with('user');
+
+        if ($scope['is_teacher']) {
+            $teacherQuery->where('id', $scope['teacher_id'] ?? 0);
+        } else {
+            $this->scopeBranchQuery($teacherQuery);
+        }
+
+        $teachers = $teacherQuery->get()->mapWithKeys(fn ($teacher) => [
+            $teacher->id => $teacher->user->name ?? 'Teacher #'.$teacher->id,
+        ]);
+
+        if (! $scope['is_teacher']) {
+            $teachers->prepend('Optional', '');
+        }
+
+        return [
+            'students' => $this->scopeStudentQuery(Student::with('user'))->get()
+                ->mapWithKeys(fn ($student) => [$student->id => $student->user->name ?? $student->student_code ?? 'Student #'.$student->id])
+                ->prepend(trans('global.pleaseSelect'), ''),
+            'teachers' => $teachers,
+            'defaultTeacherId' => $scope['is_teacher'] ? $scope['teacher_id'] : null,
+        ];
+    }
     private function validated(Request $request): array { return $request->validate(['student_id'=>['required','exists:students,id'],'teacher_id'=>['nullable','exists:teachers,id'],'remark_type'=>['required','in:positive,negative,neutral'],'remark_date'=>['required','date'],'title'=>['nullable','string','max:255'],'remark'=>['required','string'],'visible_to_parent'=>['nullable','boolean'],'attachments.*'=>['nullable','file','mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,ppt,pptx,zip','max:10240']]); }
 }
