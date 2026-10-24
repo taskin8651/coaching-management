@@ -18,12 +18,16 @@ class Holiday extends Model
         'type',
         'description',
         'created_by_id',
+        'category',
+        'target_mode',
+        'audiences',
     ];
 
     protected $casts = [
         'date' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
+        'audiences' => 'array',
     ];
 
     public function branch()
@@ -34,6 +38,11 @@ class Holiday extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function targets()
+    {
+        return $this->hasMany(HolidayTarget::class);
     }
 
     public function scopeMandatory($query)

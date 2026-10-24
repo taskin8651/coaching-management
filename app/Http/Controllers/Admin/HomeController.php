@@ -167,7 +167,7 @@ class HomeController extends Controller
                 $from = \Illuminate\Support\Carbon::parse($holiday->start_date ?? $holiday->date)->max(now()->startOfMonth());
                 $to = \Illuminate\Support\Carbon::parse($holiday->end_date ?? $holiday->date)->min(now()->endOfMonth());
 
-                return collect(\Illuminate\Support\CarbonPeriod::create($from, $to))
+                return collect(\Carbon\CarbonPeriod::create($from, $to))
                     ->mapWithKeys(fn ($day) => [$day->day => $holiday]);
             });
 
