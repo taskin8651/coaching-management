@@ -606,6 +606,42 @@
         single_branch_staff: 'staff'
     };
 
+    const modeAudience = {
+        batch_wise: 'students',
+        selected_students: 'students',
+        selected_teachers: 'teachers',
+        all_branch_teachers: 'teachers',
+        single_branch_teachers: 'teachers',
+        teacher_wise: 'teachers',
+        all_branch_staff: 'staff',
+        single_branch_staff: 'staff',
+        selected_staff: 'staff'
+    };
+
+    function selectedAudiences() {
+        return Array.from(document.querySelectorAll('input[name="audiences[]"]:checked'))
+            .map(input => input.value);
+    }
+
+    function updateApplyToOptions() {
+        const audiences = selectedAudiences();
+        const options = Array.from(mode.options);
+
+        options.forEach(option => {
+            const requiredAudience = modeAudience[option.value];
+            const allowed = audiences.length > 0 &&
+                (!requiredAudience || audiences.includes(requiredAudience));
+            option.hidden = !allowed;
+            option.disabled = !allowed;
+        });
+
+        if (mode.selectedOptions.length === 0 || mode.selectedOptions[0].disabled) {
+            const fallback = options.find(option => !option.disabled && option.value === 'branch_wise')
+                || options.find(option => !option.disabled);
+            if (fallback) mode.value = fallback.value;
+        }
+    }
+
     const branchModes = [
         'batch_wise',
         'single_branch_teachers',
@@ -675,6 +711,7 @@
     }
 
     function updateForm() {
+        updateApplyToOptions();
         const activeEntity = targetMap[mode.value] || '';
 
         document.querySelectorAll('.holiday-target-field').forEach(field => {
@@ -755,6 +792,8 @@
         checkbox.addEventListener('change', function () {
             this.closest('.role-checkbox-item')
                 ?.classList.toggle('checked', this.checked);
+            updateApplyToOptions();
+            updateForm();
         });
     });
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Admin\Concerns\FiltersHolidayAudience;
 use App\Models\Batch;
 use App\Models\Branch;
 use App\Models\Course;
@@ -33,6 +34,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HomeController extends Controller
 {
+    use FiltersHolidayAudience;
+
     public function index()
     {
         abort_if(Gate::denies('dashboard_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -152,17 +155,20 @@ class HomeController extends Controller
         $examTrend = $this->examTrend($scope, $studentIds, $batchIds);
 
         $upcomingHolidays = Holiday::query()
+            ->with('targets')
             ->forBranchOrGlobal($scope['branch_id'])
             ->whereRaw('COALESCE(end_date, date) >= ?', [$today])
             ->orderByRaw('COALESCE(start_date, date)')
-            ->take(5)
             ->get();
+        $upcomingHolidays = $this->filterHolidaysForViewer($upcomingHolidays, $scope)->take(5)->values();
 
         $holidaysThisMonth = Holiday::query()
+            ->with('targets')
             ->forBranchOrGlobal($scope['branch_id'])
             ->whereRaw('COALESCE(start_date, date) <= ?', [now()->endOfMonth()->toDateString()])
             ->whereRaw('COALESCE(end_date, date) >= ?', [now()->startOfMonth()->toDateString()])
-            ->get()
+            ->get();
+        $holidaysThisMonth = $this->filterHolidaysForViewer($holidaysThisMonth, $scope)
             ->flatMap(function ($holiday) {
                 $from = \Illuminate\Support\Carbon::parse($holiday->start_date ?? $holiday->date)->max(now()->startOfMonth());
                 $to = \Illuminate\Support\Carbon::parse($holiday->end_date ?? $holiday->date)->min(now()->endOfMonth());

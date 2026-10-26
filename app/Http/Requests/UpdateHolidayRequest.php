@@ -33,4 +33,20 @@ class UpdateHolidayRequest extends FormRequest
             'target_ids.*' => ['required', 'integer'],
         ];
     }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $requiredAudience = match ($this->input('target_mode')) {
+                'batch_wise', 'selected_students' => 'students',
+                'selected_teachers', 'all_branch_teachers', 'single_branch_teachers', 'teacher_wise' => 'teachers',
+                'all_branch_staff', 'single_branch_staff', 'selected_staff' => 'staff',
+                default => null,
+            };
+
+            if ($requiredAudience && ! in_array($requiredAudience, (array) $this->input('audiences', []), true)) {
+                $validator->errors()->add('target_mode', 'Choose an Apply To option that matches Holiday For.');
+            }
+        });
+    }
 }

@@ -26,7 +26,7 @@ class HolidaysController extends Controller
         abort_if(Gate::denies('holiday_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $scope = $this->erpScope();
 
-        $holidays = Holiday::with('branch');
+        $holidays = Holiday::with(['branch', 'targets']);
 
         if (! $scope['is_admin']) {
             $scope['branch_id']
@@ -47,11 +47,65 @@ class HolidaysController extends Controller
 
         $holidays = $holidays->orderByRaw('COALESCE(start_date, date)')->get();
 
+        if (! $scope['is_admin'] && ! $scope['is_manager']) {
+            $studentIds = collect();
+            if ($scope['is_student'] && $scope['student_id']) {
+                $studentIds->push($scope['student_id']);
+            }
+            if ($scope['is_parent']) {
+                $studentIds = $studentIds->merge($scope['parent_student_ids']);
+            }
+
+            $studentBatchIds = collect();
+            if ($studentIds->isNotEmpty()) {
+                $studentBatchIds = Student::whereIn('id', $studentIds)->whereNotNull('batch_id')->pluck('batch_id')
+                    ->merge(\App\Models\StudentBatch::whereIn('student_id', $studentIds)->where('status', 'active')->pluck('batch_id'))
+                    ->unique()->values();
+            }
+
+            $holidays = $holidays->filter(function (Holiday $holiday) use ($scope, $studentIds, $studentBatchIds) {
+                return $this->holidayTargetsViewer($holiday, $scope, $studentIds, $studentBatchIds);
+            })->values();
+        }
+
         $branches = Branch::where('status', 'active')
             ->when(! $scope['is_admin'], fn ($q) => $scope['branch_id'] ? $q->where('id', $scope['branch_id']) : $q->whereRaw('1 = 0'))
             ->pluck('name', 'id');
 
         return view('admin.holidays.index', compact('holidays', 'scope', 'branches'));
+    }
+
+    /** Hide targeted holidays from users who are not in the saved audience/target set. */
+    private function holidayTargetsViewer(Holiday $holiday, array $scope, $studentIds, $studentBatchIds): bool
+    {
+        // Records created before audience targeting retain their original branch/global visibility.
+        if (! $holiday->target_mode) {
+            return true;
+        }
+
+        $audiences = $holiday->audiences ?? [];
+        $audiences = is_array($audiences) ? $audiences : [];
+        $types = [];
+        if ($scope['is_student'] || $scope['is_parent']) $types[] = 'students';
+        if ($scope['is_teacher']) $types[] = 'teachers';
+        if ($scope['is_staff']) $types[] = 'staff';
+        if (! array_intersect($audiences, $types)) return false;
+
+        $targetIds = fn (string $type) => $holiday->targets->where('target_type', $type)->pluck('target_id');
+
+        return match ($holiday->target_mode) {
+            'all_branches' => true,
+            'branch_wise' => $targetIds('branch')->contains((int) $scope['branch_id']),
+            'batch_wise' => ($scope['is_student'] || $scope['is_parent']) && $studentBatchIds->intersect($targetIds('batch'))->isNotEmpty(),
+            'selected_students' => ($scope['is_student'] || $scope['is_parent']) && $studentIds->intersect($targetIds('student'))->isNotEmpty(),
+            'selected_teachers', 'teacher_wise' => $scope['is_teacher'] && $targetIds('teacher')->contains((int) $scope['teacher_id']),
+            'all_branch_teachers' => $scope['is_teacher'],
+            'single_branch_teachers' => $scope['is_teacher'] && $holiday->branch_id == $scope['branch_id'] && $targetIds('teacher')->contains((int) $scope['teacher_id']),
+            'all_branch_staff' => $scope['is_staff'],
+            'single_branch_staff' => $scope['is_staff'] && $holiday->branch_id == $scope['branch_id'] && $targetIds('staff')->contains((int) $scope['staff_id']),
+            'selected_staff' => $scope['is_staff'] && $targetIds('staff')->contains((int) $scope['staff_id']),
+            default => false,
+        };
     }
 
     public function create()
@@ -96,7 +150,22 @@ class HolidaysController extends Controller
         $this->checkViewAccess($holiday);
 
         $holiday->load(['branch', 'createdBy', 'targets']);
-        
+
+        $scope = $this->erpScope();
+        if (! $scope['is_admin'] && ! $scope['is_manager']) {
+            $studentIds = collect();
+            if ($scope['is_student'] && $scope['student_id']) $studentIds->push($scope['student_id']);
+            if ($scope['is_parent']) $studentIds = $studentIds->merge($scope['parent_student_ids']);
+
+            $studentBatchIds = collect();
+            if ($studentIds->isNotEmpty()) {
+                $studentBatchIds = Student::whereIn('id', $studentIds)->whereNotNull('batch_id')->pluck('batch_id')
+                    ->merge(\App\Models\StudentBatch::whereIn('student_id', $studentIds)->where('status', 'active')->pluck('batch_id'))
+                    ->unique()->values();
+            }
+
+            abort_if(! $this->holidayTargetsViewer($holiday, $scope, $studentIds, $studentBatchIds), 404);
+        }
 
         return view('admin.holidays.show', compact('holiday'));
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
+use App\Http\Controllers\Admin\Concerns\FiltersHolidayAudience;
 use App\Http\Controllers\Controller;
 use App\Models\FacultyLogBook;
 use App\Models\FeeInstallment;
@@ -25,7 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MyPortalController extends Controller
 {
-    use AppliesErpScope;
+    use AppliesErpScope, FiltersHolidayAudience;
 
     public function index()
     {
@@ -231,11 +232,12 @@ class MyPortalController extends Controller
         });
 
         $upcomingHolidays = Holiday::query()
+            ->with('targets')
             ->forBranchOrGlobal($scope['branch_id'])
             ->whereRaw('COALESCE(end_date, date) >= ?', [$today])
             ->orderByRaw('COALESCE(start_date, date)')
-            ->take(5)
             ->get();
+        $upcomingHolidays = $this->filterHolidaysForViewer($upcomingHolidays, $scope, $studentIds)->take(5)->values();
 
         $portalStats = [
             ['label' => 'Attendance', 'value' => $attendancePercent . '%', 'note' => 'This Month', 'icon' => 'fa-calendar-check', 'color' => 'blue'],
