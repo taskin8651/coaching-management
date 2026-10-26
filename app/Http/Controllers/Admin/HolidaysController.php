@@ -218,10 +218,10 @@ class HolidaysController extends Controller
             ->when(! $scope['is_admin'], fn ($q) => $scope['branch_id'] ? $q->where('id', $scope['branch_id']) : $q->whereRaw('1 = 0'))
             ->pluck('name', 'id');
 
-        $students = Student::with('user')->when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('id')->get();
-        $teachers = Teacher::with('user')->when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('id')->get();
-        $staff = Staff::with('user')->when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('id')->get();
-        $batches = Batch::when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('name')->get();
+        $students = Student::with(['user', 'branch'])->when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('id')->get();
+        $teachers = Teacher::with(['user', 'branch'])->when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('id')->get();
+        $staff = Staff::with(['user', 'branch'])->when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('id')->get();
+        $batches = Batch::with('branch')->when(! $scope['is_admin'], fn ($q) => $q->where('branch_id', $scope['branch_id']))->orderBy('name')->get();
 
         $holidayTargets = $holiday ? $holiday->targets : collect();
 

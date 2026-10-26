@@ -506,6 +506,10 @@
                                     ? $id
                                     : $record->id;
 
+                                $recordBranchId = is_string($record)
+                                    ? ''
+                                    : ($record->branch_id ?? '');
+
                                 $recordBranch = is_string($record)
                                     ? ''
                                     : ($record->branch->name ?? '');
@@ -523,7 +527,7 @@
                             <label
                                 class="role-checkbox-item {{ $isSelected ? 'checked' : '' }}"
                                 data-target-item="{{ $entity }}"
-                                data-branch="{{ $recordBranch }}"
+                                data-branch="{{ $recordBranchId }}"
                             >
                                 <input
                                     type="checkbox"
@@ -531,7 +535,7 @@
                                     value="{{ $optionId }}"
                                     class="role-checkbox"
                                     data-target-checkbox="{{ $entity }}"
-                                    data-target-branch="{{ $recordBranch }}"
+                                    data-target-branch="{{ $recordBranchId }}"
                                     @checked($isSelected)
                                 >
 
