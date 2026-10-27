@@ -33,11 +33,21 @@
     <div>
         <h2 class="admin-page-title">Report Cards</h2>
         <p class="admin-page-subtitle">
-            Generated result summaries, parent visibility and publish status
+            @if($isStudent)
+                Your published report cards
+            @else
+                Generated result summaries, parent visibility and publish status
+            @endif
         </p>
     </div>
+    @if($isStudent)
+        <a href="{{ route('admin.report-cards.preview') }}" class="btn-primary">
+            <i class="fas fa-eye"></i> Live report preview
+        </a>
+    @endif
 </div>
 
+@if(!$isStudent)
 <div class="rc-metric-grid">
     <div class="rc-metric-card">
         <div class="rc-metric-icon rc-tone-blue"><i class="fas fa-file-alt"></i></div>
@@ -72,14 +82,24 @@
         </div>
     </div>
 </div>
+@endif
 
 <div class="page-card no-print" style="margin-bottom:16px;padding:18px;">
     <h3 class="page-card-title">Live report preview</h3>
-    <p class="page-card-note">Preview reads the latest saved marks and test remarks. Choose a student for an individual report, or leave blank for all eligible students.</p>
+    <p class="page-card-note">
+        @if($isStudent)
+            Preview your latest saved test results. You can filter by date and batch.
+        @else
+            Preview latest saved marks and test remarks. Choose a student for an individual report, or leave blank for all eligible students.
+        @endif
+    </p>
     <form method="GET" action="{{ route('admin.report-cards.preview') }}" class="admin-form-grid" style="align-items:end;">
         <div class="field-group mb-0"><label class="field-label" for="preview_student_id">Student</label>
-            <select class="field-input" id="preview_student_id" name="student_id"><option value="">All students</option>
-                @foreach($students as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
+            <select class="field-input" id="preview_student_id" name="student_id">
+                @unless($isStudent)<option value="">All students</option>@endunless
+                @foreach($students as $id => $name)
+                    <option value="{{ $id }}" {{ $isStudent || request('student_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                @endforeach
             </select>
         </div>
         <div class="field-group mb-0"><label class="field-label" for="preview_from">From</label><input class="field-input" type="date" id="preview_from" name="date_from"></div>
@@ -91,11 +111,11 @@
 <div id="rcListView">
 <div class="page-card">
     <div class="page-card-header">
-        <p class="page-card-title">All Report Cards</p>
+        <p class="page-card-title">{{ $isStudent ? 'My Report Cards' : 'All Report Cards' }}</p>
 
         <span class="page-card-note">
             <i class="fas fa-eye"></i>
-            Publish report cards for parent visibility
+            @if($isStudent) Open any row to view your complete live report @else Publish report cards for parent visibility @endif
         </span>
     </div>
 
@@ -103,7 +123,7 @@
         <table class="min-w-full datatable datatable-ReportCards">
             <thead>
                 <tr>
-                    <th>Student</th>
+                        @unless($isStudent)<th>Student</th>@endunless
                     <th>Exam</th>
                     <th>Batch</th>
                     <th>Subject / Course</th>
@@ -112,14 +132,17 @@
                     <th>Grade</th>
                     <th>Result</th>
                     <th>Rank</th>
-                    <th>Parent Status</th>
-                    <th style="text-align:right;" class="no-print">Publish</th>
+                    @unless($isStudent)
+                        <th style="text-align:right;" class="no-print">Publish</th>
+                    @endunless
+                    <th style="text-align:right;" class="no-print">Full Report</th>
                 </tr>
             </thead>
 
             <tbody>
                 @foreach($reportCards as $card)
                     <tr>
+                        @unless($isStudent)
                         <td>
                             <div class="inline-flex-center">
                                 @php
@@ -138,6 +161,7 @@
                                 </div>
                             </div>
                         </td>
+                        @endunless
 
                         <td>
                             <p class="table-main-text">{{ $card->exam->title ?? '-' }}</p>
@@ -196,14 +220,7 @@
                             @endif
                         </td>
 
-                        <td>
-                            @if($card->published_to_parent)
-                                <span class="status-pill success">Published</span>
-                            @else
-                                <span class="status-pill warning">Draft</span>
-                            @endif
-                        </td>
-
+                        @unless($isStudent)
                         <td class="no-print">
                             <div class="action-row">
                                 @can('report_card_publish')
@@ -228,6 +245,12 @@
                                     <span style="font-size:12px;color:#94A3B8;">—</span>
                                 @endcan
                             </div>
+                        </td>
+                        @endunless
+                        <td class="no-print">
+                            <a class="btn-outline" href="{{ route('admin.report-cards.preview', ['student_id' => $card->student_id]) }}">
+                                <i class="fas fa-file-alt"></i> View full report
+                            </a>
                         </td>
                     </tr>
                 @endforeach

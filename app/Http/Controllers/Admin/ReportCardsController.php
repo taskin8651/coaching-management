@@ -29,6 +29,17 @@ class ReportCardsController extends Controller
     {
         abort_if(Gate::denies('report_card_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        $scope = $this->erpScope();
+        $isStudent = $scope['is_student'];
+        $studentBatchIds = collect();
+        if ($isStudent) {
+            abort_if(! $scope['student_id'], Response::HTTP_FORBIDDEN, 'Student profile is not linked to this account.');
+            // Ignore any supplied student_id: a student preview is always their own.
+            $request->merge(['student_id' => $scope['student_id']]);
+            $profile = Student::with(['studentBatches' => fn ($query) => $query->where('status', 'active')])->find($scope['student_id']);
+            $studentBatchIds = $this->studentBatchIds($profile);
+        }
+
         $data = $request->validate([
             'student_id' => ['nullable', 'integer', 'exists:students,id'],
             'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
@@ -36,17 +47,23 @@ class ReportCardsController extends Controller
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
 
+        if ($isStudent && ! empty($data['batch_id'])) {
+            abort_unless($studentBatchIds->contains((int) $data['batch_id']), Response::HTTP_NOT_FOUND, 'Batch not found for this student.');
+        }
+
         $student = null;
         if (! empty($data['student_id'])) {
             $student = $this->scopeStudentQuery(Student::with('user')->whereKey($data['student_id']))->firstOrFail();
         }
 
         $results = ExamResult::with(['exam.subject', 'exam.batch', 'exam.course', 'student.user', 'remarkAuthor'])
-            ->where(function ($query) {
+            ->when(! $isStudent, function ($query) {
+                $query->where(function ($query) {
                 $query->where(function ($remarks) {
                     $remarks->whereNotNull('remarks')->whereRaw("TRIM(remarks) <> ''");
                 })->orWhere(function ($remarks) {
                     $remarks->whereNotNull('overall_remark')->whereRaw("TRIM(overall_remark) <> ''");
+                });
                 });
             })
             ->whereHas('exam', function ($query) use ($data) {
@@ -62,13 +79,15 @@ class ReportCardsController extends Controller
             ->orderBy('exam_id')
             ->get();
 
-        abort_if($results->isEmpty(), Response::HTTP_NOT_FOUND, 'No test results with saved remarks match this report.');
+        abort_if($results->isEmpty(), Response::HTTP_NOT_FOUND, $isStudent
+            ? 'No saved test results are available for your report yet.'
+            : 'No test results with saved remarks match this report.');
 
         if (! $student && $results->pluck('student_id')->unique()->count() === 1) {
             $student = $results->first()->student;
         }
 
-        return view('admin.reportCards.preview', compact('results', 'student', 'data'));
+        return view('admin.reportCards.preview', compact('results', 'student', 'data', 'isStudent'));
     }
 
     public function index(Request $request)
@@ -76,9 +95,19 @@ class ReportCardsController extends Controller
         abort_if(Gate::denies('report_card_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         [$reportCards, $summary, $filters] = $this->filteredReportCards($request);
+        $isStudent = $this->erpScope()['is_student'];
 
         $exams = $this->examsForGeneration();
-        $batches = $this->scopeBatchQuery(Batch::where('status', 'active'))
+        $batchQuery = $this->scopeBatchQuery(Batch::where('status', 'active'));
+        if ($isStudent) {
+            $scope = $this->erpScope();
+            $profile = $scope['student_id']
+                ? Student::with(['studentBatches' => fn ($query) => $query->where('status', 'active')])->find($scope['student_id'])
+                : null;
+            $studentBatchIds = $this->studentBatchIds($profile);
+            $batchQuery->whereIn('id', $studentBatchIds);
+        }
+        $batches = $batchQuery
             ->orderBy('name')
             ->pluck('name', 'id')
             ->prepend(trans('global.pleaseSelect'), '');
@@ -116,6 +145,7 @@ class ReportCardsController extends Controller
 
         return view('admin.reportCards.index', compact(
             'reportCards',
+            'isStudent',
             'exams',
             'summary',
             'filters',
@@ -196,8 +226,14 @@ class ReportCardsController extends Controller
 
         $scope = $this->erpScope();
 
-        if ($scope['is_student'] && $scope['student_id']) {
-            $reportCards->where('student_id', $scope['student_id'])->where('published_to_parent', true);
+        if ($scope['is_student']) {
+            if ($scope['student_id']) {
+                $reportCards->where('student_id', $scope['student_id'])->where('published_to_parent', true);
+            } else {
+                // A student account without a linked student profile must never fall through
+                // to the broader parent, staff, or branch scopes.
+                $reportCards->whereRaw('1 = 0');
+            }
         } elseif ($scope['is_parent'] && $scope['parent_student_ids']->isNotEmpty()) {
             $reportCards->whereIn('student_id', $scope['parent_student_ids'])->where('published_to_parent', true);
         } elseif (! $scope['is_admin']) {
@@ -403,6 +439,28 @@ class ReportCardsController extends Controller
                     ->values(),
             ]),
         ];
+    }
+
+    /**
+     * Active student-batch mappings are authoritative. The legacy primary batch is
+     * used only for students who do not yet have any active mappings.
+     */
+    private function studentBatchIds(?Student $student)
+    {
+        if (! $student) {
+            return collect();
+        }
+
+        $batchIds = $student->studentBatches->pluck('batch_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($batchIds->isEmpty() && $student->batch_id) {
+            $batchIds->push((int) $student->batch_id);
+        }
+
+        return $batchIds;
     }
 
     private function grade($percentage): string
