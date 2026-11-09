@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Admin\Concerns\AppliesErpScope;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
+use App\Models\AttendanceSetting;
 use App\Models\Branch;
 use App\Models\StaffAttendance;
 use App\Models\Teacher;
@@ -42,6 +43,8 @@ class TeacherAttendancesController extends Controller
             ->latest('attendance_date')->latest('id')->get();
 
         return view('admin.teacherAttendances.index', compact('attendances', 'filters') + [
+            'attendanceSetting' => AttendanceSetting::current(),
+            'isAdmin' => $scope['is_admin'],
             'batches' => $this->scopeBatchQuery(Batch::query())->pluck('name', 'id')->prepend('All Batches', ''),
             'branches' => Branch::query()
                 ->when(! $scope['is_admin'], fn ($q) => $q->where('id', $scope['branch_id']))
@@ -50,9 +53,32 @@ class TeacherAttendancesController extends Controller
         ]);
     }
 
+    public function updateTeacherAccess(Request $request)
+    {
+        abort_unless($this->erpScope()['is_admin'], Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $data = $request->validate(['teachers_can_mark_attendance' => ['required', 'boolean']]);
+        $setting = AttendanceSetting::current();
+        $setting->teachers_can_mark_attendance = $data['teachers_can_mark_attendance'];
+        $setting->save();
+
+        return redirect()->route('admin.teacher-attendances.index')->with('message', 'Teacher attendance access updated.');
+    }
+
     public function create()
     {
-        abort_if(Gate::denies('teacher_attendance_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $scope = $this->erpScope();
+        $teacherSelfService = $scope['is_teacher'] && $scope['teacher_id'] && AttendanceSetting::current()->teachers_can_mark_attendance;
+        abort_if(! $teacherSelfService && Gate::denies('teacher_attendance_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        if ($teacherSelfService) {
+            $teacher = Teacher::with('user')->findOrFail($scope['teacher_id']);
+            $batchIds = $this->teacherBatchIds($teacher->id);
+            return view('admin.teacherAttendances.create', [
+                'teachers' => collect([$teacher->id => $teacher->user->name ?? 'Teacher']),
+                'batches' => Batch::whereIn('id', $batchIds)->pluck('name', 'id'),
+                'teacherSelfService' => true,
+                'fixedTeacherId' => $teacher->id,
+            ]);
+        }
         return view('admin.teacherAttendances.create', [
             'teachers' => $this->scopeBranchQuery(Teacher::with('user'))->get()->mapWithKeys(fn ($teacher) => [$teacher->id => $teacher->user->name ?? 'Teacher #' . $teacher->id]),
             'batches' => $this->scopeBatchQuery(Batch::query())->pluck('name', 'id'),
@@ -61,7 +87,12 @@ class TeacherAttendancesController extends Controller
 
     public function store(Request $request)
     {
-        abort_if(Gate::denies('teacher_attendance_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $scope = $this->erpScope();
+        $teacherSelfService = $scope['is_teacher'] && $scope['teacher_id'] && AttendanceSetting::current()->teachers_can_mark_attendance;
+        abort_if(! $teacherSelfService && Gate::denies('teacher_attendance_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        if ($teacherSelfService) {
+            $request->merge(['teacher_id' => $scope['teacher_id']]);
+        }
         $data = $request->validate([
             'teacher_id' => ['required', 'exists:teachers,id'], 'batch_id' => ['required', 'exists:batches,id'],
             'attendance_date' => ['required', 'date'], 'first_in_time' => ['nullable', 'date_format:H:i'],

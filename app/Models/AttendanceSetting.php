@@ -15,6 +15,7 @@ class AttendanceSetting extends Model
         'student_grace_minutes',
         'teacher_grace_minutes',
         'auto_absent_after_minutes',
+        'teachers_can_mark_attendance',
     ];
 
     public static function current(): self
@@ -23,6 +24,7 @@ class AttendanceSetting extends Model
             'student_grace_minutes' => 10,
             'teacher_grace_minutes' => 10,
             'auto_absent_after_minutes' => 30,
+            'teachers_can_mark_attendance' => false,
         ]);
     }
 }

@@ -95,6 +95,7 @@ Route::resource('student-batches', 'StudentBatchesController')->except(['show'])
 // Student Attendance
 Route::resource('student-attendances', 'StudentAttendancesController')->only(['index', 'create', 'store']);
 Route::resource('teacher-attendances', 'TeacherAttendancesController')->only(['index', 'create', 'store']);
+Route::post('teacher-attendances/teacher-access', 'TeacherAttendancesController@updateTeacherAccess')->name('teacher-attendances.teacher-access');
 Route::resource('staff-attendances', 'StaffAttendancesController')->only(['index', 'create', 'store']);
 
 // Faculty Log Book

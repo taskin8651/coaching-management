@@ -1,7 +1,15 @@
 @extends('layouts.admin')
 @section('page-title', 'Teacher Attendance')
 @section('content')
-<div class="admin-page-head"><div><h2 class="admin-page-title">Teacher Attendance</h2><p class="admin-page-subtitle">Batch-wise teacher attendance records.</p></div>@can('teacher_attendance_create')<a href="{{ route('admin.teacher-attendances.create') }}" class="btn-primary"><i class="fas fa-plus"></i> Mark Teacher Attendance</a>@endcan</div>
+<div class="admin-page-head"><div><h2 class="admin-page-title">Teacher Attendance</h2><p class="admin-page-subtitle">Batch-wise teacher attendance records.</p></div>@if((auth()->user()->teacher && $attendanceSetting->teachers_can_mark_attendance) || auth()->user()->can('teacher_attendance_create'))<a href="{{ route('admin.teacher-attendances.create') }}" class="btn-primary"><i class="fas fa-plus"></i> Mark Teacher Attendance</a>@endif</div>
+@if($isAdmin)
+<form method="POST" action="{{ route('admin.teacher-attendances.teacher-access') }}" class="page-card mb-4" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+    @csrf
+    <div><strong>Allow teachers to mark their attendance</strong><div class="page-card-note">Turn this on to show the attendance button on the teacher account.</div></div>
+    <input type="hidden" name="teachers_can_mark_attendance" value="0">
+    <label style="display:flex;align-items:center;gap:8px;white-space:nowrap;"><input type="checkbox" name="teachers_can_mark_attendance" value="1" onchange="this.form.submit()" {{ $attendanceSetting->teachers_can_mark_attendance ? 'checked' : '' }}> Enable</label>
+</form>
+@endif
 
 <form method="GET" action="{{ route('admin.teacher-attendances.index') }}" class="page-card mb-4">
 
